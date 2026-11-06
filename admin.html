@@ -49,7 +49,7 @@
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
       </div>
       <div>
-        <h3 class="text-sm font-bold text-sibyl-brown tracking-wider">管理中心安全驗證</h3>
+        <h3 class="text-sm font-bold text-sibyl-brown tracking-wider">管理系統安全驗證</h3>
         <p class="text-xs text-stone-400 mt-1">請輸入四位數管理通行密碼</p>
       </div>
       <input type="password" id="adminPwdInput" placeholder="••••" maxlength="12" 
@@ -63,7 +63,7 @@
 
   <div class="max-w-7xl mx-auto admin-wrapper space-y-6">
 
-    <!-- 頂部品牌導航列 -->
+    <!-- 頂部列 -->
     <header class="bg-white border border-sibyl-border rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-xl bg-sibyl-rose text-white flex items-center justify-center font-bold text-sm tracking-widest">
@@ -113,7 +113,7 @@
       </button>
     </nav>
 
-    <!-- 1. 訂單管理 (還原狀態變更下拉選單與過濾標籤) -->
+    <!-- 1. 訂單管理 -->
     <section id="orderTab" class="tab-content bg-white border border-sibyl-border rounded-2xl p-6 shadow-sm space-y-4">
       <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 border-b pb-3">
         <div class="flex items-center gap-3">
@@ -168,7 +168,7 @@
       </div>
     </section>
 
-    <!-- 2. 商品上架 (相片縮圖預覽卡片 + 左右調順序 + 刪除) -->
+    <!-- 2. 商品上架 (新增：批量填入原價 + 批量填入特價) -->
     <section id="uploadTab" class="tab-content bg-white border border-sibyl-border rounded-2xl p-6 shadow-sm space-y-4 hidden">
       <h2 id="formActionTitle" class="text-xs font-bold tracking-wider text-sibyl-brown uppercase border-b pb-2">商品快速配置</h2>
       
@@ -220,16 +220,24 @@
         </div>
       </div>
 
+      <!-- 規格矩陣 (支援原價與特價雙批量按鈕) -->
       <div class="bg-stone-50 p-4 border rounded-xl space-y-2">
-        <div class="flex justify-between items-center">
+        <div class="flex justify-between items-center flex-wrap gap-2">
           <span class="text-xs font-bold text-stone-600">規格特價配置矩陣 (K欄原價 / L欄特價)</span>
-          <button onclick="batchSetMatrixPrice()" class="text-[11px] bg-stone-200 hover:bg-stone-300 px-2.5 py-1 rounded">批量統一填入特價</button>
+          <div class="flex gap-2">
+            <button type="button" onclick="batchSetMatrixOldPrice()" class="text-[11px] bg-stone-200 hover:bg-stone-300 text-stone-700 px-2.5 py-1 rounded font-bold transition">
+              批量統一填入原價
+            </button>
+            <button type="button" onclick="batchSetMatrixPrice()" class="text-[11px] bg-stone-200 hover:bg-stone-300 text-stone-700 px-2.5 py-1 rounded font-bold transition">
+              批量統一填入特價
+            </button>
+          </div>
         </div>
         <table class="w-full text-left text-xs bg-white border rounded-lg">
           <thead>
             <tr class="bg-stone-100 text-stone-600 font-bold">
               <th class="p-2">組合規格</th>
-              <th class="p-2 w-32">原價</th>
+              <th class="p-2 w-32">原價 (劃線價)</th>
               <th class="p-2 w-32">特價 (必填單價)</th>
               <th class="p-2 w-24">庫存上限</th>
             </tr>
@@ -247,7 +255,6 @@
           <div id="storageStatusText" class="text-[11px] text-sibyl-rose font-bold mt-1"></div>
         </div>
 
-        <!-- 縮圖順序調整卡片展示區 -->
         <div>
           <label class="text-xs font-bold text-stone-600 block mb-1.5">商品圖庫排序 (可點擊左右按鈕調整封面與輪播順序)</label>
           <div id="productThumbnailsContainer" class="grid grid-cols-3 sm:grid-cols-6 gap-3"></div>
@@ -426,7 +433,7 @@
 
   </div>
 
-  <!-- 專屬自訂美學彈窗 Prompt / Confirm Modal (無瀏覽器原生框) -->
+  <!-- 專屬自訂美學彈窗 Prompt / Confirm Modal -->
   <div id="aestheticDialogModal" class="fixed inset-0 bg-stone-900/50 backdrop-blur-sm hidden z-[99999] items-center justify-center p-4">
     <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-4 border border-sibyl-border">
       <h3 id="dialogTitle" class="text-sm font-bold text-sibyl-brown">輸入提示</h3>
@@ -450,6 +457,7 @@
 
   <script>
     const STORE_ID = "sibyl";
+    const ADMIN_PASSWORD = "8888";
     const SUPABASE_URL = "https://tzqpfnrpnfzzubofoqlt.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6cXBmbnJwbmZ6enVib2ZvcWx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1ODQ5ODYsImV4cCI6MjEwODE2MDk4Nn0.B-ub7DCpzF3b2gjpTrM9jdW0SLOqRPillZTmoXPuNgk";
     const GAS_URL = "https://script.google.com/macros/s/AKfycbxnR6FWbp729CAom_b4L5K9zLecQkN5g8gVSiXEU3NT-1vY5cgimwSU4K8wiXu1UsM/exec";
@@ -468,8 +476,6 @@
 
     let storeNavLinks = [];
     let dialogCallback = null;
-
-    // 商品縮圖清單陣列
     let currentUploadedImages = [];
 
     function renderProductThumbnails() {
@@ -491,9 +497,9 @@
             </div>
             ${idx === 0 ? '<span class="absolute top-1.5 left-1.5 bg-sibyl-rose text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow">首圖</span>' : ''}
             <div class="flex justify-between items-center p-1 bg-white border-t text-[10px]">
-              <button onclick="moveProductImg(${idx}, -1)" ${idx === 0 ? 'disabled class="opacity-20 text-stone-300"' : 'class="hover:text-sibyl-rose font-bold text-stone-600 px-1"'}>◀</button>
-              <button onclick="removeProductImg(${idx})" class="text-stone-400 hover:text-red-600 font-bold px-1">刪除</button>
-              <button onclick="moveProductImg(${idx}, 1)" ${idx === currentUploadedImages.length - 1 ? 'disabled class="opacity-20 text-stone-300"' : 'class="hover:text-sibyl-rose font-bold text-stone-600 px-1"'}>▶</button>
+              <button type="button" onclick="moveProductImg(${idx}, -1)" ${idx === 0 ? 'disabled class="opacity-20 text-stone-300"' : 'class="hover:text-sibyl-rose font-bold text-stone-600 px-1"'}>◀</button>
+              <button type="button" onclick="removeProductImg(${idx})" class="text-stone-400 hover:text-red-600 font-bold px-1">刪除</button>
+              <button type="button" onclick="moveProductImg(${idx}, 1)" ${idx === currentUploadedImages.length - 1 ? 'disabled class="opacity-20 text-stone-300"' : 'class="hover:text-sibyl-rose font-bold text-stone-600 px-1"'}>▶</button>
             </div>
           </div>
         `;
@@ -514,7 +520,6 @@
       renderProductThumbnails();
     }
 
-    // 自訂美感彈窗
     function showCustomPrompt(title, defaultValue, callback) {
       document.getElementById('dialogTitle').innerText = title;
       document.getElementById('dialogTextInput').value = defaultValue || '';
@@ -541,8 +546,7 @@
       modal.classList.add('hidden'); modal.classList.remove('flex');
       if (dialogCallback) {
         if (isConfirmed) {
-          let val = document.getElementById('dialogTextInput').value;
-          dialogCallback(val);
+          dialogCallback(document.getElementById('dialogTextInput').value);
         } else {
           dialogCallback(null);
         }
@@ -571,14 +575,15 @@
     }
 
     function openChangePasswordModal() {
-      showCustomPrompt("請輸入新的後台管理通行密碼 (4-12 位數字或英數)：", "", async (newPwd) => {
-        if (!newPwd || newPwd.trim().length < 4) return alert("密碼不能少於 4 個字元！");
-        await fetch(`${SUPABASE_URL}/rest/v1/shop_stores`, {
+      showCustomPrompt("請輸入新的後台管理密碼：", "", async (newPwd) => {
+        if (!newPwd || newPwd.trim().length < 4) return alert("密碼不能少於 4 個字元");
+        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_stores`, {
           method: 'POST',
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
           body: JSON.stringify({ store_id: STORE_ID, admin_pin: newPwd.trim() })
         });
-        showToast("後台管理密碼已成功變更！");
+        if (res.ok) showToast("管理密碼已成功更新！");
+        else alert("密碼更新失敗，請確認資料庫狀態");
       });
     }
 
@@ -620,7 +625,7 @@
             <div class="flex items-center gap-2 bg-white px-2.5 py-1.5 rounded-lg border border-stone-200 text-xs">
               <span class="text-stone-400">└─</span>
               <input type="text" value="${leaf.name}" onchange="updateLeafName(${mIdx}, ${sIdx}, ${lIdx}, this.value)" class="p-1 border rounded text-xs outline-none w-28">
-              <button onclick="removeLeafCategory(${mIdx}, ${sIdx}, ${lIdx})" class="text-stone-400 hover:text-red-600 font-bold px-1">✕</button>
+              <button type="button" onclick="removeLeafCategory(${mIdx}, ${sIdx}, ${lIdx})" class="text-stone-400 hover:text-red-600 font-bold px-1">✕</button>
             </div>
           `).join('');
 
@@ -629,8 +634,8 @@
               <div class="flex items-center gap-2">
                 <span class="font-bold text-xs text-stone-700">├── 次分類：</span>
                 <input type="text" value="${sub.name}" onchange="updateSubName(${mIdx}, ${sIdx}, this.value)" class="p-1 border rounded text-xs font-medium outline-none w-36">
-                <button onclick="openAddLeafModal(${mIdx}, ${sIdx})" class="text-[11px] bg-stone-200 hover:bg-stone-300 px-2 py-0.5 rounded text-stone-700">+ 新增細分類</button>
-                <button onclick="removeSubCategory(${mIdx}, ${sIdx})" class="text-stone-400 hover:text-red-600 text-xs px-1">✕ 刪除</button>
+                <button type="button" onclick="openAddLeafModal(${mIdx}, ${sIdx})" class="text-[11px] bg-stone-200 hover:bg-stone-300 px-2 py-0.5 rounded text-stone-700 font-bold">+ 新增細分類</button>
+                <button type="button" onclick="removeSubCategory(${mIdx}, ${sIdx})" class="text-stone-400 hover:text-red-600 text-xs px-1">✕ 刪除</button>
               </div>
               <div class="flex flex-wrap gap-2 ml-4">${leafsHtml}</div>
             </div>
@@ -642,8 +647,8 @@
             <div class="flex items-center gap-3 bg-stone-100 p-2.5 rounded-xl">
               <span class="font-bold text-xs text-sibyl-brown">■ 大分類：</span>
               <input type="text" value="${major.name}" onchange="updateMajorName(${mIdx}, this.value)" class="p-1.5 border rounded-lg text-xs font-bold outline-none w-44">
-              <button onclick="openAddSubModal(${mIdx})" class="text-xs bg-sibyl-rose text-white px-2.5 py-1 rounded-lg">+ 新增次分類</button>
-              <button onclick="removeMajorCategory(${mIdx})" class="text-stone-400 hover:text-red-600 text-xs ml-auto">✕ 刪除大分類</button>
+              <button type="button" onclick="openAddSubModal(${mIdx})" class="text-xs bg-sibyl-rose text-white px-2.5 py-1 rounded-lg font-bold">+ 新增次分類</button>
+              <button type="button" onclick="removeMajorCategory(${mIdx})" class="text-stone-400 hover:text-red-600 text-xs ml-auto">✕ 刪除大分類</button>
             </div>
             <div class="space-y-2">${subsHtml}</div>
           </div>
@@ -691,12 +696,17 @@
     function removeLeafCategory(mIdx, sIdx, lIdx) { visualCategoryTree[mIdx].children[sIdx].children.splice(lIdx, 1); renderVisualCategoryTree(); }
 
     async function saveCategoryTreeToSupabase() {
-      await fetch(`${SUPABASE_URL}/rest/v1/shop_stores`, {
+      let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_stores`, {
         method: 'POST',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
         body: JSON.stringify({ store_id: STORE_ID, category_tree: visualCategoryTree })
       });
-      showToast("分類架構已成功儲存！");
+      if (res.ok) {
+        showToast("分類架構已成功儲存！");
+      } else {
+        let err = await res.json().catch(() => ({}));
+        alert("分類儲存失敗：" + (err.message || res.statusText));
+      }
     }
 
     function syncProductCategoryDropdowns() {
@@ -749,7 +759,7 @@
             currentUploadedImages.push(`${SUPABASE_URL}/storage/v1/object/public/shop-images/${cleanName}`);
             newCount++;
           } else {
-            let err = await res.json();
+            let err = await res.json().catch(() => ({}));
             alert("圖片上傳失敗：" + (err.message || res.statusText));
           }
         } catch(e) {
@@ -776,7 +786,7 @@
           document.getElementById('newBannerImgUrl').value = `${SUPABASE_URL}/storage/v1/object/public/shop-images/${cleanName}`;
           showToast("輪播圖已成功上傳！");
         } else {
-          let err = await res.json();
+          let err = await res.json().catch(() => ({}));
           alert("輪播圖上傳失敗：" + (err.message || res.statusText));
         }
       } catch(e) {
@@ -943,7 +953,7 @@
       link.click();
     }
 
-    // ==================== 4. 商品上架與發布 ====================
+    // ==================== 4. 商品上架與發布 (雙批量填入) ====================
     function regenerateMatrix() {
       const tbody = document.getElementById('matrixTableBody');
       tbody.innerHTML = "";
@@ -966,8 +976,15 @@
       });
     }
 
+    function batchSetMatrixOldPrice() {
+      showCustomPrompt("批次設定原價 (劃線參考價)", "", (p) => {
+        if (!p) return;
+        document.querySelectorAll('#matrixTableBody .m-old').forEach(i => i.value = p);
+      });
+    }
+
     function batchSetMatrixPrice() {
-      showCustomPrompt("批次設定特價", "", (p) => {
+      showCustomPrompt("批次設定特價 (客實付金額)", "", (p) => {
         if (!p) return;
         document.querySelectorAll('#matrixTableBody .m-price').forEach(i => i.value = p);
       });
@@ -978,16 +995,25 @@
       const name = document.getElementById('pName').value.trim();
       if (!sku || !name) return alert("貨號與商品名稱不可空白！");
 
-      let specs = [], prices = [];
+      let specs = [], prices = [], oldPrices = [];
       document.querySelectorAll('#matrixTableBody tr').forEach(row => {
         let pr = row.querySelector('.m-price').value;
+        let oldPr = row.querySelector('.m-old').value;
         if (pr) {
-          specs.push({ spec: row.dataset.key, oldPrice: row.querySelector('.m-old').value, price: pr, stock: row.querySelector('.m-stock').value || 99 });
+          specs.push({ 
+            spec: row.dataset.key, 
+            oldPrice: oldPr || "0", 
+            price: pr, 
+            stock: row.querySelector('.m-stock').value || 99 
+          });
           prices.push(Number(pr));
+          if (oldPr && Number(oldPr) > 0) oldPrices.push(Number(oldPr));
         }
       });
 
       let minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+      let minOldPrice = oldPrices.length > 0 ? Math.min(...oldPrices) : 0;
+
       let payload = {
         store_id: STORE_ID,
         sku: sku,
@@ -997,9 +1023,9 @@
         sub_category: document.getElementById('pSubSelect').value,
         child_category: document.getElementById('pChildSelect').value,
         description: document.getElementById('pDesc').value.trim(),
-        images: currentUploadedImages.join('\n'), // 採用縮圖排序後的陣列
+        images: currentUploadedImages.join('\n'),
         specs_data: specs,
-        old_price: 0,
+        old_price: minOldPrice,
         price: minPrice,
         arrival_date: document.getElementById('pArrivalDate').value.trim() || '追加中'
       };
@@ -1009,11 +1035,21 @@
       btn.disabled = true;
 
       try {
-        await fetch(`${SUPABASE_URL}/rest/v1/shop_products?on_conflict=store_id,sku`, {
+        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_products?on_conflict=store_id,sku`, {
           method: 'POST',
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
+          headers: { 
+            'apikey': SUPABASE_KEY, 
+            'Authorization': 'Bearer ' + SUPABASE_KEY, 
+            'Content-Type': 'application/json', 
+            'Prefer': 'resolution=merge-duplicates' 
+          },
           body: JSON.stringify(payload)
         });
+
+        if (!res.ok) {
+          let errJson = await res.json().catch(() => ({}));
+          throw new Error(`Supabase 拒絕寫入 (${res.status})：` + (errJson.message || errJson.details || res.statusText));
+        }
 
         // 呼叫 GAS 寫入 Google 試算表
         fetch(GAS_URL, {
@@ -1025,10 +1061,13 @@
         showToast("商品已同步存入 Supabase 與試算表！");
         currentUploadedImages = [];
         renderProductThumbnails();
+        document.getElementById('pSku').value = '';
+        document.getElementById('pName').value = '';
+        document.getElementById('pDesc').value = '';
         loadInventoryData();
         switchTab('listTab');
       } catch(e) {
-        alert("發布失敗：" + e.toString());
+        alert("發布失敗：" + e.message);
       } finally {
         btn.disabled = false;
         btn.innerText = "一鍵確認商品上架 (同步寫入 Supabase 與 Google 試算表)";
@@ -1063,7 +1102,7 @@
           <tr class="hover:bg-stone-50 text-xs">
             <td class="p-3"><img src="${firstImg}" class="w-10 h-10 object-cover rounded-lg"></td>
             <td class="p-3 font-mono font-bold">${p.sku}</td>
-            <td class="p-3">${p.name}</td>
+            <td class="p-3 font-medium">${p.name}</td>
             <td class="p-3">${p.major_category || ''} / ${p.sub_category || ''}</td>
             <td class="p-3 font-bold text-red-700 font-mono">NT$ ${p.price}</td>
             <td class="p-3">${p.status}</td>
@@ -1114,7 +1153,7 @@
             </div>
             <div class="flex justify-between items-center text-xs">
               <span>順序權重：${b.sort_order}</span>
-              <button onclick="deleteBanner(${b.id})" class="text-red-600 underline">刪除</button>
+              <button type="button" onclick="deleteBanner(${b.id})" class="text-red-600 underline">刪除</button>
             </div>
           </div>
         `).join('');
@@ -1126,14 +1165,19 @@
       let order = Number(document.getElementById('newBannerOrder').value) || 1;
       if (!url) return alert("請填寫圖片網址！");
 
-      await fetch(`${SUPABASE_URL}/rest/v1/shop_banners`, {
+      let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_banners`, {
         method: 'POST',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({ store_id: STORE_ID, img_url: url, sort_order: order, is_active: true })
       });
-      document.getElementById('newBannerImgUrl').value = "";
-      loadBannersData();
-      showToast("輪播橫幅已成功新增！");
+      if (res.ok) {
+        document.getElementById('newBannerImgUrl').value = "";
+        loadBannersData();
+        showToast("輪播橫幅已成功新增！");
+      } else {
+        let err = await res.json().catch(() => ({}));
+        alert("新增橫幅失敗：" + (err.message || res.statusText));
+      }
     }
 
     async function deleteBanner(id) {
@@ -1156,12 +1200,13 @@
         is_active: document.getElementById('editorialActive').checked
       };
 
-      await fetch(`${SUPABASE_URL}/rest/v1/shop_stores`, {
+      let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_stores`, {
         method: 'POST',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
         body: JSON.stringify({ store_id: STORE_ID, editorial_content: content })
       });
-      showToast("專欄圖文已成功儲存！");
+      if (res.ok) showToast("專欄圖文已成功儲存！");
+      else alert("專欄儲存失敗");
     }
 
     // ==================== 7. 折扣碼與全域設定 ====================
@@ -1178,7 +1223,7 @@
             <td class="p-3">${c.discount_type === 'percent' ? '比例折抵' : '固定金額'}</td>
             <td class="p-3 font-bold font-mono">${c.discount_val}</td>
             <td class="p-3">${c.note || ''}</td>
-            <td class="p-3 text-center"><button onclick="deleteCoupon(${c.id})" class="text-red-600 underline">刪除</button></td>
+            <td class="p-3 text-center"><button type="button" onclick="deleteCoupon(${c.id})" class="text-red-600 underline">刪除</button></td>
           </tr>
         `).join('');
       } catch(e){}
@@ -1191,13 +1236,17 @@
       let note = document.getElementById('newCouponNote').value.trim();
       if (!code || isNaN(val)) return alert("請輸入完整代碼與數值！");
 
-      await fetch(`${SUPABASE_URL}/rest/v1/shop_coupons`, {
+      let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_coupons`, {
         method: 'POST',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({ store_id: STORE_ID, code: code, discount_type: type, discount_val: val, note: note, is_active: true })
       });
-      loadCouponsData();
-      showToast("折扣碼已成功建立！");
+      if (res.ok) {
+        loadCouponsData();
+        showToast("折扣碼已成功建立！");
+      } else {
+        alert("折扣碼建立失敗");
+      }
     }
 
     async function deleteCoupon(id) {
@@ -1246,7 +1295,7 @@
           <label class="text-[11px] text-stone-500 font-bold flex items-center gap-1">
             <input type="checkbox" ${l.is_active ? 'checked' : ''} onchange="storeNavLinks[${idx}].is_active = this.checked"> 啟用
           </label>
-          <button onclick="storeNavLinks.splice(${idx}, 1); renderNavLinks();" class="text-stone-400 hover:text-red-600 px-1 font-bold">✕</button>
+          <button type="button" onclick="storeNavLinks.splice(${idx}, 1); renderNavLinks();" class="text-stone-400 hover:text-red-600 px-1 font-bold">✕</button>
         </div>
       `).join('');
     }
@@ -1258,12 +1307,13 @@
 
     async function saveGlobalSettings() {
       let marquee = document.getElementById('settingMarqueeText').value.trim();
-      await fetch(`${SUPABASE_URL}/rest/v1/shop_stores`, {
+      let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_stores`, {
         method: 'POST',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
         body: JSON.stringify({ store_id: STORE_ID, marquee_announcement: marquee, nav_links: storeNavLinks })
       });
-      showToast("全域設定已成功儲存！");
+      if (res.ok) showToast("全域設定已成功儲存！");
+      else alert("全域設定儲存失敗");
     }
 
     function showToast(msg) {
