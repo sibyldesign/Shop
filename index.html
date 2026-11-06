@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Sibyl Select 希貝兒選物 | 官方旗艦商城</title>
+  
+  <!-- Tailwind CSS & Google Fonts -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght=300;400;500;700&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'sibyl-bg': '#FFFDFC',
+            'sibyl-card': '#FFFFFF',
+            'sibyl-pink': '#FFB7DD',
+            'sibyl-rose': '#D87093',
+            'sibyl-soft': '#FCE4EC',
+            'sibyl-brown': '#5D4037',
+            'sibyl-red': '#B22222',
+            'sibyl-border': '#F3E8E8'
+          },
+          fontFamily: { sans: ['Noto Sans TC', 'sans-serif'] }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body { background-color: #FFFDFC; color: #5D4037; font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    /* 輪播圖白點進度條樣式 */
+    .banner-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.5); transition: all 0.3s; }
+    .banner-dot.active { width: 22px; border-radius: 4px; background: #FFFFFF; }
+    
+    /* 商品詳情圖圓點 */
+    .img-dot { width: 6px; height: 6px; border-radius: 50%; background: #D1D5DB; transition: all 0.2s; }
+    .img-dot.active { width: 16px; border-radius: 3px; background: #FFB7DD; }
+
+    /* 4:5 圖片防破版遮罩 */
+    .product-ratio-box { position: relative; width: 100%; aspect-ratio: 1 / 1; overflow: hidden; background: #FDFBFB; }
+    .product-blur-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: blur(12px) brightness(0.9); transform: scale(1.1); }
+    .product-main-img { position: relative; width: 100%; height: 100%; object-fit: cover; z-index: 2; transition: transform 0.3s ease; }
+    .product-card:active .product-main-img { transform: scale(1.03); }
+  </style>
+</head>
+<body class="antialiased pb-28 selection:bg-sibyl-soft selection:text-sibyl-rose">
+
+  <!-- 頂部精緻導航 -->
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-sibyl-border px-4 py-3">
+    <div class="max-w-4xl mx-auto flex justify-between items-center">
+      <div class="flex items-center gap-2 cursor-pointer" onclick="window.scrollTo({top:0, behavior:'smooth'})">
+        <span class="w-2.5 h-2.5 rounded-full bg-sibyl-pink animate-pulse"></span>
+        <h1 class="text-base font-bold tracking-wider text-sibyl-brown">Sibyl Select</h1>
+      </div>
+      <div class="flex items-center gap-2.5">
+        <button onclick="openQueryModal()" class="text-xs bg-sibyl-soft/60 hover:bg-sibyl-soft text-sibyl-rose font-medium px-3 py-1.5 rounded-full border border-sibyl-pink/30 transition-all flex items-center gap-1">
+          <span>🔍</span> 查訂單
+        </button>
+        <a href="https://line.me/R/ti/p/@840iagxl" target="_blank" class="text-xs bg-white text-stone-600 font-medium px-3 py-1.5 rounded-full border border-stone-200 shadow-sm transition-all">
+          客服諮詢
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- 公告跑馬燈 -->
+  <div id="announcementBar" class="bg-[#FFF9FA] border-b border-sibyl-border py-2 px-4 text-center text-xs text-sibyl-rose font-medium">
+    🌸 韓國換季嚴選美學鋪棉被預購開跑中！全單滿 2 件享免運優惠
+  </div>
+
+  <main class="max-w-4xl mx-auto px-4 pt-3 space-y-4">
+
+    <!-- 1. 首頁輪播圖區 (動態白點進度條) -->
+    <div class="relative w-full aspect-[2/1] sm:aspect-[2.4/1] rounded-2xl overflow-hidden shadow-sm bg-stone-100 group">
+      <div id="bannerSlider" class="w-full h-full flex transition-transform duration-500 ease-out">
+        <!-- 輪播圖由 JS 動態生成 -->
+      </div>
+      <!-- 白點進度條 -->
+      <div id="bannerDots" class="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20"></div>
+    </div>
+
+    <!-- 2. 搜尋與分類 Tab 列 -->
+    <div class="space-y-3 pt-1">
+      <div class="relative">
+        <input type="text" id="searchInput" oninput="handleSearch()" placeholder="搜尋棉被款式、花色或貨號..." 
+               class="w-full pl-9 pr-4 py-2.5 text-xs rounded-xl bg-white border border-sibyl-border shadow-sm outline-none focus:border-sibyl-pink transition-all">
+        <span class="absolute left-3 top-2.5 text-stone-400 text-sm">🔍</span>
+      </div>
+
+      <!-- 分類橫排滑動標籤 -->
+      <div id="categoryTabs" class="flex gap-2 overflow-x-auto no-scrollbar py-1">
+        <button onclick="filterCategory('全部')" class="cat-tab active px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap bg-sibyl-pink text-white shadow-sm">全部商品</button>
+        <button onclick="filterCategory('四季被')" class="cat-tab px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap bg-white text-stone-500 border border-stone-200">四季被</button>
+        <button onclick="filterCategory('薄被')" class="cat-tab px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap bg-white text-stone-500 border border-stone-200">春夏薄被</button>
+        <button onclick="filterCategory('冬被')" class="cat-tab px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap bg-white text-stone-500 border border-stone-200">雙面絨冬被</button>
+        <button onclick="filterCategory('床包床墊')" class="cat-tab px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap bg-white text-stone-500 border border-stone-200">床包/床墊</button>
+        <button onclick="filterCategory('枕頭套')" class="cat-tab px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap bg-white text-stone-500 border border-stone-200">枕套/枕芯</button>
+      </div>
+    </div>
+
+    <!-- 3. 商品目錄卡片網格 -->
+    <div id="productGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
+      <!-- 骨架載入動畫 -->
+      <div class="animate-pulse bg-white p-3 rounded-2xl border border-sibyl-border space-y-2">
+        <div class="aspect-square bg-stone-100 rounded-xl"></div>
+        <div class="h-3 bg-stone-100 rounded w-3/4"></div>
+        <div class="h-3 bg-stone-100 rounded w-1/2"></div>
+      </div>
+      <div class="animate-pulse bg-white p-3 rounded-2xl border border-sibyl-border space-y-2">
+        <div class="aspect-square bg-stone-100 rounded-xl"></div>
+        <div class="h-3 bg-stone-100 rounded w-3/4"></div>
+        <div class="h-3 bg-stone-100 rounded w-1/2"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- 浮動購物車按鈕 -->
+  <div id="floatCartBtn" onclick="toggleCart(true)" class="fixed bottom-6 right-5 z-40 hidden transition-all active:scale-95 cursor-pointer">
+    <div class="bg-gradient-to-r from-sibyl-pink to-sibyl-rose text-white px-5 py-3 rounded-full shadow-lg shadow-pink-200/50 flex items-center gap-2 font-bold text-sm">
+      <span>🛒 購物車</span>
+      <span id="floatCartBadge" class="bg-white text-sibyl-rose text-xs px-2 py-0.5 rounded-full font-black">0</span>
+    </div>
+  </div>
+
+  <!-- ==================== 彈窗 1：商品規格選購 Modal ==================== -->
+  <div id="productModal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden items-end sm:items-center justify-center">
+    <div class="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl max-h-[88vh] flex flex-col overflow-hidden shadow-2xl">
+      <div class="relative w-full aspect-square bg-stone-50 shrink-0">
+        <img id="modalImg" src="" class="w-full h-full object-cover">
+        <button onclick="closeProductModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/80 backdrop-blur-md text-stone-600 font-bold flex items-center justify-center text-sm shadow">✕</button>
+        <div id="modalImgDots" class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1 z-10"></div>
+      </div>
+
+      <div class="p-5 overflow-y-auto space-y-4 no-scrollbar flex-1">
+        <div>
+          <div id="modalTag" class="inline-block text-[10px] bg-sibyl-soft text-sibyl-rose font-bold px-2 py-0.5 rounded mb-1.5">推薦款</div>
+          <h2 id="modalTitle" class="text-base font-bold text-sibyl-brown leading-snug"></h2>
+          <div class="flex items-baseline gap-2 mt-1.5">
+            <span id="modalOldPrice" class="text-xs text-stone-400 line-through"></span>
+            <span id="modalPrice" class="text-lg font-bold text-sibyl-red"></span>
+          </div>
+          <div id="modalArrival" class="text-[11px] text-amber-700 font-medium mt-1"></div>
+        </div>
+
+        <!-- 規格一（花色/顏色） -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-bold text-stone-500">款式花色</label>
+          <div id="colorOptions" class="flex flex-wrap gap-2"></div>
+        </div>
+
+        <!-- 規格二（尺寸） -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-bold text-stone-500">規格尺寸</label>
+          <div id="sizeOptions" class="flex flex-wrap gap-2"></div>
+        </div>
+
+        <!-- 數量增減 -->
+        <div class="flex justify-between items-center bg-stone-50 p-3 rounded-xl border border-stone-100">
+          <span class="text-xs font-bold text-stone-600">購買數量</span>
+          <div class="flex items-center gap-3">
+            <button onclick="changeModalQty(-1)" class="w-7 h-7 bg-white rounded-lg border text-sm font-bold shadow-sm">-</button>
+            <span id="modalQty" class="text-sm font-bold w-6 text-center">1</span>
+            <button onclick="changeModalQty(1)" class="w-7 h-7 bg-white rounded-lg border text-sm font-bold shadow-sm">+</button>
+          </div>
+        </div>
+
+        <!-- 敘述 -->
+        <div class="pt-1">
+          <p id="modalDesc" class="text-xs text-stone-500 leading-relaxed whitespace-pre-line"></p>
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-stone-100 bg-white">
+        <button onclick="confirmAddToCart()" class="w-full bg-gradient-to-r from-sibyl-pink to-sibyl-rose text-white py-3.5 rounded-xl font-bold text-sm shadow-md shadow-pink-200 hover:opacity-95 transition-all">
+          加入購物車
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 彈窗 2：購物車與結帳抽屜 Cart Drawer ==================== -->
+  <div id="cartDrawer" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden justify-end">
+    <div class="bg-white w-full sm:max-w-md h-full flex flex-col shadow-2xl">
+      <!-- 頂部標題 -->
+      <div class="p-4 border-b border-sibyl-border flex justify-between items-center bg-stone-50/50">
+        <h3 class="text-sm font-bold text-sibyl-brown flex items-center gap-1.5">
+          <span>🛍️ 預訂購物車</span>
+          <span id="cartCountHeader" class="text-xs text-sibyl-rose font-normal"></span>
+        </h3>
+        <button onclick="toggleCart(false)" class="text-stone-400 hover:text-stone-700 text-lg p-1">✕</button>
+      </div>
+
+      <!-- 購物車清單 -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar" id="cartItemList">
+        <!-- JS 動態生成購物車項目 -->
+      </div>
+
+      <!-- 結帳表單與費用結算 -->
+      <div class="p-4 border-t border-sibyl-border bg-stone-50/40 space-y-3 text-xs">
+        
+        <!-- 樂購夥伴 95 折折扣碼輸入 -->
+        <div class="flex gap-2">
+          <input type="text" id="couponCodeInput" placeholder="輸入樂購夥伴專屬折扣碼 (享95折)" 
+                 class="flex-1 p-2 rounded-lg border border-stone-300 outline-none uppercase font-mono text-xs focus:border-sibyl-pink">
+          <button onclick="applyCoupon()" class="bg-sibyl-brown text-white px-3 py-2 rounded-lg font-bold">套用</button>
+        </div>
+        <div id="couponNotice" class="text-[11px] font-bold text-emerald-600 hidden"></div>
+
+        <!-- 運費與總額結算 -->
+        <div class="space-y-1.5 pt-1 text-stone-600">
+          <div class="flex justify-between">
+            <span>商品小計</span>
+            <span class="font-bold">NT$ <span id="cartSubtotal">0</span></span>
+          </div>
+          <div id="discountRow" class="flex justify-between text-sibyl-rose hidden">
+            <span>折扣碼 95 折優惠</span>
+            <span class="font-bold">-NT$ <span id="cartDiscount">0</span></span>
+          </div>
+          <div class="flex justify-between">
+            <span>郵局宅配運費 (單筆上限 2 件棉被)</span>
+            <span id="cartShippingText" class="font-bold">NT$ 100</span>
+          </div>
+          <div class="flex justify-between items-baseline pt-2 border-t text-sm font-bold text-sibyl-brown">
+            <span>應付總結算</span>
+            <span class="text-lg text-sibyl-red font-black">NT$ <span id="cartGrandTotal">0</span></span>
+          </div>
+        </div>
+
+        <!-- 客戶填寫收件資訊 -->
+        <div class="space-y-2 pt-2 border-t border-stone-200">
+          <input type="text" id="orderCustName" placeholder="收件人姓名 (必填)" class="w-full p-2.5 rounded-lg border border-stone-300 outline-none">
+          <input type="tel" id="orderCustPhone" placeholder="收件人電話號碼 (必填)" class="w-full p-2.5 rounded-lg border border-stone-300 outline-none">
+          <input type="email" id="orderCustEmail" placeholder="訂單通知 Email (必填)" class="w-full p-2.5 rounded-lg border border-stone-300 outline-none">
+          <input type="text" id="orderCustAddress" placeholder="完整收件地址 (必填)" class="w-full p-2.5 rounded-lg border border-stone-300 outline-none">
+          <input type="text" id="orderCustRemark" placeholder="備註留言 (選填)" class="w-full p-2.5 rounded-lg border border-stone-300 outline-none">
+        </div>
+
+        <button onclick="submitOrderToCheckout()" id="btnSubmitOrder" class="w-full bg-gradient-to-r from-sibyl-pink to-sibyl-rose text-white py-3 rounded-xl font-bold text-sm shadow-md hover:opacity-95 transition-all">
+          確認結帳・前往付款
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 彈窗 3：訂單查詢 Modal ==================== -->
+  <div id="queryModal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white w-full max-w-sm rounded-2xl p-5 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="text-sm font-bold text-sibyl-brown">🔍 查詢我的訂單進度</h3>
+        <button onclick="closeQueryModal()" class="text-stone-400 text-lg">✕</button>
+      </div>
+      <div class="flex gap-2">
+        <input type="tel" id="queryPhoneInput" placeholder="請輸入下單手機號碼" class="flex-1 p-2.5 text-xs border rounded-xl outline-none">
+        <button onclick="fetchOrdersByPhone()" class="bg-sibyl-rose text-white text-xs px-3.5 py-2 rounded-xl font-bold">查詢</button>
+      </div>
+      <div id="queryResultsList" class="max-h-60 overflow-y-auto space-y-2 text-xs no-scrollbar"></div>
+    </div>
+  </div>
+
+  <!-- Toast 提示組件 -->
+  <div id="toastBox" class="fixed bottom-20 left-1/2 -translate-x-1/2 z-[60] bg-stone-900/85 backdrop-blur-md text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-lg opacity-0 transition-opacity pointer-events-none"></div>
+
+  <!-- ==================== 前端核心應用腳本 (Vanilla JS + Supabase) ==================== -->
+  <script>
+    // ⚙️ 系統常數配置
+    const STORE_ID = "sibyl";
+    const SUPABASE_URL = "https://tzqpfnrpnfzzubofoqlt.supabase.co";
+    // ⚠️ 填入你的 Supabase anon key
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."; 
+    // ⚠️ 填入階段二部署完成的 GAS Web App URL
+    const GAS_URL = "https://script.google.com/macros/s/AKfycby44GCzrpN8ZpGSTNcVkI3IFMbyO7XhyE_Bf-cKMCTzDBbfYxDVaFD-pVcyc0vTykI-/exec";
+
+    let allProducts = [], filteredProducts = [];
+    let cart = JSON.parse(localStorage.getItem('sibyl_cart') || '[]');
+    let currentModalProduct = null;
+    let selectedColor = "", selectedSize = "", modalQty = 1;
+    let currentDiscountRate = 0, currentCouponCode = "";
+    let bannerIndex = 0, bannerInterval = null;
+
+    // 啟動初始化
+    window.onload = async () => {
+      initBanners();
+      await fetchProducts();
+      updateCartUI();
+    };
+
+    // 1. 初始化首頁輪播圖
+    async function initBanners() {
+      const slider = document.getElementById('bannerSlider');
+      const dots = document.getElementById('bannerDots');
+      
+      // 嘗試向 Supabase 撈取後台配置的輪播圖，若無則使用預設粉漾情境圖
+      let banners = [
+        { img_url: 'https://i.postimg.cc/vZzC71cN/GM2512059557437-4224767-(1).jpg' }
+      ];
+
+      try {
+        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_banners?store_id=eq.${STORE_ID}&is_active=eq.true&order=sort_order.asc`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+        });
+        let data = await res.json();
+        if (Array.isArray(data) && data.length > 0) banners = data;
+      } catch(e){}
+
+      slider.innerHTML = banners.map(b => `
+        <div class="min-w-full h-full shrink-0">
+          <img src="${b.img_url}" class="w-full h-full object-cover">
+        </div>
+      `).join('');
+
+      dots.innerHTML = banners.map((_, i) => `
+        <div class="banner-dot ${i === 0 ? 'active' : ''}"></div>
+      `).join('');
+
+      // 自動輪播
+      if (banners.length > 1) {
+        clearInterval(bannerInterval);
+        bannerInterval = setInterval(() => {
+          bannerIndex = (bannerIndex + 1) % banners.length;
+          slider.style.transform = `translateX(-${bannerIndex * 100}%)`;
+          document.querySelectorAll('.banner-dot').forEach((d, idx) => {
+            d.className = `banner-dot ${idx === bannerIndex ? 'active' : ''}`;
+          });
+        }, 4000);
+      }
+    }
+
+    // 2. 撈取商品主檔
+    async function fetchProducts() {
+      try {
+        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_products?store_id=eq.${STORE_ID}&status=eq.上架&order=created_at.desc`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+        });
+        allProducts = await res.json();
+        filteredProducts = [...allProducts];
+        renderProducts(filteredProducts);
+      } catch(err) {
+        showToast("⚠️ 商品載入異常，請確認網路連線。");
+      }
+    }
+
+    function renderProducts(list) {
+      const grid = document.getElementById('productGrid');
+      if (list.length === 0) {
+        grid.innerHTML = `<div class="col-span-full py-12 text-center text-xs text-stone-400">目前暫無符合條件之商品 🌸</div>`;
+        return;
+      }
+
+      grid.innerHTML = list.map((p, idx) => {
+        let firstImg = p.images ? p.images.split(/[\s\n\r,]+/)[0] : 'https://via.placeholder.com/300x300';
+        return `
+          <div onclick="openProductModal('${p.sku}')" class="product-card bg-white p-2.5 rounded-2xl border border-sibyl-border shadow-sm flex flex-col justify-between cursor-pointer">
+            <div class="product-ratio-box rounded-xl">
+              <img src="${firstImg}" class="product-blur-bg">
+              <img src="${firstImg}" class="product-main-img">
+            </div>
+            <div class="pt-2 flex flex-col justify-between flex-1">
+              <div>
+                <span class="text-[10px] bg-sibyl-soft text-sibyl-rose font-bold px-1.5 py-0.5 rounded">${p.tag || '熱銷預購'}</span>
+                <h3 class="text-xs font-bold text-sibyl-brown mt-1.5 line-clamp-1">${p.name}</h3>
+              </div>
+              <div class="flex items-baseline gap-1 mt-2">
+                ${p.old_price ? `<span class="text-[10px] text-stone-400 line-through">NT$${p.old_price}</span>` : ''}
+                <span class="text-xs font-bold text-sibyl-red">NT$ ${p.price} 起</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 3. 搜尋與分類篩選
+    function filterCategory(cat) {
+      document.querySelectorAll('.cat-tab').forEach(b => {
+        b.className = "cat-tab px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap bg-white text-stone-500 border border-stone-200";
+      });
+      event.target.className = "cat-tab active px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap bg-sibyl-pink text-white shadow-sm";
+      
+      if (cat === '全部') {
+        filteredProducts = [...allProducts];
+      } else {
+        filteredProducts = allProducts.filter(p => (p.sub_category && p.sub_category.includes(cat)) || p.name.includes(cat));
+      }
+      renderProducts(filteredProducts);
+    }
+
+    function handleSearch() {
+      let kw = document.getElementById('searchInput').value.trim().toLowerCase();
+      filteredProducts = allProducts.filter(p => p.name.toLowerCase().includes(kw) || p.sku.toLowerCase().includes(kw));
+      renderProducts(filteredProducts);
+    }
+
+    // 4. 商品規格彈窗 Modal 邏輯
+    function openProductModal(sku) {
+      const p = allProducts.find(x => x.sku === sku);
+      if (!p) return;
+      currentModalProduct = p;
+      modalQty = 1;
+
+      let imgs = p.images ? p.images.split(/[\s\n\r,]+/).filter(u => u) : ['https://via.placeholder.com/300x300'];
+      document.getElementById('modalImg').src = imgs[0];
+      document.getElementById('modalTitle').innerText = p.name;
+      document.getElementById('modalOldPrice').innerText = p.old_price ? `NT$ ${p.old_price}` : '';
+      document.getElementById('modalPrice').innerText = `NT$ ${p.price}`;
+      document.getElementById('modalArrival').innerText = `📅 預估出貨：${p.arrival_date || '預購海運約 14-20 天'}`;
+      document.getElementById('modalDesc').innerText = p.description || '韓國正宗空運/海運高質感鋪棉被系列。';
+      document.getElementById('modalQty').innerText = 1;
+
+      // 規格一（花色/顏色）
+      let colors = p.specs_data && p.specs_data.length > 0 
+        ? [...new Set(p.specs_data.map(s => s.spec.split('/')[0].replace('款式:', '').trim()))] 
+        : ['單一花色'];
+      selectedColor = colors[0];
+      document.getElementById('colorOptions').innerHTML = colors.map(c => `
+        <button onclick="selectSpecColor('${c}', this)" class="spec-color-btn text-xs px-3 py-1.5 rounded-lg border ${c === selectedColor ? 'border-sibyl-rose text-sibyl-rose font-bold bg-sibyl-soft/30' : 'border-stone-200 text-stone-600'}">${c}</button>
+      `).join('');
+
+      // 規格二（尺寸 S / Q）
+      let sizes = p.specs_data && p.specs_data.length > 0 
+        ? [...new Set(p.specs_data.map(s => s.spec.split('/')[1] ? s.spec.split('/')[1].trim() : '單一規格'))] 
+        : ['單一規格'];
+      selectedSize = sizes[0];
+      document.getElementById('sizeOptions').innerHTML = sizes.map(s => `
+        <button onclick="selectSpecSize('${s}', this)" class="spec-size-btn text-xs px-3 py-1.5 rounded-lg border ${s === selectedSize ? 'border-sibyl-rose text-sibyl-rose font-bold bg-sibyl-soft/30' : 'border-stone-200 text-stone-600'}">${s}</button>
+      `).join('');
+
+      syncModalPrice();
+      document.getElementById('productModal').classList.remove('hidden');
+      document.getElementById('productModal').classList.add('flex');
+    }
+
+    function selectSpecColor(c, el) {
+      selectedColor = c;
+      document.querySelectorAll('.spec-color-btn').forEach(b => b.className = "spec-color-btn text-xs px-3 py-1.5 rounded-lg border border-stone-200 text-stone-600");
+      el.className = "spec-color-btn text-xs px-3 py-1.5 rounded-lg border border-sibyl-rose text-sibyl-rose font-bold bg-sibyl-soft/30";
+      syncModalPrice();
+    }
+
+    function selectSpecSize(s, el) {
+      selectedSize = s;
+      document.querySelectorAll('.spec-size-btn').forEach(b => b.className = "spec-size-btn text-xs px-3 py-1.5 rounded-lg border border-stone-200 text-stone-600");
+      el.className = "spec-size-btn text-xs px-3 py-1.5 rounded-lg border border-sibyl-rose text-sibyl-rose font-bold bg-sibyl-soft/30";
+      syncModalPrice();
+    }
+
+    function syncModalPrice() {
+      if (!currentModalProduct || !currentModalProduct.specs_data) return;
+      let targetKey = `款式:${selectedColor} / ${selectedSize}`;
+      let matched = currentModalProduct.specs_data.find(v => v.spec === targetKey);
+      if (matched && matched.price) {
+        document.getElementById('modalPrice').innerText = `NT$ ${matched.price}`;
+        if (matched.oldPrice) document.getElementById('modalOldPrice').innerText = `NT$ ${matched.oldPrice}`;
+      }
+    }
+
+    function changeModalQty(amt) {
+      modalQty += amt;
+      if (modalQty < 1) modalQty = 1;
+      document.getElementById('modalQty').innerText = modalQty;
+    }
+
+    function closeProductModal() {
+      document.getElementById('productModal').classList.add('hidden');
+      document.getElementById('productModal').classList.remove('flex');
+    }
+
+    // 5. 加入購物車（含「單單上限兩件棉被」即時檢核）
+    function confirmAddToCart() {
+      let targetKey = `款式:${selectedColor} / ${selectedSize}`;
+      let matched = currentModalProduct.specs_data.find(v => v.spec === targetKey);
+      let price = matched ? Number(matched.price) : currentModalProduct.price;
+
+      // 檢查購物車內棉被總數
+      let currentTotalQty = cart.reduce((sum, i) => sum + i.qty, 0);
+      if (currentTotalQty + modalQty > 2) {
+        showToast("⚠️ 郵局一箱裝箱限制：每筆訂單最多只能下單 2 件棉被喔！若需更多請分開下單。");
+        return;
+      }
+
+      let existing = cart.find(i => i.sku === currentModalProduct.sku && i.color === selectedColor && i.size === selectedSize);
+      if (existing) {
+        existing.qty += modalQty;
+      } else {
+        cart.push({
+          sku: currentModalProduct.sku,
+          prodName: currentModalProduct.name,
+          color: selectedColor,
+          size: selectedSize,
+          price: price,
+          qty: modalQty
+        });
+      }
+
+      localStorage.setItem('sibyl_cart', JSON.stringify(cart));
+      closeProductModal();
+      updateCartUI();
+      showToast("🌸 已成功加入購物車！");
+    }
+
+    // 6. 購物車邏輯（運費與折扣碼）
+    function toggleCart(show) {
+      const drawer = document.getElementById('cartDrawer');
+      if (show) {
+        drawer.classList.remove('hidden');
+        drawer.classList.add('flex');
+      } else {
+        drawer.classList.add('hidden');
+        drawer.classList.remove('flex');
+      }
+    }
+
+    function updateCartUI() {
+      const list = document.getElementById('cartItemList');
+      const floatBtn = document.getElementById('floatCartBtn');
+      const badge = document.getElementById('floatCartBadge');
+      
+      let totalQty = cart.reduce((sum, i) => sum + i.qty, 0);
+      badge.innerText = totalQty;
+      floatBtn.style.display = totalQty > 0 ? 'block' : 'none';
+
+      document.getElementById('cartCountHeader').innerText = `(${totalQty} 件)`;
+
+      if (cart.length === 0) {
+        list.innerHTML = `<div class="py-12 text-center text-xs text-stone-400">購物車內目前沒有商品 🌸</div>`;
+        document.getElementById('cartSubtotal').innerText = '0';
+        document.getElementById('cartGrandTotal').innerText = '0';
+        return;
+      }
+
+      list.innerHTML = cart.map((item, idx) => `
+        <div class="bg-white p-3 rounded-xl border border-stone-200/80 shadow-sm flex justify-between items-center text-xs">
+          <div>
+            <div class="font-bold text-sibyl-brown">${item.prodName}</div>
+            <div class="text-[11px] text-stone-400 mt-0.5">${item.color} / ${item.size} × ${item.qty}</div>
+            <div class="text-sibyl-red font-bold mt-1">NT$ ${item.price * item.qty}</div>
+          </div>
+          <button onclick="removeFromCart(${idx})" class="text-stone-300 hover:text-red-500 font-bold text-base px-2">✕</button>
+        </div>
+      `).join('');
+
+      let subtotal = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+      let discountAmt = Math.round(subtotal * currentDiscountRate);
+
+      // 運費規則：1 件收 100，2 件免運 (0 元)
+      let shippingFee = totalQty >= 2 ? 0 : 100;
+
+      let grandTotal = subtotal - discountAmt + shippingFee;
+      if (grandTotal < 0) grandTotal = 0;
+
+      document.getElementById('cartSubtotal').innerText = subtotal;
+      document.getElementById('cartDiscount').innerText = discountAmt;
+      document.getElementById('discountRow').style.display = discountAmt > 0 ? 'flex' : 'none';
+      document.getElementById('cartShippingText').innerText = shippingFee === 0 ? '免運 (滿2件優惠)' : 'NT$ 100';
+      document.getElementById('cartGrandTotal').innerText = grandTotal;
+    }
+
+    function removeFromCart(idx) {
+      cart.splice(idx, 1);
+      localStorage.setItem('sibyl_cart', JSON.stringify(cart));
+      updateCartUI();
+    }
+
+    // 7. 折扣碼驗證（95折）
+    async function applyCoupon() {
+      let code = document.getElementById('couponCodeInput').value.trim().toUpperCase();
+      if (!code) return showToast("請輸入折扣碼！");
+
+      try {
+        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_coupons?store_id=eq.${STORE_ID}&code=eq.${code}&is_active=eq.true`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+        });
+        let data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          currentDiscountRate = 0.05; // 95折
+          currentCouponCode = code;
+          document.getElementById('couponNotice').innerText = `🎉 夥伴折扣碼【${code}】套用成功！享全單 95 折優惠`;
+          document.getElementById('couponNotice').classList.remove('hidden');
+          updateCartUI();
+          showToast("🎉 折扣碼套用成功！");
+        } else {
+          showToast("⚠️ 無效或過期的折扣碼！");
+        }
+      } catch(e) {
+        showToast("折扣碼驗證連線失敗。");
+      }
+    }
+
+    // 8. 結帳送單
+    async function submitOrderToCheckout() {
+      let name = document.getElementById('orderCustName').value.trim();
+      let phone = document.getElementById('orderCustPhone').value.trim();
+      let email = document.getElementById('orderCustEmail').value.trim();
+      let address = document.getElementById('orderCustAddress').value.trim();
+      let remark = document.getElementById('orderCustRemark').value.trim();
+
+      if (!name || !phone || !email || !address) {
+        showToast("請完整填寫收件人姓名、電話、Email 與收件地址！");
+        return;
+      }
+      if (cart.length === 0) return showToast("購物車內無商品！");
+
+      let totalQty = cart.reduce((sum, i) => sum + i.qty, 0);
+      if (totalQty > 2) {
+        showToast("⚠️ 一筆訂單最多只能結帳 2 件棉被，請減少件數後再送出！");
+        return;
+      }
+
+      let subtotal = Number(document.getElementById('cartSubtotal').innerText);
+      let discountAmt = Number(document.getElementById('cartDiscount').innerText);
+      let grandTotal = Number(document.getElementById('cartGrandTotal').innerText);
+      let shippingFee = totalQty >= 2 ? 0 : 100;
+
+      // 產生單號：S + 月日 + 3位亂數 (例如 S1106-528)
+      let now = new Date();
+      let datePart = String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0');
+      let randPart = Math.floor(Math.random() * 900 + 100);
+      let orderId = `S${datePart}-${randPart}`;
+
+      let btn = document.getElementById('btnSubmitOrder');
+      btn.innerText = "訂單成立處理中...";
+      btn.disabled = true;
+
+      let orderPayload = {
+        store_id: STORE_ID,
+        order_id: orderId,
+        customer_name: name,
+        customer_phone: phone,
+        customer_email: email,
+        items: cart,
+        item_total: subtotal,
+        discount_amt: discountAmt,
+        shipping_fee: shippingFee,
+        grand_total: grandTotal,
+        shipping_mode: '郵政宅配到府',
+        delivery_address: address,
+        customer_remark: remark,
+        order_status: '新訂單',
+        payment_status: '待付款',
+        coupon_used: currentCouponCode || '無'
+      };
+
+      try {
+        // 1. 寫入 Supabase 資料庫
+        await fetch(`${SUPABASE_URL}/rest/v1/shop_orders`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': 'Bearer ' + SUPABASE_KEY,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(orderPayload)
+        });
+
+        // 2. 觸發 GAS 寄送 HTML 訂單確認信並備份至試算表
+        fetch(GAS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            action: 'processNewOrderNotify',
+            storeId: STORE_ID,
+            orderData: {
+              orderId: orderId,
+              customerName: name,
+              customerPhone: phone,
+              customerEmail: email,
+              deliveryAddress: address,
+              customerRemark: remark,
+              items: cart,
+              grandTotal: grandTotal,
+              shippingFee: shippingFee,
+              couponUsed: currentCouponCode
+            }
+          })
+        });
+
+        // 清空購物車
+        cart = [];
+        localStorage.removeItem('sibyl_cart');
+        toggleCart(false);
+        showToast(`🎉 下單成功！訂單編號：${orderId}`);
+
+        // 跳轉或引導至 PayUni 結帳（階段五將全面串接 PayUni SDK）
+        setTimeout(() => {
+          alert(`🌸 感謝您的預訂！\n您的訂單編號為：【${orderId}】\n明細已同步發送至您的 Email 信箱。\n\n接下來將為您導向 PayUni 信用卡安全付款頁面！`);
+        }, 500);
+
+      } catch(e) {
+        showToast("下單失敗，請稍後重試或直接私訊 LINE 客服。");
+      } finally {
+        btn.innerText = "確認結帳・前往付款";
+        btn.disabled = false;
+      }
+    }
+
+    // 9. 手機號碼查單 Modal
+    function openQueryModal() {
+      document.getElementById('queryModal').classList.remove('hidden');
+      document.getElementById('queryModal').classList.add('flex');
+    }
+    function closeQueryModal() {
+      document.getElementById('queryModal').classList.add('hidden');
+      document.getElementById('queryModal').classList.remove('flex');
+    }
+
+    async function fetchOrdersByPhone() {
+      let phone = document.getElementById('queryPhoneInput').value.trim();
+      if (!phone) return showToast("請輸入手機號碼！");
+
+      const list = document.getElementById('queryResultsList');
+      list.innerHTML = `<div class="text-center py-4 text-stone-400">正在查詢您的訂單...</div>`;
+
+      try {
+        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_orders?store_id=eq.${STORE_ID}&customer_phone=eq.${phone}&order=created_at.desc`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+        });
+        let orders = await res.json();
+        if (orders.length === 0) {
+          list.innerHTML = `<div class="text-center py-4 text-stone-400">查無此號碼的預訂紀錄 🌸</div>`;
+          return;
+        }
+
+        list.innerHTML = orders.map(o => `
+          <div class="p-3 bg-stone-50 rounded-xl border border-stone-200/80 space-y-1">
+            <div class="flex justify-between font-bold">
+              <span class="text-sibyl-brown">${o.order_id}</span>
+              <span class="text-sibyl-rose">${o.order_status}</span>
+            </div>
+            <div class="text-stone-500 text-[11px]">總金額：NT$ ${o.grand_total} (${o.payment_status})</div>
+            <div class="text-stone-400 text-[10px]">下單時間：${new Date(o.created_at).toLocaleString()}</div>
+          </div>
+        `).join('');
+      } catch(e) {
+        list.innerHTML = `<div class="text-center py-4 text-red-500">查詢連線超時，請稍候再試。</div>`;
+      }
+    }
+
+    // Toast 提示工具
+    function showToast(msg) {
+      const t = document.getElementById('toastBox');
+      t.innerText = msg;
+      t.style.opacity = '1';
+      setTimeout(() => { t.style.opacity = '0'; }, 3000);
+    }
+  </script>
+</body>
+</html>
