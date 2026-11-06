@@ -46,10 +46,10 @@
   <div id="adminAuthOverlay" class="fixed inset-0 bg-stone-900/40 backdrop-blur-md z-[99999] flex flex-col justify-center items-center p-4">
     <div class="bg-white w-full max-w-sm rounded-3xl p-7 shadow-2xl text-center space-y-5 border border-sibyl-border">
       <div class="w-12 h-12 rounded-full bg-sibyl-pink flex items-center justify-center mx-auto text-sibyl-rose font-bold">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
       </div>
       <div>
-        <h3 class="text-sm font-bold text-sibyl-brown tracking-wider">管理中心安全驗證</h3>
+        <h3 class="text-sm font-bold text-sibyl-brown tracking-wider">管理系統安全驗證</h3>
         <p class="text-xs text-stone-400 mt-1">請輸入四位數管理通行密碼</p>
       </div>
       <input type="password" id="adminPwdInput" placeholder="••••" maxlength="4" 
@@ -66,7 +66,7 @@
     <!-- 頂部列 -->
     <header class="bg-white border border-sibyl-border rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-sibyl-rose text-white flex items-center justify-center font-bold text-sm">
+        <div class="w-10 h-10 rounded-xl bg-sibyl-rose text-white flex items-center justify-center font-bold text-sm tracking-widest">
           S
         </div>
         <div>
@@ -75,7 +75,7 @@
         </div>
       </div>
       <div class="flex items-center gap-2">
-        <a href="Index.html" target="_blank" class="bg-sibyl-pink text-sibyl-rose text-xs font-bold px-4 py-2.5 rounded-xl border border-sibyl-border hover:bg-pink-100 transition-all">
+        <a href="index.html" target="_blank" class="bg-sibyl-pink text-sibyl-rose text-xs font-bold px-4 py-2.5 rounded-xl border border-sibyl-border hover:bg-pink-100 transition-all">
           檢視前台
         </a>
         <button onclick="handleAdminLogout()" class="bg-stone-100 hover:bg-stone-200 text-stone-600 text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all">
@@ -114,7 +114,7 @@
       <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 border-b pb-3">
         <div class="flex items-center gap-3">
           <h2 class="text-sm font-bold text-sibyl-brown">訂單綜合管理</h2>
-          <button onclick="loadOrdersData()" class="bg-stone-50 hover:bg-stone-100 border text-stone-600 px-3 py-1.5 rounded-lg text-xs font-bold transition-all">🔄 重新整理</button>
+          <button onclick="loadOrdersData()" class="bg-stone-50 hover:bg-stone-100 border text-stone-600 px-3 py-1.5 rounded-lg text-xs font-bold transition-all">重新整理</button>
         </div>
         <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
           <input type="text" id="orderSearchInput" oninput="searchOrders()" placeholder="搜尋姓名、電話、單號..." class="p-2 border rounded-xl text-xs bg-stone-50 outline-none w-full sm:w-60">
@@ -164,7 +164,7 @@
       </div>
     </section>
 
-    <!-- 2. 商品上架 (直傳 Supabase Storage + 雙向同步 Google 試算表) -->
+    <!-- 2. 商品上架 (相片縮圖預覽卡片 + 左右調順序 + 刪除) -->
     <section id="uploadTab" class="tab-content bg-white border border-sibyl-border rounded-2xl p-6 shadow-sm space-y-4 hidden">
       <h2 id="formActionTitle" class="text-xs font-bold tracking-wider text-sibyl-brown uppercase border-b pb-2">商品快速配置</h2>
       
@@ -219,7 +219,7 @@
       <div class="bg-stone-50 p-4 border rounded-xl space-y-2">
         <div class="flex justify-between items-center">
           <span class="text-xs font-bold text-stone-600">規格特價配置矩陣 (K欄原價 / L欄特價)</span>
-          <button onclick="batchSetMatrixPrice()" class="text-[11px] bg-stone-200 hover:bg-stone-300 px-2.5 py-1 rounded">⚡ 批量統一填入特價</button>
+          <button onclick="batchSetMatrixPrice()" class="text-[11px] bg-stone-200 hover:bg-stone-300 px-2.5 py-1 rounded">批量統一填入特價</button>
         </div>
         <table class="w-full text-left text-xs bg-white border rounded-lg">
           <thead>
@@ -234,17 +234,21 @@
         </table>
       </div>
 
-      <!-- 圖片直傳 Supabase Storage (shop-images) -->
-      <div class="border-2 border-dashed border-stone-300 rounded-xl p-5 text-center bg-stone-50 cursor-pointer hover:bg-stone-100 transition-all"
-           onclick="document.getElementById('productStorageInput').click()">
-        <span class="text-xs font-bold text-stone-600 block">📸 選取商品相片同步直傳 Supabase Storage</span>
-        <input type="file" id="productStorageInput" accept="image/*" multiple class="hidden" onchange="uploadProductFilesToSupabase(this.files)">
-        <div id="storageStatusText" class="text-[11px] text-sibyl-rose font-bold mt-1"></div>
-      </div>
+      <!-- 圖片直傳 Supabase Storage + 縮圖順序調整卡片 -->
+      <div class="space-y-3">
+        <div class="border-2 border-dashed border-stone-300 rounded-2xl p-5 text-center bg-stone-50 cursor-pointer hover:bg-stone-100 transition-all"
+             onclick="document.getElementById('productStorageInput').click()">
+          <span class="text-xs font-bold text-stone-600 block">選取商品相片同步直傳 Supabase Storage</span>
+          <input type="file" id="productStorageInput" accept="image/*" multiple class="hidden" onchange="uploadProductFilesToSupabase(this.files)">
+          <div id="storageStatusText" class="text-[11px] text-sibyl-rose font-bold mt-1"></div>
+        </div>
 
-      <div>
-        <label class="text-xs font-bold text-stone-500 block mb-1">圖片網址清單 (換行分隔)</label>
-        <textarea id="pImgs" rows="3" class="w-full text-xs p-2.5 border rounded-xl bg-stone-50 outline-none"></textarea>
+        <!-- 縮圖順序調整卡片展示區 -->
+        <div>
+          <label class="text-xs font-bold text-stone-600 block mb-1.5">商品圖庫排序 (可點擊左右按鈕調整封面與輪播順序)</label>
+          <div id="productThumbnailsContainer" class="grid grid-cols-3 sm:grid-cols-6 gap-3"></div>
+          <div id="noImgNotice" class="text-xs text-stone-400 py-3 text-center border rounded-xl bg-stone-50/50">尚未上傳相片</div>
+        </div>
       </div>
 
       <div>
@@ -288,7 +292,7 @@
       </div>
     </section>
 
-    <!-- 4. 首頁輪播圖與圖文專區 -->
+    <!-- 4. 首頁輪播圖與專欄文案 -->
     <section id="bannerTab" class="tab-content bg-white border border-sibyl-border rounded-2xl p-6 shadow-sm space-y-6 hidden">
       <div>
         <h2 class="text-xs font-bold tracking-wider text-sibyl-brown uppercase border-b pb-2">首頁輪播圖管理 (自動置中擺放)</h2>
@@ -338,7 +342,7 @@
       </div>
     </section>
 
-    <!-- 5. 階層分類樹管理 (點擊按鈕直接增減，無 JSON) -->
+    <!-- 5. 階層分類樹管理 -->
     <section id="categoryTab" class="tab-content bg-white border border-sibyl-border rounded-2xl p-6 shadow-sm space-y-4 hidden">
       <div class="flex justify-between items-center border-b pb-2">
         <div>
@@ -418,7 +422,7 @@
 
   </div>
 
-  <!-- 🌸 專屬自訂美學彈窗 Prompt / Confirm / Alert Modal (徹底替代瀏覽器原生彈窗) -->
+  <!-- 專屬自訂美學彈窗 Prompt / Confirm Modal (無瀏覽器醜陋框) -->
   <div id="aestheticDialogModal" class="fixed inset-0 bg-stone-900/50 backdrop-blur-sm hidden z-[99999] items-center justify-center p-4">
     <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-4 border border-sibyl-border">
       <h3 id="dialogTitle" class="text-sm font-bold text-sibyl-brown">輸入提示</h3>
@@ -462,13 +466,57 @@
     let storeNavLinks = [];
     let dialogCallback = null;
 
-    // 自訂美感彈窗封裝 (取消原生 prompt)
+    // 商品上架圖片縮圖管理陣列
+    let currentUploadedImages = [];
+
+    function renderProductThumbnails() {
+      const container = document.getElementById('productThumbnailsContainer');
+      const notice = document.getElementById('noImgNotice');
+      container.innerHTML = "";
+
+      if (currentUploadedImages.length === 0) {
+        notice.classList.remove('hidden');
+        return;
+      }
+      notice.classList.add('hidden');
+
+      currentUploadedImages.forEach((url, idx) => {
+        container.innerHTML += `
+          <div class="relative group bg-stone-100 rounded-xl overflow-hidden border border-stone-200 shadow-sm flex flex-col">
+            <div class="aspect-square w-full overflow-hidden">
+              <img src="${url}" class="w-full h-full object-cover">
+            </div>
+            ${idx === 0 ? '<span class="absolute top-1.5 left-1.5 bg-sibyl-rose text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow">首圖</span>' : ''}
+            <div class="flex justify-between items-center p-1 bg-white border-t text-[10px]">
+              <button onclick="moveProductImg(${idx}, -1)" ${idx === 0 ? 'disabled class="opacity-20 text-stone-300"' : 'class="hover:text-sibyl-rose font-bold text-stone-600 px-1"'}>◀</button>
+              <button onclick="removeProductImg(${idx})" class="text-stone-400 hover:text-red-600 font-bold px-1">刪除</button>
+              <button onclick="moveProductImg(${idx}, 1)" ${idx === currentUploadedImages.length - 1 ? 'disabled class="opacity-20 text-stone-300"' : 'class="hover:text-sibyl-rose font-bold text-stone-600 px-1"'}>▶</button>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function moveProductImg(idx, dir) {
+      let target = idx + dir;
+      if (target < 0 || target >= currentUploadedImages.length) return;
+      let temp = currentUploadedImages[idx];
+      currentUploadedImages[idx] = currentUploadedImages[target];
+      currentUploadedImages[target] = temp;
+      renderProductThumbnails();
+    }
+
+    function removeProductImg(idx) {
+      currentUploadedImages.splice(idx, 1);
+      renderProductThumbnails();
+    }
+
+    // 自訂美感彈窗封裝
     function showCustomPrompt(title, defaultValue, callback) {
       document.getElementById('dialogTitle').innerText = title;
       document.getElementById('dialogTextInput').value = defaultValue || '';
       document.getElementById('dialogInputContainer').classList.remove('hidden');
       document.getElementById('dialogMessageText').classList.add('hidden');
-      document.getElementById('dialogCancelBtn').classList.remove('hidden');
       dialogCallback = callback;
       const modal = document.getElementById('aestheticDialogModal');
       modal.classList.remove('hidden'); modal.classList.add('flex');
@@ -480,7 +528,6 @@
       document.getElementById('dialogMessageText').innerText = message;
       document.getElementById('dialogMessageText').classList.remove('hidden');
       document.getElementById('dialogInputContainer').classList.add('hidden');
-      document.getElementById('dialogCancelBtn').classList.remove('hidden');
       dialogCallback = callback;
       const modal = document.getElementById('aestheticDialogModal');
       modal.classList.remove('hidden'); modal.classList.add('flex');
@@ -608,7 +655,7 @@
 
     function updateMajorName(mIdx, val) { visualCategoryTree[mIdx].name = val.trim(); syncProductCategoryDropdowns(); }
     function removeMajorCategory(mIdx) {
-      showCustomConfirm("刪除大分類", "確定刪除此大分類及其所有子分類？", (ok) => {
+      showCustomConfirm("刪除確認", "確定刪除此大分類及其所有子分類？", (ok) => {
         if (ok) { visualCategoryTree.splice(mIdx, 1); renderVisualCategoryTree(); }
       });
     }
@@ -658,13 +705,12 @@
       }
     }
 
-    // ==================== 2. Supabase Storage 直傳 ====================
+    // ==================== 2. Supabase Storage 圖片上傳 ====================
     async function uploadProductFilesToSupabase(files) {
       if (!files || files.length === 0) return;
       const statusText = document.getElementById('storageStatusText');
-      const area = document.getElementById('pImgs');
       statusText.innerText = "直傳 Supabase Storage 中...";
-      let urls = [];
+      let newCount = 0;
 
       for (let f of files) {
         let cleanName = `prod_${Date.now()}_${Math.random().toString(36).substring(2,6)}.${f.name.split('.').pop()}`;
@@ -675,7 +721,8 @@
             body: f
           });
           if (res.ok) {
-            urls.push(`${SUPABASE_URL}/storage/v1/object/public/shop-images/${cleanName}`);
+            currentUploadedImages.push(`${SUPABASE_URL}/storage/v1/object/public/shop-images/${cleanName}`);
+            newCount++;
           } else {
             let err = await res.json();
             alert("圖片上傳失敗：" + (err.message || res.statusText));
@@ -684,9 +731,9 @@
           alert("網路傳輸失敗：" + e.toString());
         }
       }
-      if (urls.length > 0) {
-        area.value = (area.value ? area.value + "\n" : "") + urls.join("\n");
-        statusText.innerText = `已成功上傳 ${urls.length} 張相片至 Supabase`;
+      if (newCount > 0) {
+        renderProductThumbnails();
+        statusText.innerText = `成功新增 ${newCount} 張相片`;
       }
     }
 
@@ -712,7 +759,7 @@
       }
     }
 
-    // ==================== 3. 訂單狀態切換與流轉 (還原如截圖) ====================
+    // ==================== 3. 訂單狀態管理 ====================
     async function loadOrdersData() {
       try {
         let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_orders?store_id=eq.${STORE_ID}&order=created_at.desc`, {
@@ -925,7 +972,7 @@
         sub_category: document.getElementById('pSubSelect').value,
         child_category: document.getElementById('pChildSelect').value,
         description: document.getElementById('pDesc').value.trim(),
-        images: document.getElementById('pImgs').value.trim(),
+        images: currentUploadedImages.join('\n'),
         specs_data: specs,
         old_price: 0,
         price: minPrice,
@@ -951,6 +998,8 @@
         });
 
         showToast("商品已同步存入 Supabase 與試算表！");
+        currentUploadedImages = [];
+        renderProductThumbnails();
         loadInventoryData();
         switchTab('listTab');
       } catch(e) {
@@ -1012,8 +1061,9 @@
       document.getElementById('pName').value = p.name;
       document.getElementById('pStatus').value = p.status;
       document.getElementById('pArrivalDate').value = p.arrival_date || '';
-      document.getElementById('pImgs').value = p.images || '';
       document.getElementById('pDesc').value = p.description || '';
+      currentUploadedImages = p.images ? p.images.split(/[\s\n\r,]+/).filter(u => u) : [];
+      renderProductThumbnails();
       switchTab('uploadTab');
     }
 
@@ -1024,7 +1074,7 @@
       renderInventoryTable();
     }
 
-    // ==================== 6. 輪播圖與圖文專欄 (使用 UPSERT 保證儲存) ====================
+    // ==================== 6. 輪播圖與圖文專欄 ====================
     async function loadBannersData() {
       try {
         let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_banners?store_id=eq.${STORE_ID}&order=sort_order.asc`, {
@@ -1089,7 +1139,7 @@
       showToast("專欄圖文已成功儲存！");
     }
 
-    // ==================== 7. 折扣碼與全域設定 (UPSERT) ====================
+    // ==================== 7. 折扣碼與全域設定 ====================
     async function loadCouponsData() {
       try {
         let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_coupons?store_id=eq.${STORE_ID}&order=created_at.desc`, {
