@@ -51,7 +51,7 @@
 </head>
 <body class="antialiased pb-28">
 
-  <!-- 頂部精緻品牌導航 -->
+  <!-- 頂部品牌導航 -->
   <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-store-border px-4 py-3.5">
     <div class="max-w-4xl mx-auto flex justify-between items-center">
       <div class="flex items-center gap-2 cursor-pointer" onclick="window.scrollTo({top:0, behavior:'smooth'})">
@@ -59,7 +59,6 @@
         <h1 class="text-xs font-serif tracking-[0.2em] uppercase font-bold text-store-dark" id="headerStoreName">SELECT STORE</h1>
       </div>
       
-      <!-- 動態自訂連結群與查單按鈕 -->
       <div class="flex items-center gap-2" id="headerNavActions">
         <button onclick="openQueryModal()" class="text-xs bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium px-3.5 py-1.5 rounded-full border border-stone-200 transition-all flex items-center gap-1.5">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
@@ -80,13 +79,13 @@
 
   <main class="max-w-4xl mx-auto px-4 pt-4 space-y-6">
 
-    <!-- 1. 首頁輪播圖區 (動態居中、自適應白點指示器) -->
+    <!-- 1. 首頁輪播圖區 (水平垂直動態置中、自適應白點指示器) -->
     <div class="relative w-full aspect-[2/1] sm:aspect-[2.3/1] rounded-2xl overflow-hidden shadow-sm bg-stone-100">
       <div id="bannerSlider" class="w-full h-full flex transition-transform duration-500 ease-out"></div>
       <div id="bannerDots" class="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20"></div>
     </div>
 
-    <!-- 2. 首頁相簿風格圖文專區 (由後台自由編輯) -->
+    <!-- 2. 首頁相簿風格圖文專區 -->
     <section id="editorialSection" class="bg-white border border-store-border rounded-2xl p-6 sm:p-8 text-center space-y-3 shadow-sm hidden">
       <p id="editorialSubtitle" class="text-[11px] font-serif tracking-[0.25em] text-store-accent uppercase font-semibold"></p>
       <h2 id="editorialTitle" class="text-base sm:text-lg font-bold text-store-dark tracking-wide"></h2>
@@ -266,7 +265,6 @@
           document.getElementById('headerStoreName').innerText = st.store_name || "SELECT STORE";
           document.getElementById('marqueeText').innerText = st.marquee_announcement || "全館單筆滿 2 件享免運出貨。";
 
-          // 導航社群連結
           if (st.nav_links && Array.isArray(st.nav_links)) {
             const navBox = document.getElementById('headerNavActions');
             st.nav_links.filter(l => l.is_active).forEach(link => {
@@ -279,7 +277,6 @@
             });
           }
 
-          // 首頁相簿圖文專區
           if (st.editorial_content && st.editorial_content.is_active) {
             let ed = st.editorial_content;
             document.getElementById('editorialTitle').innerText = ed.title || '';
