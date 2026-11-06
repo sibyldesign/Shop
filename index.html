@@ -594,111 +594,129 @@
 
     // 8. 結帳送單
     async function submitOrderToCheckout() {
-      let name = document.getElementById('orderCustName').value.trim();
-      let phone = document.getElementById('orderCustPhone').value.trim();
-      let email = document.getElementById('orderCustEmail').value.trim();
-      let address = document.getElementById('orderCustAddress').value.trim();
-      let remark = document.getElementById('orderCustRemark').value.trim();
+  let name = document.getElementById('orderCustName').value.trim();
+  let phone = document.getElementById('orderCustPhone').value.trim();
+  let email = document.getElementById('orderCustEmail').value.trim();
+  let address = document.getElementById('orderCustAddress').value.trim();
+  let remark = document.getElementById('orderCustRemark').value.trim();
 
-      if (!name || !phone || !email || !address) {
-        showToast("請完整填寫收件人姓名、電話、Email 與收件地址！");
-        return;
-      }
-      if (cart.length === 0) return showToast("購物車內無商品！");
+  if (!name || !phone || !email || !address) {
+    showToast("請完整填寫收件人姓名、電話、Email 與收件地址！");
+    return;
+  }
+  if (cart.length === 0) return showToast("購物車內無商品！");
 
-      let totalQty = cart.reduce((sum, i) => sum + i.qty, 0);
-      if (totalQty > 2) {
-        showToast("⚠️ 一筆訂單最多只能結帳 2 件棉被，請減少件數後再送出！");
-        return;
-      }
+  let totalQty = cart.reduce((sum, i) => sum + i.qty, 0);
+  if (totalQty > 2) {
+    showToast("⚠️ 一筆訂單最多只能結帳 2 件棉被，請分開下單！");
+    return;
+  }
 
-      let subtotal = Number(document.getElementById('cartSubtotal').innerText);
-      let discountAmt = Number(document.getElementById('cartDiscount').innerText);
-      let grandTotal = Number(document.getElementById('cartGrandTotal').innerText);
-      let shippingFee = totalQty >= 2 ? 0 : 100;
+  let subtotal = Number(document.getElementById('cartSubtotal').innerText);
+  let discountAmt = Number(document.getElementById('cartDiscount').innerText);
+  let grandTotal = Number(document.getElementById('cartGrandTotal').innerText);
+  let shippingFee = totalQty >= 2 ? 0 : 100;
 
-      // 產生單號：S + 月日 + 3位亂數 (例如 S1106-528)
-      let now = new Date();
-      let datePart = String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0');
-      let randPart = Math.floor(Math.random() * 900 + 100);
-      let orderId = `S${datePart}-${randPart}`;
+  // 產生單號：S + 月日 + 3位亂數
+  let now = new Date();
+  let datePart = String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0');
+  let randPart = Math.floor(Math.random() * 900 + 100);
+  let orderId = `S${datePart}-${randPart}`;
 
-      let btn = document.getElementById('btnSubmitOrder');
-      btn.innerText = "訂單成立處理中...";
-      btn.disabled = true;
+  let btn = document.getElementById('btnSubmitOrder');
+  btn.innerText = "連線安全金流收銀台...";
+  btn.disabled = true;
 
-      let orderPayload = {
-        store_id: STORE_ID,
-        order_id: orderId,
-        customer_name: name,
-        customer_phone: phone,
-        customer_email: email,
-        items: cart,
-        item_total: subtotal,
-        discount_amt: discountAmt,
-        shipping_fee: shippingFee,
-        grand_total: grandTotal,
-        shipping_mode: '郵政宅配到府',
-        delivery_address: address,
-        customer_remark: remark,
-        order_status: '新訂單',
-        payment_status: '待付款',
-        coupon_used: currentCouponCode || '無'
-      };
+  let orderPayload = {
+    store_id: STORE_ID,
+    order_id: orderId,
+    customer_name: name,
+    customer_phone: phone,
+    customer_email: email,
+    items: cart,
+    item_total: subtotal,
+    discount_amt: discountAmt,
+    shipping_fee: shippingFee,
+    grand_total: grandTotal,
+    shipping_mode: '郵政宅配到府',
+    delivery_address: address,
+    customer_remark: remark,
+    order_status: '新訂單',
+    payment_status: '待付款',
+    coupon_used: currentCouponCode || '無'
+  };
 
-      try {
-        // 1. 寫入 Supabase 資料庫
-        await fetch(`${SUPABASE_URL}/rest/v1/shop_orders`, {
-          method: 'POST',
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': 'Bearer ' + SUPABASE_KEY,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(orderPayload)
-        });
+  try {
+    // 1. 寫入 Supabase 資料庫主檔
+    await fetch(`${SUPABASE_URL}/rest/v1/shop_orders`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(orderPayload)
+    });
 
-        // 2. 觸發 GAS 寄送 HTML 訂單確認信並備份至試算表
-        fetch(GAS_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({
-            action: 'processNewOrderNotify',
-            storeId: STORE_ID,
-            orderData: {
-              orderId: orderId,
-              customerName: name,
-              customerPhone: phone,
-              customerEmail: email,
-              deliveryAddress: address,
-              customerRemark: remark,
-              items: cart,
-              grandTotal: grandTotal,
-              shippingFee: shippingFee,
-              couponUsed: currentCouponCode
-            }
-          })
-        });
+    // 2. 向 GAS 請求 PayUni 加密與發票封包
+    let res = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        action: 'createPayuniTrade',
+        orderData: {
+          orderId: orderId,
+          grandTotal: grandTotal,
+          items: cart,
+          shippingFee: shippingFee,
+          discountAmt: discountAmt,
+          customerName: name,
+          customerPhone: phone,
+          customerEmail: email
+        }
+      })
+    });
+    let payuniData = await res.json();
 
-        // 清空購物車
-        cart = [];
-        localStorage.removeItem('sibyl_cart');
-        toggleCart(false);
-        showToast(`🎉 下單成功！訂單編號：${orderId}`);
-
-        // 跳轉或引導至 PayUni 結帳（階段五將全面串接 PayUni SDK）
-        setTimeout(() => {
-          alert(`🌸 感謝您的預訂！\n您的訂單編號為：【${orderId}】\n明細已同步發送至您的 Email 信箱。\n\n接下來將為您導向 PayUni 信用卡安全付款頁面！`);
-        }, 500);
-
-      } catch(e) {
-        showToast("下單失敗，請稍後重試或直接私訊 LINE 客服。");
-      } finally {
-        btn.innerText = "確認結帳・前往付款";
-        btn.disabled = false;
-      }
+    if (!payuniData.success) {
+      alert("金流連線失敗：" + payuniData.error);
+      btn.innerText = "確認結帳・前往付款";
+      btn.disabled = false;
+      return;
     }
 
+    // 3. 清空本地購物車
+    localStorage.removeItem('sibyl_cart');
+
+    // 4. 動態建立隱藏 Form 並主動 POST 跳轉至 PayUni 收銀台
+    let form = document.createElement("form");
+    form.method = "POST";
+    form.action = payuniData.gatewayUrl;
+
+    let fields = {
+      "MerID": payuniData.MerID,
+      "Version": payuniData.Version,
+      "EncryptInfo": payuniData.EncryptInfo,
+      "HashInfo": payuniData.HashInfo
+    };
+
+    for (let key in fields) {
+      let hiddenField = document.createElement("input");
+      hiddenField.type = "hidden";
+      hiddenField.name = key;
+      hiddenField.value = fields[key];
+      form.appendChild(hiddenField);
+    }
+
+    document.body.appendChild(form);
+    form.submit(); // 自動跳轉至 PayUni 信用卡 3D 刷卡頁面
+
+  } catch(e) {
+    alert("結帳發生錯誤，請聯絡官方客服！");
+    btn.innerText = "確認結帳・前往付款";
+    btn.disabled = false;
+  }
+}
     // 9. 手機號碼查單 Modal
     function openQueryModal() {
       document.getElementById('queryModal').classList.remove('hidden');
