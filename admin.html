@@ -3,26 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sibyl Select 希貝兒選物 | 智慧雲端總管後台</title>
+  <title>商城管理系統 | 雲端總管中心</title>
   
-  <!-- Tailwind CSS & Google Fonts -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght=400;500;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
   
   <script>
     tailwind.config = {
       theme: {
         extend: {
           colors: {
-            'sibyl-bg': '#FFFDFC',
-            'sibyl-card': '#FFFFFF',
-            'sibyl-pink': '#FFB7DD',
-            'sibyl-rose': '#D87093',
-            'sibyl-soft': '#FCE4EC',
-            'sibyl-brown': '#5D4037',
-            'sibyl-taupe': '#8C857B',
-            'sibyl-red': '#B22222',
-            'sibyl-border': '#EAE6DF'
+            'admin-bg': '#F9F8F7',
+            'admin-dark': '#2B2625',
+            'admin-border': '#E8E3DF'
           },
           fontFamily: { sans: ['Noto Sans TC', 'sans-serif'] }
         }
@@ -31,341 +24,355 @@
   </script>
 
   <style>
-    body { background-color: #FBF9F8; color: #4A3E3D; font-family: 'Noto Sans TC', sans-serif; }
+    body { background-color: #F9F8F7; color: #2B2625; font-family: 'Noto Sans TC', sans-serif; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    
     @media print {
       body { background: white !important; color: black !important; padding: 0 !important; }
-      .admin-ui-wrapper, button, select, input, textarea { display: none !important; }
+      .admin-wrapper, button, select, input, textarea { display: none !important; }
       .print-invoice-area { display: block !important; width: 100% !important; }
-      .invoice-card { border: 2px solid #000 !important; padding: 24px !important; border-radius: 12px !important; margin-bottom: 30px !important; page-break-after: always !important; font-size: 14px !important; line-height: 1.6 !important; background: white !important; }
+      .invoice-card { border: 2px solid #000 !important; padding: 24px !important; margin-bottom: 30px !important; page-break-after: always !important; font-size: 14px !important; }
     }
     .print-invoice-area { display: none; }
   </style>
 </head>
 <body class="antialiased min-h-screen p-4 sm:p-6">
 
-  <!-- 🔐 安全驗證遮罩 (預設通行密碼：8888) -->
+  <!-- 密碼登入驗證 -->
   <div id="adminAuthOverlay" class="fixed inset-0 bg-stone-900/40 backdrop-blur-md z-[99999] flex flex-col justify-center items-center p-4">
     <div class="bg-white w-full max-w-sm rounded-3xl p-7 shadow-2xl text-center space-y-5 border border-stone-100">
-      <div class="w-16 h-16 rounded-full bg-sibyl-soft flex items-center justify-center mx-auto text-2xl shadow-inner text-sibyl-rose">🌸</div>
+      <div class="w-12 h-12 rounded-full bg-stone-100 flex items-center justify-center mx-auto text-stone-600 font-bold">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+      </div>
       <div>
-        <h3 class="text-base font-bold text-sibyl-brown">Sibyl 旗艦後台安全驗證</h3>
+        <h3 class="text-sm font-bold text-admin-dark tracking-wider">管理系統安全驗證</h3>
         <p class="text-xs text-stone-400 mt-1">請輸入四位數管理通行密碼</p>
       </div>
-      <div>
-        <input type="password" id="adminPwdInput" placeholder="••••" maxlength="4" 
-               class="w-full text-3xl p-3 border border-stone-200 rounded-2xl bg-stone-50 outline-none text-center tracking-[0.8em] font-mono focus:bg-white focus:border-sibyl-pink transition-colors">
-        <div id="authErrorMsg" class="text-xs text-red-600 font-bold mt-2 hidden">⚠️ 密碼驗證錯誤，請重新輸入！</div>
-      </div>
-      <button onclick="verifyAdminPassword()" class="w-full bg-gradient-to-r from-sibyl-pink to-sibyl-rose text-white text-sm font-bold py-3.5 rounded-2xl shadow-md hover:opacity-95 transition-all">
-        確 認 登 入
+      <input type="password" id="adminPwdInput" placeholder="••••" maxlength="4" 
+             class="w-full text-2xl p-3 border border-stone-200 rounded-xl bg-stone-50 outline-none text-center tracking-[0.8em] font-mono focus:bg-white">
+      <div id="authErrorMsg" class="text-xs text-red-600 font-bold hidden">密碼錯誤，請重新輸入</div>
+      <button onclick="verifyAdminPassword()" class="w-full bg-admin-dark text-white text-xs font-bold py-3.5 rounded-xl hover:bg-stone-800 transition-all">
+        確認登入
       </button>
     </div>
   </div>
 
-  <div class="max-w-7xl mx-auto admin-ui-wrapper space-y-6">
+  <div class="max-w-7xl mx-auto admin-wrapper space-y-6">
 
-    <!-- 頂部品牌列與快速導航 -->
-    <header class="bg-white border border-sibyl-border rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4">
-      <div class="flex items-center gap-3.5">
-        <div class="w-11 h-11 rounded-full bg-gradient-to-tr from-sibyl-pink to-sibyl-soft flex items-center justify-center text-xl shadow-sm text-sibyl-rose">
-          🌸
+    <!-- 頂部列 -->
+    <header class="bg-white border border-admin-border rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-admin-dark text-white flex items-center justify-center font-bold text-sm">
+          M
         </div>
         <div>
-          <h1 class="text-lg font-bold tracking-wide text-sibyl-brown">Sibyl Select 希貝兒選物・智慧雲端管理中心</h1>
-          <p class="text-[11px] text-stone-400 mt-0.5">多租戶旗艦版・已掛載至 Supabase 高速雲端</p>
+          <h1 class="text-base font-bold tracking-wide text-admin-dark">智慧雲端商城・後台管理系統</h1>
+          <p class="text-[11px] text-stone-400">多租戶通用訂閱版・Supabase + Google Sheet 雙向同步</p>
         </div>
       </div>
-      <div class="flex items-center gap-2.5">
-        <a href="Index.html" target="_blank" class="bg-sibyl-soft text-sibyl-rose hover:bg-sibyl-pink hover:text-white text-xs font-bold px-4 py-2.5 rounded-xl border border-sibyl-pink/30 shadow-sm transition-all flex items-center gap-1.5">
-          <span>🌐</span> 前往商城前台
+      <div class="flex items-center gap-2">
+        <a href="Index.html" target="_blank" class="bg-stone-50 text-stone-700 text-xs font-bold px-4 py-2.5 rounded-xl border border-stone-200 hover:bg-stone-100 transition-all">
+          檢視前台
         </a>
         <button onclick="handleAdminLogout()" class="bg-stone-100 hover:bg-stone-200 text-stone-600 text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all">
-          安全登出
+          登出
         </button>
       </div>
     </header>
 
-    <!-- 分頁導航列 -->
-    <nav class="flex gap-2 border-b border-sibyl-border overflow-x-auto no-scrollbar">
-      <button onclick="switchTab('orderTab')" id="btn-orderTab" class="tab-btn px-5 py-3 text-sm font-bold border-b-2 border-sibyl-rose text-sibyl-rose bg-white rounded-t-xl transition-all">
-        📦 訂單看板與列印
+    <!-- 導航分頁籤 -->
+    <nav class="flex gap-2 border-b border-admin-border overflow-x-auto no-scrollbar">
+      <button onclick="switchTab('orderTab')" id="btn-orderTab" class="tab-btn px-5 py-3 text-xs font-bold border-b-2 border-admin-dark text-admin-dark bg-white rounded-t-xl">
+        訂單管理與揀貨
       </button>
-      <button onclick="switchTab('uploadTab')" id="btn-uploadTab" class="tab-btn px-5 py-3 text-sm font-medium border-b-2 border-transparent text-stone-400 hover:text-stone-700 transition-all">
-        ✍️ 商品快速上架
+      <button onclick="switchTab('uploadTab')" id="btn-uploadTab" class="tab-btn px-5 py-3 text-xs font-medium border-b-2 border-transparent text-stone-400 hover:text-stone-700">
+        商品上架與編輯
       </button>
-      <button onclick="switchTab('listTab')" id="btn-listTab" class="tab-btn px-5 py-3 text-sm font-medium border-b-2 border-transparent text-stone-400 hover:text-stone-700 transition-all">
-        📋 商品庫存清單
+      <button onclick="switchTab('listTab')" id="btn-listTab" class="tab-btn px-5 py-3 text-xs font-medium border-b-2 border-transparent text-stone-400 hover:text-stone-700">
+        商品清單
       </button>
-      <button onclick="switchTab('bannerTab')" id="btn-bannerTab" class="tab-btn px-5 py-3 text-sm font-medium border-b-2 border-transparent text-stone-400 hover:text-stone-700 transition-all">
-        🎨 首頁輪播圖管理
+      <button onclick="switchTab('bannerTab')" id="btn-bannerTab" class="tab-btn px-5 py-3 text-xs font-medium border-b-2 border-transparent text-stone-400 hover:text-stone-700">
+        首頁輪播與專欄文案
       </button>
-      <button onclick="switchTab('couponTab')" id="btn-couponTab" class="tab-btn px-5 py-3 text-sm font-medium border-b-2 border-transparent text-stone-400 hover:text-stone-700 transition-all">
-        🎟️ 夥伴折扣碼管理
+      <button onclick="switchTab('categoryTab')" id="btn-categoryTab" class="tab-btn px-5 py-3 text-xs font-medium border-b-2 border-transparent text-stone-400 hover:text-stone-700">
+        可視化階層分類樹
+      </button>
+      <button onclick="switchTab('couponTab')" id="btn-couponTab" class="tab-btn px-5 py-3 text-xs font-medium border-b-2 border-transparent text-stone-400 hover:text-stone-700">
+        全站折扣碼
+      </button>
+      <button onclick="switchTab('settingTab')" id="btn-settingTab" class="tab-btn px-5 py-3 text-xs font-medium border-b-2 border-transparent text-stone-400 hover:text-stone-700">
+        全域設定與社群外連
       </button>
     </nav>
 
-    <!-- ==================== 分頁 1：訂單看板與列印 (核心功能) ==================== -->
-    <section id="orderTab" class="tab-content bg-white border border-sibyl-border rounded-2xl p-6 shadow-sm space-y-5">
-      <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 border-b border-stone-100 pb-4">
-        <div class="flex items-center gap-3">
-          <h2 class="text-sm font-bold text-sibyl-brown">訂單綜合管理</h2>
-          <button onclick="loadOrdersData()" class="bg-stone-50 hover:bg-stone-100 border text-stone-600 px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1">
-            🔄 重新整理
-          </button>
-        </div>
-
-        <!-- 搜尋與狀態過濾標籤 -->
-        <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-          <input type="text" id="orderSearchInput" oninput="searchOrders()" placeholder="🔍 搜尋姓名、電話、單號、商品..." 
-                 class="p-2 border rounded-xl text-xs bg-stone-50 outline-none w-full sm:w-64 focus:bg-white focus:border-sibyl-pink">
-          <div class="flex bg-stone-100 p-1 rounded-xl gap-1 text-xs overflow-x-auto no-scrollbar">
-            <button onclick="filterOrderStatus('全部')" class="order-filter-btn bg-white px-3 py-1 rounded-lg font-bold shadow-sm text-stone-800">全部</button>
-            <button onclick="filterOrderStatus('新訂單')" class="order-filter-btn px-3 py-1 rounded-lg text-stone-500">新訂單</button>
-            <button onclick="filterOrderStatus('已確認訂單')" class="order-filter-btn px-3 py-1 rounded-lg text-stone-500">已確認</button>
-            <button onclick="filterOrderStatus('等待到貨中')" class="order-filter-btn px-3 py-1 rounded-lg text-stone-500">等待到貨</button>
-            <button onclick="filterOrderStatus('待宅配出貨')" class="order-filter-btn px-3 py-1 rounded-lg text-stone-500">待出貨</button>
-            <button onclick="filterOrderStatus('已結案')" class="order-filter-btn px-3 py-1 rounded-lg text-stone-500">已結案</button>
-          </div>
+    <!-- 1. 訂單管理 (含分頁) -->
+    <section id="orderTab" class="tab-content bg-white border border-admin-border rounded-2xl p-6 shadow-sm space-y-4">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-3">
+        <h2 class="text-xs font-bold tracking-wider text-admin-dark uppercase">訂單管理</h2>
+        <div class="flex gap-2 w-full sm:w-auto">
+          <input type="text" id="orderSearchInput" oninput="searchOrders()" placeholder="搜尋姓名、電話、單號..." class="p-2 border rounded-xl text-xs bg-stone-50 outline-none w-full sm:w-60">
+          <button onclick="loadOrdersData()" class="bg-stone-100 hover:bg-stone-200 text-stone-600 px-3 py-1.5 rounded-xl text-xs font-bold shrink-0">重新整理</button>
         </div>
       </div>
 
-      <!-- 批量作業操作按鈕區 -->
-      <div class="bg-stone-50 p-3 rounded-xl border border-stone-200/60 flex items-center gap-2.5 flex-wrap text-xs">
-        <button onclick="fireBatchPrintInvoices()" class="bg-sibyl-brown text-white px-4 py-2 rounded-xl hover:bg-stone-800 font-bold shadow-sm flex items-center gap-1">
-          🖨️ 批量生成宅配揀貨單列印
-        </button>
-        <button onclick="fireBatchExportCSV()" class="bg-emerald-700 text-white px-4 py-2 rounded-xl hover:bg-emerald-800 font-bold shadow-sm flex items-center gap-1">
-          💹 批量匯出 Excel (CSV)
-        </button>
-        <button onclick="fireBatchUpdateStatus('已結案')" class="bg-stone-600 text-white px-3.5 py-2 rounded-xl hover:bg-stone-700 font-medium">
-          ✅ 批量標記為已結案
-        </button>
-        <div class="text-[11px] text-stone-500 ml-auto font-bold" id="checkedCountIndicator">當前已勾選：0 筆訂單</div>
+      <div class="bg-stone-50 p-3 rounded-xl border flex items-center gap-2 flex-wrap text-xs">
+        <button onclick="fireBatchPrintInvoices()" class="bg-admin-dark text-white px-3.5 py-1.5 rounded-lg font-bold">批量列印揀貨單</button>
+        <button onclick="fireBatchExportCSV()" class="bg-emerald-700 text-white px-3.5 py-1.5 rounded-lg font-bold">匯出 CSV 訂單報表</button>
+        <span class="text-[11px] text-stone-400 ml-auto font-bold" id="checkedCountIndicator">已選取 0 筆</span>
       </div>
 
-      <!-- 訂單資料表格 -->
-      <div class="overflow-x-auto border border-stone-200 rounded-xl">
+      <div class="overflow-x-auto border rounded-xl">
         <table class="w-full text-left text-xs bg-white">
-          <thead class="bg-stone-50 border-b border-stone-200 text-stone-500 font-bold">
+          <thead class="bg-stone-50 border-b text-stone-500 font-bold">
             <tr>
-              <th class="p-3 w-10 text-center"><input type="checkbox" id="selectAllOrdersBox" onchange="toggleAllOrders(this)"></th>
-              <th class="p-3 w-28">下單時間</th>
-              <th class="p-3 w-28">訂單編號</th>
-              <th class="p-3">訂購明細 (品名/規格/數量)</th>
-              <th class="p-3 w-20">應付總額</th>
+              <th class="p-3 w-10 text-center"><input type="checkbox" onchange="toggleAllOrders(this)"></th>
+              <th class="p-3 w-28">時間</th>
+              <th class="p-3 w-28">單號</th>
+              <th class="p-3">明細</th>
+              <th class="p-3 w-20">總額</th>
               <th class="p-3 w-32">客戶資訊</th>
-              <th class="p-3 w-48">收件地址 / 買家備註</th>
-              <th class="p-3 w-36 text-blue-700 font-bold">老闆備註 (點擊即存)</th>
-              <th class="p-3 w-28">訂單狀態</th>
+              <th class="p-3">收件地址</th>
+              <th class="p-3 w-36">備註紀錄</th>
+              <th class="p-3 w-28">狀態</th>
             </tr>
           </thead>
-          <tbody id="orderTableBody" class="divide-y divide-stone-100">
-            <tr><td colspan="9" class="p-8 text-center text-stone-400">正在連線讀取 Supabase 訂單資料庫...</td></tr>
-          </tbody>
+          <tbody id="orderTableBody" class="divide-y divide-stone-100"></tbody>
         </table>
+      </div>
+
+      <!-- 訂單分頁控制 -->
+      <div class="flex justify-between items-center text-xs text-stone-500 pt-2 font-medium">
+        <span id="orderPaginationText">第 1 頁，共 1 頁</span>
+        <div class="flex gap-1.5">
+          <button onclick="changeOrderPage(-1)" class="px-3 py-1 bg-stone-100 hover:bg-stone-200 rounded border">上一頁</button>
+          <button onclick="changeOrderPage(1)" class="px-3 py-1 bg-stone-100 hover:bg-stone-200 rounded border">下一頁</button>
+        </div>
       </div>
     </section>
 
-    <!-- ==================== 分頁 2：商品快速上架 / 編輯 ==================== -->
-    <section id="uploadTab" class="tab-content bg-white border border-sibyl-border rounded-2xl p-6 shadow-sm space-y-5 hidden">
-      <h2 id="formActionTitle" class="text-sm font-bold border-b border-stone-100 pb-3 text-sibyl-brown flex items-center gap-2">
-        <span>✍️</span> 商品快速配置上架
-      </h2>
-
+    <!-- 2. 商品上架與編輯 (Supabase Storage + 雙向同步試算表) -->
+    <section id="uploadTab" class="tab-content bg-white border border-admin-border rounded-2xl p-6 shadow-sm space-y-4 hidden">
+      <h2 id="formActionTitle" class="text-xs font-bold tracking-wider text-admin-dark uppercase border-b pb-2">商品配置設定</h2>
+      
       <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <div>
           <label class="text-xs font-bold text-stone-500 block mb-1">商品貨號 (SKU)</label>
-          <input type="text" id="pSku" class="w-full text-xs p-2.5 border rounded-xl bg-stone-50 focus:bg-white outline-none" placeholder="例如：#SL1-01">
+          <input type="text" id="pSku" class="w-full text-xs p-2.5 border rounded-xl bg-stone-50 outline-none" placeholder="例如 #SL1-01">
         </div>
         <div class="sm:col-span-2">
-          <label class="text-xs font-bold text-stone-500 block mb-1">商品品名 (必填)</label>
-          <input type="text" id="pName" class="w-full text-xs p-2.5 border rounded-xl bg-stone-50 focus:bg-white outline-none" placeholder="例如：掉進小豬發財夢 莫代爾天絲四季被">
+          <label class="text-xs font-bold text-stone-500 block mb-1">商品名稱 (必填)</label>
+          <input type="text" id="pName" class="w-full text-xs p-2.5 border rounded-xl bg-stone-50 outline-none">
         </div>
         <div>
-          <label class="text-xs font-bold text-stone-500 block mb-1">預計到貨日期</label>
-          <input type="text" id="pArrivalDate" class="w-full text-xs p-2.5 border rounded-xl bg-stone-50 focus:bg-white outline-none" placeholder="例如：預購海運約14-20天">
+          <label class="text-xs font-bold text-stone-500 block mb-1">預計到貨期</label>
+          <input type="text" id="pArrivalDate" class="w-full text-xs p-2.5 border rounded-xl bg-stone-50 outline-none" placeholder="例如 預購海運約14-20天">
         </div>
       </div>
 
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div>
-          <label class="text-xs font-bold text-stone-500 block mb-1">上架狀態</label>
+          <label class="text-xs font-bold text-stone-500 block mb-1">狀態</label>
           <select id="pStatus" class="w-full text-xs p-2.5 border rounded-xl bg-stone-50">
             <option value="上架">上架</option>
             <option value="下架">下架</option>
           </select>
         </div>
         <div>
-          <label class="text-xs font-bold text-stone-500 block mb-1">副分類</label>
-          <select id="pSubSelect" class="w-full text-xs p-2.5 border rounded-xl bg-stone-50">
-            <option value="四季被">四季被</option>
-            <option value="薄被">春夏薄被</option>
-            <option value="冬被">雙面絨冬被</option>
-            <option value="床包床墊">床包/床墊</option>
-            <option value="枕頭套">枕套/枕芯</option>
-          </select>
+          <label class="text-xs font-bold text-stone-500 block mb-1">主分類</label>
+          <select id="pMajorSelect" onchange="syncSubCategoriesDropdown()" class="w-full text-xs p-2.5 border rounded-xl bg-stone-50"></select>
         </div>
         <div>
-          <label class="text-xs font-bold text-stone-500 block mb-1">特色標籤</label>
-          <input type="text" id="pTag" class="w-full text-xs p-2.5 border rounded-xl bg-stone-50 focus:bg-white outline-none" placeholder="例如：熱銷預購 / 天絲">
+          <label class="text-xs font-bold text-stone-500 block mb-1">次分類</label>
+          <select id="pSubSelect" onchange="syncChildCategoriesDropdown()" class="w-full text-xs p-2.5 border rounded-xl bg-stone-50"></select>
         </div>
         <div>
-          <label class="text-xs font-bold text-stone-500 block mb-1">建議原價 (商城劃線價)</label>
-          <input type="number" id="pOldPrice" class="w-full text-xs p-2.5 border rounded-xl bg-stone-50 focus:bg-white outline-none" placeholder="例如：3040">
+          <label class="text-xs font-bold text-stone-500 block mb-1">細分類 (選填)</label>
+          <select id="pChildSelect" class="w-full text-xs p-2.5 border rounded-xl bg-stone-50"></select>
         </div>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label class="text-xs font-bold text-stone-500 block mb-1">款式花色清單 (逗號隔開)</label>
-          <input type="text" id="pColors" oninput="regenerateMatrix()" class="w-full text-xs p-2.5 border rounded-xl bg-stone-50 focus:bg-white outline-none" placeholder="例如：粉色, 藍色, 紫色">
+          <label class="text-xs font-bold text-stone-500 block mb-1">款式規格 (逗號隔開)</label>
+          <input type="text" id="pColors" oninput="regenerateMatrix()" class="w-full text-xs p-2.5 border rounded-xl bg-stone-50 outline-none" placeholder="例如 藍色, 粉色">
         </div>
         <div>
-          <label class="text-xs font-bold text-stone-500 block mb-1">尺寸規格清單 (逗號隔開)</label>
-          <input type="text" id="pSizes" oninput="regenerateMatrix()" class="w-full text-xs p-2.5 border rounded-xl bg-stone-50 focus:bg-white outline-none" placeholder="例如：S, Q">
+          <label class="text-xs font-bold text-stone-500 block mb-1">尺寸規格 (逗號隔開)</label>
+          <input type="text" id="pSizes" oninput="regenerateMatrix()" class="w-full text-xs p-2.5 border rounded-xl bg-stone-50 outline-none" placeholder="例如 S, Q">
         </div>
       </div>
 
-      <!-- 規格細部定價配置矩陣 -->
-      <div class="bg-stone-50 p-4 border border-stone-200 rounded-xl space-y-3">
+      <div class="bg-stone-50 p-4 border rounded-xl space-y-2">
         <div class="flex justify-between items-center">
-          <span class="text-xs font-bold text-stone-700">💰 規格細部特價配置矩陣 (客人入手價)</span>
-          <button onclick="batchSetMatrixPrice()" class="bg-stone-700 text-white text-[11px] px-3 py-1 rounded-lg hover:bg-stone-800 transition-all">
-            ⚡ 批量填入統一價格
-          </button>
+          <span class="text-xs font-bold text-stone-600">規格特價配置矩陣</span>
+          <button onclick="batchSetMatrixPrice()" class="text-[11px] bg-stone-200 hover:bg-stone-300 px-2 py-1 rounded">批次設定特價</button>
         </div>
-        <table class="w-full text-left text-xs bg-white border border-stone-200 rounded-lg overflow-hidden">
+        <table class="w-full text-left text-xs bg-white border rounded-lg">
           <thead>
             <tr class="bg-stone-100 text-stone-600 font-bold">
-              <th class="p-2.5">組合規格</th>
-              <th class="p-2.5 w-32">原價</th>
-              <th class="p-2.5 w-32">特價 (必填單價)</th>
-              <th class="p-2.5 w-24">庫存上限</th>
+              <th class="p-2">組合規格</th>
+              <th class="p-2 w-32">原價</th>
+              <th class="p-2 w-32">特價 (實付)</th>
+              <th class="p-2 w-24">庫存上限</th>
             </tr>
           </thead>
           <tbody id="matrixTableBody" class="divide-y divide-stone-100"></tbody>
         </table>
       </div>
 
-      <!-- 圖片上傳 (ImgBB) 與網址管理 -->
-      <div class="border-2 border-dashed border-stone-300 rounded-2xl p-5 text-center bg-stone-50 cursor-pointer hover:bg-stone-100 transition-all" 
-           onclick="document.getElementById('bbFileInput').click()">
-        <span class="text-xs font-bold text-stone-600 block">📸 點擊選取圖片，自動上傳至 ImgBB 雲端圖床</span>
-        <input type="file" id="bbFileInput" accept="image/*" multiple class="hidden" onchange="uploadImagesToImgBB(this.files)">
-        <div id="uploadStatusText" class="text-[11px] text-sibyl-rose font-bold mt-1"></div>
+      <!-- 圖片直傳 Supabase Storage (shop-images) -->
+      <div class="border-2 border-dashed border-stone-300 rounded-xl p-5 text-center bg-stone-50 cursor-pointer hover:bg-stone-100 transition-all"
+           onclick="document.getElementById('productStorageInput').click()">
+        <span class="text-xs font-bold text-stone-600 block">選取商品圖片上傳至 Supabase Storage (shop-images)</span>
+        <input type="file" id="productStorageInput" accept="image/*" multiple class="hidden" onchange="uploadProductFilesToSupabase(this.files)">
+        <div id="storageStatusText" class="text-[11px] text-stone-500 font-bold mt-1"></div>
       </div>
 
       <div>
         <label class="text-xs font-bold text-stone-500 block mb-1">圖片網址清單 (換行分隔)</label>
-        <textarea id="pImgs" rows="3" class="w-full text-xs p-2.5 border rounded-xl bg-stone-50 focus:bg-white outline-none" placeholder="圖片網址由上方自動帶入或手動貼上"></textarea>
+        <textarea id="pImgs" rows="3" class="w-full text-xs p-2.5 border rounded-xl bg-stone-50 outline-none"></textarea>
       </div>
 
       <div>
-        <label class="text-xs font-bold text-stone-500 block mb-1">商品詳細敘述 (材質/重量/洗滌說明)</label>
-        <textarea id="pDesc" rows="3" class="w-full text-xs p-2.5 border rounded-xl bg-stone-50 focus:bg-white outline-none" placeholder="輸入商品介紹..."></textarea>
+        <label class="text-xs font-bold text-stone-500 block mb-1">商品說明敘述</label>
+        <textarea id="pDesc" rows="3" class="w-full text-xs p-2.5 border rounded-xl bg-stone-50 outline-none"></textarea>
       </div>
 
-      <div class="flex gap-3">
-        <button onclick="publishProduct()" id="btnSubmitProduct" class="flex-1 bg-gradient-to-r from-sibyl-pink to-sibyl-rose text-white font-bold text-xs py-3.5 rounded-xl shadow-md hover:opacity-95 transition-all">
-          一鍵確認儲存至 Supabase 雲端
-        </button>
-        <button onclick="resetProductForm()" id="btnCancelEdit" class="bg-stone-200 text-stone-600 font-bold text-xs px-5 py-3.5 rounded-xl hidden">
-          取消編輯
-        </button>
-      </div>
+      <button onclick="publishProduct()" id="btnSubmitProduct" class="w-full bg-admin-dark text-white font-bold text-xs py-3.5 rounded-xl hover:bg-stone-800 transition-all">
+        確認發布 (即時同步至 Supabase 與 Google 試算表)
+      </button>
     </section>
 
-    <!-- ==================== 分頁 3：商品庫存清單 ==================== -->
-    <section id="listTab" class="tab-content bg-white border border-sibyl-border rounded-2xl p-6 shadow-sm space-y-4 hidden">
-      <div class="flex justify-between items-center gap-3">
-        <h2 class="text-sm font-bold text-sibyl-brown">商品清單與快速編輯</h2>
-        <input type="text" id="inventorySearch" oninput="searchInventory()" placeholder="搜尋貨號或品名..." 
-               class="p-2 border rounded-xl text-xs bg-stone-50 outline-none w-48 sm:w-64">
+    <!-- 3. 商品清單 (含分頁) -->
+    <section id="listTab" class="tab-content bg-white border border-admin-border rounded-2xl p-6 shadow-sm space-y-4 hidden">
+      <div class="flex justify-between items-center">
+        <h2 class="text-xs font-bold tracking-wider text-admin-dark uppercase">商品庫存清單</h2>
+        <input type="text" id="invSearch" oninput="searchInventory()" placeholder="搜尋貨號或品名..." class="p-2 border rounded-xl text-xs bg-stone-50 outline-none w-60">
       </div>
-      <div class="overflow-x-auto border border-stone-200 rounded-xl">
+      <div class="overflow-x-auto border rounded-xl">
         <table class="w-full text-left text-xs bg-white">
-          <thead class="bg-stone-50 border-b border-stone-200 text-stone-500 font-bold">
+          <thead class="bg-stone-50 border-b text-stone-500 font-bold">
             <tr>
-              <th class="p-3 w-16">主圖</th>
+              <th class="p-3 w-16">圖片</th>
               <th class="p-3 w-24">貨號</th>
-              <th class="p-3">商品品名</th>
-              <th class="p-3 w-24">分類</th>
-              <th class="p-3 w-20">特價起標</th>
-              <th class="p-3 w-28">預計到貨日</th>
-              <th class="p-3 w-16">狀態</th>
-              <th class="p-3 w-24 text-center">操作</th>
+              <th class="p-3">品名</th>
+              <th class="p-3 w-28">分類</th>
+              <th class="p-3 w-20">起標價</th>
+              <th class="p-3 w-24">狀態</th>
+              <th class="p-3 w-20 text-center">操作</th>
             </tr>
           </thead>
           <tbody id="inventoryTableBody" class="divide-y divide-stone-100"></tbody>
         </table>
       </div>
-    </section>
 
-    <!-- ==================== 分頁 4：首頁輪播圖管理 ==================== -->
-    <section id="bannerTab" class="tab-content bg-white border border-sibyl-border rounded-2xl p-6 shadow-sm space-y-6 hidden">
-      <div class="flex justify-between items-center border-b border-stone-100 pb-3">
-        <div>
-          <h2 class="text-sm font-bold text-sibyl-brown">首頁輪播圖維護 (動態白點進度條連動)</h2>
-          <p class="text-[11px] text-stone-400 mt-0.5">前台輪播比例約 2:1，建議上傳橫式高解析圖片</p>
+      <!-- 商品分頁控制 -->
+      <div class="flex justify-between items-center text-xs text-stone-500 pt-2 font-medium">
+        <span id="invPaginationText">第 1 頁，共 1 頁</span>
+        <div class="flex gap-1.5">
+          <button onclick="changeInvPage(-1)" class="px-3 py-1 bg-stone-100 hover:bg-stone-200 rounded border">上一頁</button>
+          <button onclick="changeInvPage(1)" class="px-3 py-1 bg-stone-100 hover:bg-stone-200 rounded border">下一頁</button>
         </div>
-      </div>
-
-      <!-- 新增輪播圖區 -->
-      <div class="bg-stone-50 p-4 rounded-2xl border border-stone-200/80 space-y-3">
-        <span class="text-xs font-bold text-stone-700">➕ 新增首頁輪播橫幅</span>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <input type="text" id="newBannerImgUrl" placeholder="輪播圖片網址 (可由下方上傳帶入)" class="text-xs p-2.5 border rounded-xl bg-white outline-none sm:col-span-2">
-          <input type="number" id="newBannerOrder" placeholder="排序權重 (越小越靠前，如 1)" class="text-xs p-2.5 border rounded-xl bg-white outline-none" value="1">
-        </div>
-        <div class="flex gap-2">
-          <button onclick="document.getElementById('bannerFileInput').click()" class="bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-bold px-3 py-2 rounded-xl">
-            📷 點擊上傳圖片至 ImgBB
-          </button>
-          <input type="file" id="bannerFileInput" accept="image/*" class="hidden" onchange="uploadBannerImage(this.files)">
-          <button onclick="addNewBanner()" class="bg-sibyl-brown text-white text-xs font-bold px-5 py-2 rounded-xl shadow-sm hover:bg-stone-800 ml-auto">
-            確認新增橫幅
-          </button>
-        </div>
-      </div>
-
-      <!-- 現有輪播圖清單 -->
-      <div id="bannerListGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <!-- JS 動態生成輪播圖卡片 -->
       </div>
     </section>
 
-    <!-- ==================== 分頁 5：夥伴折扣碼管理 ==================== -->
-    <section id="couponTab" class="tab-content bg-white border border-sibyl-border rounded-2xl p-6 shadow-sm space-y-5 hidden">
-      <div class="flex justify-between items-center border-b border-stone-100 pb-3">
+    <!-- 4. 首頁輪播圖與相簿部落格圖文專區 -->
+    <section id="bannerTab" class="tab-content bg-white border border-admin-border rounded-2xl p-6 shadow-sm space-y-6 hidden">
+      <div>
+        <h2 class="text-xs font-bold tracking-wider text-admin-dark uppercase border-b pb-2">首頁輪播圖管理 (完全置中)</h2>
+        <div class="bg-stone-50 p-4 rounded-xl border mt-3 space-y-3">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <input type="text" id="newBannerImgUrl" placeholder="輪播圖網址 (可由右方直傳 Supabase)" class="text-xs p-2.5 border rounded-xl bg-white outline-none sm:col-span-2">
+            <input type="number" id="newBannerOrder" placeholder="排序 (數字小在前)" class="text-xs p-2.5 border rounded-xl bg-white outline-none" value="1">
+          </div>
+          <div class="flex gap-2">
+            <button onclick="document.getElementById('bannerStorageInput').click()" class="bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-bold px-3 py-2 rounded-xl">
+              選圖直傳 Supabase
+            </button>
+            <input type="file" id="bannerStorageInput" accept="image/*" class="hidden" onchange="uploadBannerFileToSupabase(this.files)">
+            <button onclick="addNewBanner()" class="bg-admin-dark text-white text-xs font-bold px-5 py-2 rounded-xl ml-auto">確認建立橫幅</button>
+          </div>
+        </div>
+        <div id="bannerListGrid" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4"></div>
+      </div>
+
+      <!-- 首頁輪播圖下方相簿部落格風格編輯器 -->
+      <div class="pt-4 border-t">
+        <h2 class="text-xs font-bold tracking-wider text-admin-dark uppercase border-b pb-2">前台輪播下方・相簿部落格圖文專區設定</h2>
+        <div class="bg-stone-50 p-4 rounded-xl border mt-3 space-y-3">
+          <div class="flex items-center gap-2 mb-1">
+            <input type="checkbox" id="editorialActive" checked>
+            <label for="editorialActive" class="text-xs font-bold text-stone-700">在前台首頁顯示此專區</label>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-bold text-stone-500 block mb-1">大標題</label>
+              <input type="text" id="editorialTitle" class="w-full text-xs p-2.5 border rounded-xl bg-white outline-none" placeholder="例如 THE ART OF BEDDING">
+            </div>
+            <div>
+              <label class="text-xs font-bold text-stone-500 block mb-1">副標題</label>
+              <input type="text" id="editorialSubtitle" class="w-full text-xs p-2.5 border rounded-xl bg-white outline-none" placeholder="例如 極致睡眠美學・韓國正宗鋪棉寢居系列">
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-bold text-stone-500 block mb-1">專欄內容介紹文案</label>
+            <textarea id="editorialBody" rows="4" class="w-full text-xs p-2.5 border rounded-xl bg-white outline-none" placeholder="輸入品牌故事或專題介紹..."></textarea>
+          </div>
+          <div>
+            <label class="text-xs font-bold text-stone-500 block mb-1">插圖圖片網址 (選填)</label>
+            <input type="text" id="editorialImgUrl" class="w-full text-xs p-2.5 border rounded-xl bg-white outline-none">
+          </div>
+          <button onclick="saveEditorialContent()" class="bg-admin-dark text-white text-xs font-bold px-5 py-2.5 rounded-xl">儲存圖文專區</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. 可視化階層分類樹 (無 JSON 程式碼) -->
+    <section id="categoryTab" class="tab-content bg-white border border-admin-border rounded-2xl p-6 shadow-sm space-y-4 hidden">
+      <div class="flex justify-between items-center border-b pb-2">
         <div>
-          <h2 class="text-sm font-bold text-sibyl-brown">樂購電商夥伴專屬折扣碼管理</h2>
-          <p class="text-[11px] text-stone-400 mt-0.5">設定夥伴專屬優惠碼，前台輸入一律享受 95 折</p>
+          <h2 class="text-xs font-bold tracking-wider text-admin-dark uppercase">可視化多層分類樹管理</h2>
+          <p class="text-[11px] text-stone-400 mt-0.5">點擊按鈕直接增減分類分支，自動同步前台多層切換</p>
         </div>
+        <button onclick="addMajorCategoryPrompt()" class="bg-admin-dark text-white text-xs font-bold px-4 py-2 rounded-xl">
+          + 新增大分類
+        </button>
       </div>
 
-      <div class="bg-stone-50 p-4 rounded-xl border border-stone-200/80 space-y-3">
-        <span class="text-xs font-bold text-stone-700">➕ 建立新夥伴專屬折扣碼</span>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <input type="text" id="newCouponCode" placeholder="折扣碼代號 (例如 LEGO01)" class="text-xs p-2.5 border rounded-xl bg-white outline-none uppercase font-mono">
-          <input type="text" id="newPartnerName" placeholder="樂購夥伴店名 / 姓名" class="text-xs p-2.5 border rounded-xl bg-white outline-none">
-          <button onclick="addNewCoupon()" class="bg-sibyl-brown text-white text-xs font-bold py-2.5 rounded-xl shadow-sm hover:bg-stone-800">
-            確認建立折扣碼
-          </button>
-        </div>
+      <!-- 可視化樹狀清單容器 -->
+      <div id="visualCategoryTreeContainer" class="space-y-4 pt-2"></div>
+      
+      <div class="pt-4 border-t flex justify-end">
+        <button onclick="saveCategoryTreeToSupabase()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-6 py-2.5 rounded-xl shadow-sm">
+          確認儲存全部分類架構
+        </button>
       </div>
+    </section>
 
-      <div class="overflow-x-auto border border-stone-200 rounded-xl">
+    <!-- 6. 通用折扣碼 -->
+    <section id="couponTab" class="tab-content bg-white border border-admin-border rounded-2xl p-6 shadow-sm space-y-4 hidden">
+      <h2 class="text-xs font-bold tracking-wider text-admin-dark uppercase border-b pb-2">全站優惠折扣碼</h2>
+      <div class="bg-stone-50 p-4 rounded-xl border space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <input type="text" id="newCouponCode" placeholder="代碼 (如 VIP95)" class="text-xs p-2.5 border rounded-xl bg-white uppercase font-mono">
+          <select id="newCouponType" class="text-xs p-2.5 border rounded-xl bg-white">
+            <option value="percent">比例折抵 (如 0.05 代表 95 折)</option>
+            <option value="fixed">固定金額 (如 100 代表現折 100)</option>
+          </select>
+          <input type="number" step="0.01" id="newCouponVal" placeholder="數值 (0.05 或 100)" class="text-xs p-2.5 border rounded-xl bg-white">
+          <input type="text" id="newCouponNote" placeholder="備註說明" class="text-xs p-2.5 border rounded-xl bg-white">
+        </div>
+        <button onclick="addNewCoupon()" class="bg-admin-dark text-white text-xs font-bold px-5 py-2 rounded-xl">確認建立折扣碼</button>
+      </div>
+      <div class="overflow-x-auto border rounded-xl">
         <table class="w-full text-left text-xs bg-white">
-          <thead class="bg-stone-50 border-b border-stone-200 text-stone-500 font-bold">
+          <thead class="bg-stone-50 border-b text-stone-500 font-bold">
             <tr>
-              <th class="p-3">折扣碼</th>
-              <th class="p-3">所屬夥伴名稱</th>
-              <th class="p-3">優惠折抵</th>
-              <th class="p-3">目前狀態</th>
-              <th class="p-3 text-center w-24">操作</th>
+              <th class="p-3">代碼</th>
+              <th class="p-3">折抵方式</th>
+              <th class="p-3">折抵數值</th>
+              <th class="p-3">發行備註</th>
+              <th class="p-3 text-center">操作</th>
             </tr>
           </thead>
           <tbody id="couponTableBody" class="divide-y divide-stone-100"></tbody>
@@ -373,77 +380,261 @@
       </div>
     </section>
 
+    <!-- 7. 全域設定與自訂社群外連 -->
+    <section id="settingTab" class="tab-content bg-white border border-admin-border rounded-2xl p-6 shadow-sm space-y-5 hidden">
+      <h2 class="text-xs font-bold tracking-wider text-admin-dark uppercase border-b pb-2">全域跑馬燈與頂部社群連結</h2>
+      
+      <div>
+        <label class="text-xs font-bold text-stone-600 block mb-1">首頁跑馬燈公告內容 (前台自動水平置中滾動)</label>
+        <textarea id="settingMarqueeText" rows="2" class="w-full text-xs p-3 border rounded-xl bg-stone-50 outline-none"></textarea>
+      </div>
+
+      <div class="space-y-3 pt-3 border-t">
+        <div class="flex justify-between items-center">
+          <div>
+            <label class="text-xs font-bold text-stone-600 block">頂部導航外部連結群 (如 Instagram、LINE 客服、實體門市)</label>
+            <p class="text-[11px] text-stone-400">在前台頂部右側自動產生連結按鈕</p>
+          </div>
+          <button onclick="addNewNavLinkRow()" class="bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold px-3 py-1.5 rounded-lg border">
+            + 新增連結
+          </button>
+        </div>
+        <div id="navLinksContainer" class="space-y-2"></div>
+      </div>
+
+      <button onclick="saveGlobalSettings()" class="bg-admin-dark text-white text-xs font-bold px-6 py-2.5 rounded-xl">
+        儲存全域設定
+      </button>
+    </section>
+
   </div>
 
-  <!-- 🖨️ 列印中心隱藏 DOM 容器 -->
   <div id="printArea" class="print-invoice-area"></div>
+  <div id="adminToast" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[99999] bg-stone-900/90 text-white text-xs px-4 py-2 rounded-full shadow-xl opacity-0 transition-opacity pointer-events-none"></div>
 
-  <!-- Toast 提示視窗 -->
-  <div id="adminToast" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[99999] bg-stone-900/90 backdrop-blur-md text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-xl opacity-0 transition-opacity pointer-events-none"></div>
-
-  <!-- ==================== 後台核心引擎腳本 ==================== -->
   <script>
     const STORE_ID = "sibyl";
     const ADMIN_PASSWORD = "8888";
     const SUPABASE_URL = "https://tzqpfnrpnfzzubofoqlt.supabase.co";
-    // ⚠️ 填入你的 Supabase anon key
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6cXBmbnJwbmZ6enVib2ZvcWx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1ODQ5ODYsImV4cCI6MjEwODE2MDk4Nn0.B-ub7DCpzF3b2gjpTrM9jdW0SLOqRPillZTmoXPuNgk";
-    const IMGBB_KEY = "0f2f883b9a46cfe7b26639f93bc293d3";
+    const SUPABASE_KEY = "請貼入你的完整_SUPABASE_ANON_KEY";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycby44GCzrpN8ZpGSTNcVkI3IFMbyO7XhyE_Bf-cKMCTzDBbfYxDVaFD-pVcyc0vTykI-/exec";
 
     let rawOrders = [], filteredOrders = [];
     let globalProducts = [], filteredProducts = [];
-    let isEditMode = false;
     let selectedOrderIds = {};
 
-    // 1. 安全通行驗證
+    // 分頁變數
+    let orderPage = 1, orderPageSize = 10;
+    let invPage = 1, invPageSize = 10;
+
+    // 視覺分類樹資料結構
+    let visualCategoryTree = [
+      { id: "c1", name: "韓國棉被", children: [
+        { id: "c1_1", name: "四季被", children: [{ id: "c1_1_1", name: "天絲莫代爾" }] },
+        { id: "c1_2", name: "春夏薄被", children: [] },
+        { id: "c1_3", name: "雙面絨冬被", children: [] }
+      ]},
+      { id: "c2", name: "床寢配件", children: [
+        { id: "c2_1", name: "純色床包", children: [] },
+        { id: "c2_2", name: "立體枕芯", children: [] }
+      ]}
+    ];
+
+    let storeNavLinks = [];
+
     function verifyAdminPassword() {
-      const input = document.getElementById("adminPwdInput");
-      if (input.value.trim() === ADMIN_PASSWORD) {
+      if (document.getElementById("adminPwdInput").value.trim() === ADMIN_PASSWORD) {
         sessionStorage.setItem("sibyl_admin_auth", "true");
         document.getElementById("adminAuthOverlay").style.display = "none";
         initDashboard();
       } else {
         document.getElementById("authErrorMsg").classList.remove("hidden");
-        input.value = "";
-        input.focus();
       }
     }
 
     function handleAdminLogout() {
-      if (confirm("確定要安全登出管理中心？")) {
-        sessionStorage.removeItem("sibyl_admin_auth");
-        window.location.reload();
-      }
+      sessionStorage.removeItem("sibyl_admin_auth");
+      window.location.reload();
     }
 
     window.onload = () => {
       if (sessionStorage.getItem("sibyl_admin_auth") === "true") {
         document.getElementById("adminAuthOverlay").style.display = "none";
         initDashboard();
-      } else {
-        document.getElementById("adminAuthOverlay").style.display = "flex";
-        document.getElementById("adminPwdInput").focus();
       }
     };
 
+    function switchTab(id) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.getElementById(id).classList.remove('hidden');
+      document.querySelectorAll('.tab-btn').forEach(b => b.className = "tab-btn px-5 py-3 text-xs font-medium border-b-2 border-transparent text-stone-400 hover:text-stone-700");
+      document.getElementById('btn-' + id).className = "tab-btn px-5 py-3 text-xs font-bold border-b-2 border-admin-dark text-admin-dark bg-white rounded-t-xl";
+    }
+
     function initDashboard() {
+      loadStoreSettings();
       loadOrdersData();
       loadInventoryData();
       loadBannersData();
       loadCouponsData();
     }
 
-    // 分頁切換
-    function switchTab(id) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-      document.getElementById(id).classList.remove('hidden');
-      document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.className = "tab-btn px-5 py-3 text-sm font-medium border-b-2 border-transparent text-stone-400 hover:text-stone-700 transition-all";
+    // ==================== 1. 可視化分類樹 (樹狀圖分支操作，無 JSON) ====================
+    function renderVisualCategoryTree() {
+      const container = document.getElementById('visualCategoryTreeContainer');
+      container.innerHTML = "";
+
+      visualCategoryTree.forEach((major, mIdx) => {
+        let subsHtml = (major.children || []).map((sub, sIdx) => {
+          let leafsHtml = (sub.children || []).map((leaf, lIdx) => `
+            <div class="flex items-center gap-2 bg-white px-2.5 py-1.5 rounded-lg border border-stone-200 text-xs">
+              <span class="text-stone-400">└─</span>
+              <input type="text" value="${leaf.name}" onchange="updateLeafName(${mIdx}, ${sIdx}, ${lIdx}, this.value)" class="p-1 border rounded text-xs outline-none w-28">
+              <button onclick="removeLeafCategory(${mIdx}, ${sIdx}, ${lIdx})" class="text-stone-400 hover:text-red-600 font-bold px-1">✕</button>
+            </div>
+          `).join('');
+
+          return `
+            <div class="ml-6 p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-xs text-stone-700">├── 次分類：</span>
+                <input type="text" value="${sub.name}" onchange="updateSubName(${mIdx}, ${sIdx}, this.value)" class="p-1 border rounded text-xs font-medium outline-none w-36">
+                <button onclick="addLeafCategoryPrompt(${mIdx}, ${sIdx})" class="text-[11px] bg-stone-200 hover:bg-stone-300 px-2 py-0.5 rounded text-stone-700">+ 新增細分類</button>
+                <button onclick="removeSubCategory(${mIdx}, ${sIdx})" class="text-stone-400 hover:text-red-600 text-xs px-1">✕ 刪除</button>
+              </div>
+              <div class="flex flex-wrap gap-2 ml-4">${leafsHtml}</div>
+            </div>
+          `;
+        }).join('');
+
+        container.innerHTML += `
+          <div class="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm space-y-3">
+            <div class="flex items-center gap-3 bg-stone-100 p-2.5 rounded-xl">
+              <span class="font-bold text-xs text-admin-dark">■ 大分類：</span>
+              <input type="text" value="${major.name}" onchange="updateMajorName(${mIdx}, this.value)" class="p-1.5 border rounded-lg text-xs font-bold outline-none w-44">
+              <button onclick="addSubCategoryPrompt(${mIdx})" class="text-xs bg-admin-dark text-white px-2.5 py-1 rounded-lg">+ 新增次分類</button>
+              <button onclick="removeMajorCategory(${mIdx})" class="text-stone-400 hover:text-red-600 text-xs ml-auto">✕ 刪除大分類</button>
+            </div>
+            <div class="space-y-2">${subsHtml}</div>
+          </div>
+        `;
       });
-      document.getElementById('btn-' + id).className = "tab-btn px-5 py-3 text-sm font-bold border-b-2 border-sibyl-rose text-sibyl-rose bg-white rounded-t-xl transition-all";
+      syncProductCategoryDropdowns();
     }
 
-    // ==================== 訂單管理核心 ====================
+    function addMajorCategoryPrompt() {
+      let name = prompt("請輸入大分類名稱：");
+      if (!name) return;
+      visualCategoryTree.push({ id: "m_" + Date.now(), name: name.trim(), children: [] });
+      renderVisualCategoryTree();
+    }
+
+    function updateMajorName(mIdx, val) { visualCategoryTree[mIdx].name = val.trim(); syncProductCategoryDropdowns(); }
+    function removeMajorCategory(mIdx) { if(confirm("確定刪除此大分類？")) { visualCategoryTree.splice(mIdx, 1); renderVisualCategoryTree(); } }
+
+    function addSubCategoryPrompt(mIdx) {
+      let name = prompt(`請輸入【${visualCategoryTree[mIdx].name}】底下的次分類名稱：`);
+      if (!name) return;
+      if (!visualCategoryTree[mIdx].children) visualCategoryTree[mIdx].children = [];
+      visualCategoryTree[mIdx].children.push({ id: "s_" + Date.now(), name: name.trim(), children: [] });
+      renderVisualCategoryTree();
+    }
+
+    function updateSubName(mIdx, sIdx, val) { visualCategoryTree[mIdx].children[sIdx].name = val.trim(); syncProductCategoryDropdowns(); }
+    function removeSubCategory(mIdx, sIdx) { visualCategoryTree[mIdx].children.splice(sIdx, 1); renderVisualCategoryTree(); }
+
+    function addLeafCategoryPrompt(mIdx, sIdx) {
+      let name = prompt(`請輸入【${visualCategoryTree[mIdx].children[sIdx].name}】底下的細分類名稱：`);
+      if (!name) return;
+      if (!visualCategoryTree[mIdx].children[sIdx].children) visualCategoryTree[mIdx].children[sIdx].children = [];
+      visualCategoryTree[mIdx].children[sIdx].children.push({ id: "l_" + Date.now(), name: name.trim() });
+      renderVisualCategoryTree();
+    }
+
+    function updateLeafName(mIdx, sIdx, lIdx, val) { visualCategoryTree[mIdx].children[sIdx].children[lIdx].name = val.trim(); }
+    function removeLeafCategory(mIdx, sIdx, lIdx) { visualCategoryTree[mIdx].children[sIdx].children.splice(lIdx, 1); renderVisualCategoryTree(); }
+
+    async function saveCategoryTreeToSupabase() {
+      await fetch(`${SUPABASE_URL}/rest/v1/shop_stores?store_id=eq.${STORE_ID}`, {
+        method: 'PATCH',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category_tree: visualCategoryTree })
+      });
+      showToast("分類架構已成功儲存！");
+    }
+
+    function syncProductCategoryDropdowns() {
+      const majSel = document.getElementById('pMajorSelect');
+      majSel.innerHTML = visualCategoryTree.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
+      syncSubCategoriesDropdown();
+    }
+
+    function syncSubCategoriesDropdown() {
+      const curMaj = document.getElementById('pMajorSelect').value;
+      const subSel = document.getElementById('pSubSelect');
+      let m = visualCategoryTree.find(x => x.name === curMaj);
+      if (m && m.children && m.children.length > 0) {
+        subSel.innerHTML = m.children.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+      } else {
+        subSel.innerHTML = `<option value="">通用</option>`;
+      }
+      syncChildCategoriesDropdown();
+    }
+
+    function syncChildCategoriesDropdown() {
+      const curMaj = document.getElementById('pMajorSelect').value;
+      const curSub = document.getElementById('pSubSelect').value;
+      const childSel = document.getElementById('pChildSelect');
+      let m = visualCategoryTree.find(x => x.name === curMaj);
+      let s = m && m.children ? m.children.find(x => x.name === curSub) : null;
+      if (s && s.children && s.children.length > 0) {
+        childSel.innerHTML = s.children.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+      } else {
+        childSel.innerHTML = `<option value="">無</option>`;
+      }
+    }
+
+    // ==================== 2. Supabase Storage 圖片上傳 ====================
+    async function uploadProductFilesToSupabase(files) {
+      if (!files || files.length === 0) return;
+      const statusText = document.getElementById('storageStatusText');
+      const area = document.getElementById('pImgs');
+      statusText.innerText = "直傳 Supabase Storage 中...";
+      let urls = [];
+
+      for (let f of files) {
+        let cleanName = `prod_${Date.now()}_${Math.random().toString(36).substring(2,6)}.${f.name.split('.').pop()}`;
+        let res = await fetch(`${SUPABASE_URL}/storage/v1/object/shop-images/${cleanName}`, {
+          method: 'POST',
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': f.type },
+          body: f
+        });
+        if (res.ok) {
+          urls.push(`${SUPABASE_URL}/storage/v1/object/public/shop-images/${cleanName}`);
+        }
+      }
+      if (urls.length > 0) {
+        area.value = (area.value ? area.value + "\n" : "") + urls.join("\n");
+        statusText.innerText = `已上傳 ${urls.length} 張圖片至 Supabase Storage`;
+      }
+    }
+
+    async function uploadBannerFileToSupabase(files) {
+      if (!files || files.length === 0) return;
+      let f = files[0];
+      let cleanName = `banner_${Date.now()}.${f.name.split('.').pop()}`;
+      let res = await fetch(`${SUPABASE_URL}/storage/v1/object/shop-images/${cleanName}`, {
+        method: 'POST',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': f.type },
+        body: f
+      });
+      if (res.ok) {
+        document.getElementById('newBannerImgUrl').value = `${SUPABASE_URL}/storage/v1/object/public/shop-images/${cleanName}`;
+        showToast("輪播圖已上傳完成");
+      }
+    }
+
+    // ==================== 3. 訂單分頁與管理 ====================
     async function loadOrdersData() {
       try {
         let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_orders?store_id=eq.${STORE_ID}&order=created_at.desc`, {
@@ -451,118 +642,68 @@
         });
         rawOrders = await res.json();
         filteredOrders = [...rawOrders];
+        orderPage = 1;
         renderOrderTable();
-      } catch(e) {
-        showToast("讀取訂單異常，請檢查網路連線。");
-      }
+      } catch(e){}
     }
 
     function renderOrderTable() {
       const tbody = document.getElementById('orderTableBody');
       tbody.innerHTML = "";
-      if (filteredOrders.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-stone-400">目前暫無訂單記錄 🌸</td></tr>`;
+      let totalPages = Math.ceil(filteredOrders.length / orderPageSize) || 1;
+      document.getElementById('orderPaginationText').innerText = `第 ${orderPage} 頁，共 ${totalPages} 頁 (總計 ${filteredOrders.length} 筆)`;
+
+      let start = (orderPage - 1) * orderPageSize;
+      let paged = filteredOrders.slice(start, start + orderPageSize);
+
+      if (paged.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-stone-400">目前暫無訂單記錄</td></tr>`;
         return;
       }
 
-      filteredOrders.forEach((o) => {
+      paged.forEach(o => {
         let isChecked = selectedOrderIds[o.order_id] ? "checked" : "";
-        let itemsHtml = (o.items || []).map(i => `
-          <div class="leading-tight mb-1">
-            <b>[${i.sku || '商品'}] ${i.prodName}</b> 
-            <span class="text-stone-500 font-medium">(${i.color}/${i.size}) × ${i.qty}</span>
-          </div>
-        `).join('');
-
-        let timeStr = new Date(o.created_at).toLocaleString();
-
+        let itemsHtml = (o.items || []).map(i => `<div><b>${i.prodName}</b> (${i.color}/${i.size}) × ${i.qty}</div>`).join('');
         tbody.innerHTML += `
           <tr class="hover:bg-stone-50 text-xs">
-            <td class="p-3 text-center">
-              <input type="checkbox" class="order-chk" value="${o.order_id}" ${isChecked} onchange="handleOrderCheck(this, '${o.order_id}')">
-            </td>
-            <td class="p-3 text-stone-400 leading-tight">${timeStr}</td>
-            <td class="p-3 font-mono font-bold text-sibyl-brown">${o.order_id}</td>
-            <td class="p-3 bg-stone-50/50">${itemsHtml}</td>
-            <td class="p-3 font-bold text-sibyl-red text-sm">NT$ ${o.grand_total}</td>
-            <td class="p-3">
-              <b>${o.customer_name}</b><br>
-              <span class="text-stone-400 text-[11px]">${o.customer_phone}</span>
-            </td>
-            <td class="p-3 leading-snug">
-              <div class="font-medium">${o.delivery_address}</div>
-              ${o.customer_remark ? `<div class="text-[11px] text-blue-600 font-bold mt-0.5">備註：${o.customer_remark}</div>` : ''}
-            </td>
-            <td class="p-3">
-              <input type="text" value="${o.boss_remark || ''}" onchange="updateBossRemark('${o.order_id}', this.value)" 
-                     class="p-2 border border-stone-200 rounded-lg text-xs w-full outline-none focus:border-sibyl-pink bg-stone-50 focus:bg-white" placeholder="對帳備註">
-            </td>
-            <td class="p-3">
-              <span class="block font-bold text-sibyl-rose mb-1">${o.order_status}</span>
-              <select onchange="updateOrderStatus('${o.order_id}', this.value)" class="p-1 border rounded text-[11px] bg-white outline-none">
-                <option value="">變更狀態...</option>
-                <option value="新訂單">新訂單</option>
-                <option value="已確認訂單">已確認訂單</option>
-                <option value="等待到貨中">等待到貨中</option>
-                <option value="待宅配出貨">待宅配出貨</option>
-                <option value="已結案">已結案</option>
-                <option value="取消不成立">取消不成立</option>
-              </select>
-            </td>
+            <td class="p-3 text-center"><input type="checkbox" class="order-chk" value="${o.order_id}" ${isChecked} onchange="handleOrderCheck(this, '${o.order_id}')"></td>
+            <td class="p-3 text-stone-400">${new Date(o.created_at).toLocaleDateString()}</td>
+            <td class="p-3 font-mono font-bold">${o.order_id}</td>
+            <td class="p-3">${itemsHtml}</td>
+            <td class="p-3 font-bold text-stone-900 font-mono">NT$ ${o.grand_total}</td>
+            <td class="p-3"><b>${o.customer_name}</b><br><span class="text-stone-400 text-[11px]">${o.customer_phone}</span></td>
+            <td class="p-3">${o.delivery_address}</td>
+            <td class="p-3"><input type="text" value="${o.boss_remark || ''}" onchange="updateBossRemark('${o.order_id}', this.value)" class="p-1 border rounded w-full text-xs"></td>
+            <td class="p-3 font-bold text-stone-700">${o.order_status}</td>
           </tr>
         `;
       });
-      updateCheckedCount();
     }
 
-    function handleOrderCheck(cb, orderId) {
-      if (cb.checked) selectedOrderIds[orderId] = true;
-      else delete selectedOrderIds[orderId];
-      updateCheckedCount();
+    function changeOrderPage(dir) {
+      let maxP = Math.ceil(filteredOrders.length / orderPageSize) || 1;
+      orderPage = Math.max(1, Math.min(orderPage + dir, maxP));
+      renderOrderTable();
     }
 
-    function toggleAllOrders(master) {
+    function handleOrderCheck(cb, id) {
+      if (cb.checked) selectedOrderIds[id] = true; else delete selectedOrderIds[id];
+      document.getElementById('checkedCountIndicator').innerText = `已選取 ${Object.keys(selectedOrderIds).length} 筆`;
+    }
+
+    function toggleAllOrders(m) {
       document.querySelectorAll('.order-chk').forEach(c => {
-        c.checked = master.checked;
-        if (master.checked) selectedOrderIds[c.value] = true;
-        else delete selectedOrderIds[c.value];
+        c.checked = m.checked;
+        if (m.checked) selectedOrderIds[c.value] = true; else delete selectedOrderIds[c.value];
       });
-      updateCheckedCount();
-    }
-
-    function updateCheckedCount() {
-      let count = Object.keys(selectedOrderIds).length;
-      document.getElementById('checkedCountIndicator').innerText = `當前已勾選：${count} 筆訂單`;
+      document.getElementById('checkedCountIndicator').innerText = `已選取 ${Object.keys(selectedOrderIds).length} 筆`;
     }
 
     function searchOrders() {
       let kw = document.getElementById('orderSearchInput').value.trim().toLowerCase();
-      filteredOrders = rawOrders.filter(o => {
-        return (o.order_id || '').toLowerCase().includes(kw) ||
-               (o.customer_name || '').toLowerCase().includes(kw) ||
-               (o.customer_phone || '').includes(kw) ||
-               JSON.stringify(o.items || '').toLowerCase().includes(kw);
-      });
+      filteredOrders = rawOrders.filter(o => o.order_id.toLowerCase().includes(kw) || o.customer_name.toLowerCase().includes(kw) || o.customer_phone.includes(kw));
+      orderPage = 1;
       renderOrderTable();
-    }
-
-    function filterOrderStatus(status) {
-      document.querySelectorAll('.order-filter-btn').forEach(b => b.className = "order-filter-btn px-3 py-1 rounded-lg text-stone-500");
-      event.target.className = "order-filter-btn bg-white px-3 py-1 rounded-lg font-bold shadow-sm text-stone-800";
-      if (status === '全部') filteredOrders = [...rawOrders];
-      else filteredOrders = rawOrders.filter(o => o.order_status === status);
-      renderOrderTable();
-    }
-
-    async function updateOrderStatus(orderId, nextStatus) {
-      if (!nextStatus) return;
-      await fetch(`${SUPABASE_URL}/rest/v1/shop_orders?order_id=eq.${orderId}`, {
-        method: 'PATCH',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_status: nextStatus })
-      });
-      showToast(`單號【${orderId}】狀態已更新為【${nextStatus}】`);
-      loadOrdersData();
     }
 
     async function updateBossRemark(orderId, remark) {
@@ -571,122 +712,58 @@
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({ boss_remark: remark })
       });
-      showToast("備註已即時同步至雲端！");
+      showToast("備註已儲存");
     }
 
-    async function fireBatchUpdateStatus(status) {
-      let ids = Object.keys(selectedOrderIds);
-      if (ids.length === 0) return alert("請先勾選欲更新的訂單！");
-      for (let id of ids) {
-        await fetch(`${SUPABASE_URL}/rest/v1/shop_orders?order_id=eq.${id}`, {
-          method: 'PATCH',
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ order_status: status })
-        });
-      }
-      selectedOrderIds = {};
-      loadOrdersData();
-      showToast("批量更新完成！");
-    }
-
-    // 🖨️ 批量生成宅配揀貨單列印
     function fireBatchPrintInvoices() {
       let ids = Object.keys(selectedOrderIds);
-      if (ids.length === 0) return alert("請先勾選欲列印的宅配項目！");
-
-      let ordersToPrint = rawOrders.filter(o => ids.includes(o.order_id));
-      let printWindow = window.open('', '_blank');
-
-      let html = `<html><head><title>Sibyl Select 宅配出貨揀貨單</title><style>
-        body { font-family: -apple-system, sans-serif; padding: 25px; color: #000; }
-        .invoice-card { border: 2px solid #000; padding: 22px; border-radius: 12px; margin-bottom: 25px; page-break-after: always; line-height: 1.6; font-size: 14px; }
-        .title { font-size: 18px; font-weight: bold; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 12px; }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .item-box { background: #f8f9fa; border: 1px solid #dee2e6; padding: 12px; border-radius: 8px; margin: 10px 0; }
-        .item-row { border-bottom: 1px dashed #ccc; padding: 6px 0; }
-        .item-row:last-child { border: none; }
-      </style></head><body>`;
-
-      ordersToPrint.forEach(o => {
-        let itemsHtml = (o.items || []).map((i, idx) => `
-          <div class="item-row">
-            <b>品項 ${idx + 1}：</b> <span style="font-size:15px; font-weight:bold; color:#B22222;">${i.prodName}</span>
-            <span style="margin-left:8px; color:#333;">[ 規格：${i.color} / ${i.size} × ${i.qty} ]</span>
-          </div>
-        `).join('');
-
-        html += `
-          <div class="invoice-card">
-            <div class="title">🌸 Sibyl Select 希貝兒選物 - 宅配出貨檢驗單</div>
-            <div class="grid-2">
-              <div><b>下單時間：</b>${new Date(o.created_at).toLocaleString()}</div>
-              <div><b>預訂單號：</b><span style="font-weight:bold; font-family:monospace;">${o.order_id}</span></div>
-            </div>
-            <div class="item-box">
-              <b>預訂商品清單：</b>
-              <div style="margin-top:6px;">${itemsHtml}</div>
-            </div>
-            <div class="grid-2">
-              <div><b>應付總額：</b><span style="color:#B22222; font-weight:bold; font-size:16px;">NT$ ${o.grand_total}</span> (${o.payment_status})</div>
-              <div><b>收件人姓名：</b><b>${o.customer_name}</b> (Tel: ${o.customer_phone})</div>
-            </div>
-            <div style="background:#fff3cd; border:1px solid #ffeeba; padding:10px; border-radius:6px; margin:10px 0;">
-              <b>🚚 郵政收件地址：</b><br>
-              <span style="font-size:15px; font-weight:bold;">${o.delivery_address}</span>
-            </div>
-            ${o.customer_remark ? `<div><b>買家備註：</b>${o.customer_remark}</div>` : ''}
-            ${o.boss_remark ? `<div style="color:#7B1FA2;"><b>老闆備註：</b>${o.boss_remark}</div>` : ''}
-          </div>
-        `;
+      if (ids.length === 0) return alert("請先選取訂單");
+      let orders = rawOrders.filter(o => ids.includes(o.order_id));
+      let w = window.open('', '_blank');
+      let html = `<html><head><title>揀貨清單</title><style>body{font-family:sans-serif;padding:20px;}.invoice-card{border:2px solid #000;padding:20px;margin-bottom:20px;page-break-after:always;}</style></head><body>`;
+      orders.forEach(o => {
+        let details = (o.items || []).map(i => `<div>${i.prodName} (${i.color}/${i.size}) x ${i.qty}</div>`).join('');
+        html += `<div class="invoice-card"><h2>出貨揀貨單 - ${o.order_id}</h2><div>收件人：${o.customer_name} (${o.customer_phone})</div><div>地址：${o.delivery_address}</div><hr><div style="margin:10px 0;">${details}</div><div>應付總額：NT$ ${o.grand_total}</div></div>`;
       });
-
-      html += `<script>
-        setTimeout(function() { window.print(); window.close(); }, 500);
-      <\/script></body></html>`;
-
-      printWindow.document.write(html);
-      printWindow.document.close();
+      html += `<script>window.print();window.close();<\/script></body></html>`;
+      w.document.write(html);
+      w.document.close();
     }
 
-    // 匯出 CSV
     function fireBatchExportCSV() {
       let ids = Object.keys(selectedOrderIds);
-      if (ids.length === 0) return alert("請先勾選欲匯出的訂單！");
-
+      if (ids.length === 0) return alert("請先選取訂單");
       let orders = rawOrders.filter(o => ids.includes(o.order_id));
-      let csv = "\uFEFF單號,下單時間,商品明細,總金額,姓名,手機,收件地址,買家備註,老闆備註,狀態\n";
-
+      let csv = "\uFEFF單號,姓名,手機,地址,商品明細,總額,狀態\n";
       orders.forEach(o => {
-        let details = (o.items || []).map(i => `${i.prodName}(${i.color}/${i.size}x${i.qty})`).join('；');
-        csv += `"${o.order_id}","${o.created_at}","${details}","${o.grand_total}","${o.customer_name}","'${o.customer_phone}","${o.delivery_address}","${o.customer_remark || ''}","${o.boss_remark || ''}","${o.order_status}"\n`;
+        let details = (o.items || []).map(i => `${i.prodName}*${i.qty}`).join(';');
+        csv += `"${o.order_id}","${o.customer_name}","'${o.customer_phone}","${o.delivery_address}","${details}","${o.grand_total}","${o.order_status}"\n`;
       });
-
       let blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       let link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = `希貝兒出貨總表_${new Date().toLocaleDateString()}.csv`;
+      link.download = `出貨訂單總表_${Date.now()}.csv`;
       link.click();
     }
 
-    // ==================== 商品上架與矩陣定價 ====================
+    // ==================== 4. 商品發布 (Supabase + 試算表雙向同步) ====================
     function regenerateMatrix() {
       const tbody = document.getElementById('matrixTableBody');
       tbody.innerHTML = "";
       let colors = document.getElementById('pColors').value.split(',').map(s => s.trim()).filter(s => s);
       let sizes = document.getElementById('pSizes').value.split(',').map(s => s.trim()).filter(s => s);
       if (colors.length === 0) colors = ["單一花色"];
-      if (sizes.length === 0) sizes = ["單一尺寸"];
-
-      let oldPrice = document.getElementById('pOldPrice').value || "";
+      if (sizes.length === 0) sizes = ["單一規格"];
+      let oldPrice = 0;
 
       colors.forEach(c => {
         sizes.forEach(s => {
           tbody.innerHTML += `
-            <tr class="border-b border-stone-100" data-key="款式:${c} / ${s}">
-              <td class="p-2.5 font-bold">${c} / ${s}</td>
-              <td class="p-2"><input type="number" class="m-old w-full p-1.5 border rounded text-xs" value="${oldPrice}" placeholder="原價"></td>
-              <td class="p-2"><input type="number" class="m-price w-full p-1.5 border rounded text-xs font-bold text-sibyl-red" placeholder="特價"></td>
-              <td class="p-2"><input type="number" class="m-stock w-full p-1.5 border rounded text-xs" value="99" placeholder="庫存"></td>
+            <tr class="border-b" data-key="款式:${c} / ${s}">
+              <td class="p-2 font-bold">${c} / ${s}</td>
+              <td class="p-2"><input type="number" class="m-old w-full p-1 border rounded text-xs" value="${oldPrice}"></td>
+              <td class="p-2"><input type="number" class="m-price w-full p-1 border rounded text-xs font-bold text-red-700"></td>
+              <td class="p-2"><input type="number" class="m-stock w-full p-1 border rounded text-xs" value="99"></td>
             </tr>
           `;
         });
@@ -694,49 +771,21 @@
     }
 
     function batchSetMatrixPrice() {
-      let p = prompt("請輸入欲批次填入的特價金額 (客人入手價)：");
+      let p = prompt("請輸入統一特價金額：");
       if (!p) return;
-      document.querySelectorAll('#matrixTableBody .m-price').forEach(input => { input.value = p; });
-    }
-
-    async function uploadImagesToImgBB(files) {
-      if (files.length === 0) return;
-      const text = document.getElementById('uploadStatusText');
-      const area = document.getElementById('pImgs');
-      text.innerText = "⏳ 圖片上傳 ImgBB 雲端中...";
-      let urls = [];
-
-      for (let f of files) {
-        let form = new FormData();
-        form.append("image", f);
-        try {
-          let r = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: "POST", body: form });
-          let j = await r.json();
-          if (j.success) urls.push(j.data.url);
-        } catch(e){}
-      }
-
-      if (urls.length > 0) {
-        area.value = (area.value ? area.value + "\n" : "") + urls.join("\n");
-        text.innerText = "🎉 圖片全部成功上傳並已自動填入！";
-      }
+      document.querySelectorAll('#matrixTableBody .m-price').forEach(i => i.value = p);
     }
 
     async function publishProduct() {
       const sku = document.getElementById('pSku').value.trim();
       const name = document.getElementById('pName').value.trim();
-      if (!sku || !name) return alert("貨號 (SKU) 與品名為必填！");
+      if (!sku || !name) return alert("貨號與名稱為必填");
 
       let specs = [], prices = [];
       document.querySelectorAll('#matrixTableBody tr').forEach(row => {
         let pr = row.querySelector('.m-price').value;
         if (pr) {
-          specs.push({
-            spec: row.dataset.key,
-            oldPrice: row.querySelector('.m-old').value,
-            price: pr,
-            stock: row.querySelector('.m-stock').value || 99
-          });
+          specs.push({ spec: row.dataset.key, oldPrice: row.querySelector('.m-old').value, price: pr, stock: row.querySelector('.m-stock').value || 99 });
           prices.push(Number(pr));
         }
       });
@@ -747,60 +796,47 @@
         sku: sku,
         name: name,
         status: document.getElementById('pStatus').value,
+        major_category: document.getElementById('pMajorSelect').value,
         sub_category: document.getElementById('pSubSelect').value,
-        tag: document.getElementById('pTag').value.trim(),
+        child_category: document.getElementById('pChildSelect').value,
         description: document.getElementById('pDesc').value.trim(),
         images: document.getElementById('pImgs').value.trim(),
         specs_data: specs,
-        old_price: Number(document.getElementById('pOldPrice').value) || 0,
+        old_price: 0,
         price: minPrice,
         arrival_date: document.getElementById('pArrivalDate').value.trim() || '追加中'
       };
 
       const btn = document.getElementById('btnSubmitProduct');
-      btn.innerText = "儲存中...";
+      btn.innerText = "同步至 Supabase 與試算表中...";
       btn.disabled = true;
 
       try {
         await fetch(`${SUPABASE_URL}/rest/v1/shop_products?on_conflict=store_id,sku`, {
           method: 'POST',
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': 'Bearer ' + SUPABASE_KEY,
-            'Content-Type': 'application/json',
-            'Prefer': 'resolution=merge-duplicates'
-          },
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
           body: JSON.stringify(payload)
         });
 
-        showToast("🎉 商品已成功儲存至 Supabase！");
-        resetProductForm();
+        // 觸發 GAS 寫入試算表
+        fetch(GAS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({ action: 'syncProductToSheet', product: payload })
+        });
+
+        showToast("商品已同步存入 Supabase 與試算表！");
         loadInventoryData();
         switchTab('listTab');
       } catch(e) {
-        alert("儲存失敗：" + e.toString());
+        alert("發布失敗：" + e.toString());
       } finally {
-        btn.innerText = "一鍵確認儲存至 Supabase 雲端";
         btn.disabled = false;
+        btn.innerText = "確認發布 (即時同步至 Supabase 與 Google 試算表)";
       }
     }
 
-    function resetProductForm() {
-      document.getElementById('pSku').value = "";
-      document.getElementById('pName').value = "";
-      document.getElementById('pArrivalDate').value = "";
-      document.getElementById('pTag').value = "";
-      document.getElementById('pOldPrice').value = "";
-      document.getElementById('pColors').value = "";
-      document.getElementById('pSizes').value = "";
-      document.getElementById('pImgs').value = "";
-      document.getElementById('pDesc').value = "";
-      document.getElementById('uploadStatusText').innerText = "";
-      document.getElementById('matrixTableBody').innerHTML = "";
-      document.getElementById('btnCancelEdit').classList.add('hidden');
-    }
-
-    // ==================== 商品清單庫存 ====================
+    // ==================== 5. 商品清單分頁 ====================
     async function loadInventoryData() {
       try {
         let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_products?store_id=eq.${STORE_ID}&order=created_at.desc`, {
@@ -808,6 +844,7 @@
         });
         globalProducts = await res.json();
         filteredProducts = [...globalProducts];
+        invPage = 1;
         renderInventoryTable();
       } catch(e){}
     }
@@ -815,23 +852,32 @@
     function renderInventoryTable() {
       const tbody = document.getElementById('inventoryTableBody');
       tbody.innerHTML = "";
-      filteredProducts.forEach(p => {
-        let firstImg = p.images ? p.images.split(/[\s\n\r,]+/)[0] : 'https://via.placeholder.com/80';
+      let totalPages = Math.ceil(filteredProducts.length / invPageSize) || 1;
+      document.getElementById('invPaginationText').innerText = `第 ${invPage} 頁，共 ${totalPages} 頁 (總計 ${filteredProducts.length} 款商品)`;
+
+      let start = (invPage - 1) * invPageSize;
+      let paged = filteredProducts.slice(start, start + invPageSize);
+
+      paged.forEach(p => {
+        let firstImg = p.images ? p.images.split(/[\s\n\r,]+/)[0] : 'https://via.placeholder.com/60';
         tbody.innerHTML += `
           <tr class="hover:bg-stone-50 text-xs">
-            <td class="p-3"><img src="${firstImg}" class="w-10 h-10 object-cover rounded-lg shadow-sm"></td>
+            <td class="p-3"><img src="${firstImg}" class="w-10 h-10 object-cover rounded-lg"></td>
             <td class="p-3 font-mono font-bold">${p.sku}</td>
-            <td class="p-3 font-medium">${p.name}</td>
-            <td class="p-3">${p.sub_category || '通用'}</td>
-            <td class="p-3 font-bold text-sibyl-red">NT$ ${p.price}</td>
-            <td class="p-3 font-medium text-amber-700">${p.arrival_date}</td>
-            <td class="p-3"><span>${p.status}</span></td>
-            <td class="p-3 text-center">
-              <button onclick="editProduct('${p.sku}')" class="bg-sibyl-soft text-sibyl-rose font-bold px-2.5 py-1 rounded-lg">編輯</button>
-            </td>
+            <td class="p-3">${p.name}</td>
+            <td class="p-3">${p.major_category || ''} / ${p.sub_category || ''}</td>
+            <td class="p-3 font-bold text-red-700 font-mono">NT$ ${p.price}</td>
+            <td class="p-3">${p.status}</td>
+            <td class="p-3 text-center"><button onclick="editProduct('${p.sku}')" class="text-stone-600 underline">編輯</button></td>
           </tr>
         `;
       });
+    }
+
+    function changeInvPage(dir) {
+      let maxP = Math.ceil(filteredProducts.length / invPageSize) || 1;
+      invPage = Math.max(1, Math.min(invPage + dir, maxP));
+      renderInventoryTable();
     }
 
     function editProduct(sku) {
@@ -840,95 +886,45 @@
       document.getElementById('pSku').value = p.sku;
       document.getElementById('pName').value = p.name;
       document.getElementById('pStatus').value = p.status;
-      document.getElementById('pSubSelect').value = p.sub_category || '四季被';
-      document.getElementById('pTag').value = p.tag || '';
-      document.getElementById('pOldPrice').value = p.old_price || '';
       document.getElementById('pArrivalDate').value = p.arrival_date || '';
       document.getElementById('pImgs').value = p.images || '';
       document.getElementById('pDesc').value = p.description || '';
-
-      // 提取花色與規格
-      if (p.specs_data && p.specs_data.length > 0) {
-        let colors = [...new Set(p.specs_data.map(s => s.spec.split('/')[0].replace('款式:', '').trim()))];
-        let sizes = [...new Set(p.specs_data.map(s => s.spec.split('/')[1] ? s.spec.split('/')[1].trim() : '單一規格'))];
-        document.getElementById('pColors').value = colors.join(', ');
-        document.getElementById('pSizes').value = sizes.join(', ');
-        regenerateMatrix();
-
-        setTimeout(() => {
-          document.querySelectorAll('#matrixTableBody tr').forEach(row => {
-            let match = p.specs_data.find(m => m.spec === row.dataset.key);
-            if (match) {
-              if (row.querySelector('.m-old')) row.querySelector('.m-old').value = match.oldPrice || '';
-              if (row.querySelector('.m-price')) row.querySelector('.m-price').value = match.price || '';
-              if (row.querySelector('.m-stock')) row.querySelector('.m-stock').value = match.stock || '99';
-            }
-          });
-        }, 100);
-      }
-      document.getElementById('btnCancelEdit').classList.remove('hidden');
       switchTab('uploadTab');
     }
 
     function searchInventory() {
-      let kw = document.getElementById('inventorySearch').value.trim().toLowerCase();
+      let kw = document.getElementById('invSearch').value.trim().toLowerCase();
       filteredProducts = globalProducts.filter(p => p.sku.toLowerCase().includes(kw) || p.name.toLowerCase().includes(kw));
+      invPage = 1;
       renderInventoryTable();
     }
 
-    // ==================== 首頁輪播圖管理 ====================
+    // ==================== 6. 輪播圖與圖文專欄 ====================
     async function loadBannersData() {
       try {
         let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_banners?store_id=eq.${STORE_ID}&order=sort_order.asc`, {
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
         });
         let banners = await res.json();
-        renderBannerGrid(banners);
-      } catch(e){}
-    }
-
-    function renderBannerGrid(list) {
-      const grid = document.getElementById('bannerListGrid');
-      grid.innerHTML = "";
-      if (list.length === 0) {
-        grid.innerHTML = `<div class="col-span-full py-8 text-center text-xs text-stone-400">目前尚無輪播圖，請於上方新增 🌸</div>`;
-        return;
-      }
-      list.forEach(b => {
-        grid.innerHTML += `
-          <div class="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm flex flex-col justify-between">
-            <div class="aspect-[2/1] relative bg-stone-100">
-              <img src="${b.img_url}" class="w-full h-full object-cover">
-              <span class="absolute top-2 left-2 bg-stone-900/70 text-white text-[10px] font-bold px-2 py-0.5 rounded">順序：${b.sort_order}</span>
+        const grid = document.getElementById('bannerListGrid');
+        grid.innerHTML = banners.map(b => `
+          <div class="bg-white border rounded-xl overflow-hidden p-2 space-y-2">
+            <div class="aspect-[2/1] bg-stone-100 flex items-center justify-center overflow-hidden rounded-lg">
+              <img src="${b.img_url}" class="w-full h-full object-cover object-center">
             </div>
-            <div class="p-3 flex justify-between items-center bg-stone-50/50">
-              <span class="text-xs text-stone-500 font-mono truncate max-w-[150px]">${b.img_url}</span>
-              <button onclick="deleteBanner(${b.id})" class="text-xs text-red-600 font-bold hover:underline">刪除</button>
+            <div class="flex justify-between items-center text-xs">
+              <span>順序權重：${b.sort_order}</span>
+              <button onclick="deleteBanner(${b.id})" class="text-red-600 underline">刪除</button>
             </div>
           </div>
-        `;
-      });
-    }
-
-    async function uploadBannerImage(files) {
-      if (files.length === 0) return;
-      let form = new FormData();
-      form.append("image", files[0]);
-      showToast("圖片上傳中...");
-      try {
-        let r = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: "POST", body: form });
-        let j = await r.json();
-        if (j.success) {
-          document.getElementById('newBannerImgUrl').value = j.data.url;
-          showToast("上傳完成！");
-        }
+        `).join('');
       } catch(e){}
     }
 
     async function addNewBanner() {
       let url = document.getElementById('newBannerImgUrl').value.trim();
       let order = Number(document.getElementById('newBannerOrder').value) || 1;
-      if (!url) return alert("請填寫或上傳輪播圖片網址！");
+      if (!url) return alert("請填寫圖片網址");
 
       await fetch(`${SUPABASE_URL}/rest/v1/shop_banners`, {
         method: 'POST',
@@ -936,63 +932,129 @@
         body: JSON.stringify({ store_id: STORE_ID, img_url: url, sort_order: order, is_active: true })
       });
       document.getElementById('newBannerImgUrl').value = "";
-      showToast("輪播圖已成功新增！");
       loadBannersData();
+      showToast("輪播橫幅已新增");
     }
 
     async function deleteBanner(id) {
-      if (!confirm("確定刪除此輪播橫幅？")) return;
+      if (!confirm("確定刪除？")) return;
       await fetch(`${SUPABASE_URL}/rest/v1/shop_banners?id=eq.${id}`, {
         method: 'DELETE',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
       });
       loadBannersData();
-      showToast("已成功刪除！");
     }
 
-    // ==================== 夥伴折扣碼管理 ====================
+    async function saveEditorialContent() {
+      let content = {
+        title: document.getElementById('editorialTitle').value.trim(),
+        subtitle: document.getElementById('editorialSubtitle').value.trim(),
+        body: document.getElementById('editorialBody').value.trim(),
+        img_url: document.getElementById('editorialImgUrl').value.trim(),
+        is_active: document.getElementById('editorialActive').checked
+      };
+
+      await fetch(`${SUPABASE_URL}/rest/v1/shop_stores?store_id=eq.${STORE_ID}`, {
+        method: 'PATCH',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ editorial_content: content })
+      });
+      showToast("專欄圖文已更新並同步至前台！");
+    }
+
+    // ==================== 7. 全域設定與導航連結 ====================
+    async function loadStoreSettings() {
+      try {
+        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_stores?store_id=eq.${STORE_ID}`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+        });
+        let data = await res.json();
+        if (data && data.length > 0) {
+          let s = data[0];
+          document.getElementById('settingMarqueeText').value = s.marquee_announcement || '';
+          if (s.category_tree && s.category_tree.length > 0) {
+            visualCategoryTree = s.category_tree;
+          }
+          renderVisualCategoryTree();
+
+          if (s.editorial_content) {
+            let ed = s.editorial_content;
+            document.getElementById('editorialTitle').value = ed.title || '';
+            document.getElementById('editorialSubtitle').value = ed.subtitle || '';
+            document.getElementById('editorialBody').value = ed.body || '';
+            document.getElementById('editorialImgUrl').value = ed.img_url || '';
+            document.getElementById('editorialActive').checked = ed.is_active !== false;
+          }
+
+          storeNavLinks = s.nav_links || [];
+          renderNavLinks();
+        }
+      } catch(e){}
+    }
+
+    function renderNavLinks() {
+      const box = document.getElementById('navLinksContainer');
+      box.innerHTML = storeNavLinks.map((l, idx) => `
+        <div class="flex items-center gap-2 bg-stone-50 p-2.5 rounded-xl border">
+          <input type="text" value="${l.title}" onchange="storeNavLinks[${idx}].title = this.value" placeholder="顯示名稱 (如 Instagram)" class="p-1 border rounded text-xs w-36 outline-none bg-white">
+          <input type="text" value="${l.url}" onchange="storeNavLinks[${idx}].url = this.value" placeholder="連結網址 (https://...)" class="p-1 border rounded text-xs flex-1 outline-none bg-white">
+          <label class="text-[11px] text-stone-500 font-bold flex items-center gap-1">
+            <input type="checkbox" ${l.is_active ? 'checked' : ''} onchange="storeNavLinks[${idx}].is_active = this.checked"> 啟用
+          </label>
+          <button onclick="storeNavLinks.splice(${idx}, 1); renderNavLinks();" class="text-stone-400 hover:text-red-600 px-1 font-bold">✕</button>
+        </div>
+      `).join('');
+    }
+
+    function addNewNavLinkRow() {
+      storeNavLinks.push({ title: "新連結", url: "https://", is_active: true });
+      renderNavLinks();
+    }
+
+    async function saveGlobalSettings() {
+      let marquee = document.getElementById('settingMarqueeText').value.trim();
+      await fetch(`${SUPABASE_URL}/rest/v1/shop_stores?store_id=eq.${STORE_ID}`, {
+        method: 'PATCH',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ marquee_announcement: marquee, nav_links: storeNavLinks })
+      });
+      showToast("全域設定已儲存！");
+    }
+
+    // ==================== 8. 折扣碼 ====================
     async function loadCouponsData() {
       try {
         let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_coupons?store_id=eq.${STORE_ID}&order=created_at.desc`, {
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
         });
         let coupons = await res.json();
-        renderCouponTable(coupons);
-      } catch(e){}
-    }
-
-    function renderCouponTable(list) {
-      const tbody = document.getElementById('couponTableBody');
-      tbody.innerHTML = "";
-      list.forEach(c => {
-        tbody.innerHTML += `
+        const tbody = document.getElementById('couponTableBody');
+        tbody.innerHTML = coupons.map(c => `
           <tr class="hover:bg-stone-50 text-xs">
-            <td class="p-3 font-mono font-bold text-sibyl-brown text-sm">${c.code}</td>
-            <td class="p-3 font-bold">${c.partner_name || '未填寫'}</td>
-            <td class="p-3 font-bold text-emerald-600">95 折 (5% OFF)</td>
-            <td class="p-3"><span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full font-bold">啟用中</span></td>
-            <td class="p-3 text-center">
-              <button onclick="deleteCoupon(${c.id})" class="text-red-600 font-bold hover:underline">刪除</button>
-            </td>
+            <td class="p-3 font-mono font-bold">${c.code}</td>
+            <td class="p-3">${c.discount_type === 'percent' ? '比例折抵' : '固定金額'}</td>
+            <td class="p-3 font-bold font-mono">${c.discount_val}</td>
+            <td class="p-3">${c.note || ''}</td>
+            <td class="p-3 text-center"><button onclick="deleteCoupon(${c.id})" class="text-red-600 underline">刪除</button></td>
           </tr>
-        `;
-      });
+        `).join('');
+      } catch(e){}
     }
 
     async function addNewCoupon() {
       let code = document.getElementById('newCouponCode').value.trim().toUpperCase();
-      let partner = document.getElementById('newPartnerName').value.trim();
-      if (!code) return alert("請輸入折扣碼！");
+      let type = document.getElementById('newCouponType').value;
+      let val = Number(document.getElementById('newCouponVal').value);
+      let note = document.getElementById('newCouponNote').value.trim();
+      if (!code || isNaN(val)) return alert("請填寫代碼與數值");
 
       await fetch(`${SUPABASE_URL}/rest/v1/shop_coupons`, {
         method: 'POST',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ store_id: STORE_ID, code: code, partner_name: partner, discount_val: 0.05, is_active: true })
+        body: JSON.stringify({ store_id: STORE_ID, code: code, discount_type: type, discount_val: val, note: note, is_active: true })
       });
-      document.getElementById('newCouponCode').value = "";
-      document.getElementById('newPartnerName').value = "";
-      showToast("夥伴折扣碼已成功建立！");
       loadCouponsData();
+      showToast("折扣碼已新增");
     }
 
     async function deleteCoupon(id) {
@@ -1002,7 +1064,6 @@
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
       });
       loadCouponsData();
-      showToast("已成功刪除！");
     }
 
     function showToast(msg) {
