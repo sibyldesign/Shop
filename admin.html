@@ -430,37 +430,153 @@
       </div>
     </section>
 
-    <!-- 6. 通用折扣活動分頁 -->
-    <section id="couponTab" class="tab-content bg-white border border-taupe-border rounded-2xl p-5 shadow-xs space-y-4 hidden">
-      <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase border-b border-taupe-border pb-2">全站優惠折扣與活動管理</h2>
-      <div class="bg-taupe-canvas p-4 rounded-xl border border-taupe-border space-y-3">
-        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
-          <input type="text" id="newCouponCode" placeholder="折扣代碼 (如 VIP95)" class="text-xs p-2.5 border border-taupe-border rounded-xl bg-white uppercase font-mono">
-          <select id="newCouponType" class="text-xs p-2.5 border border-taupe-border rounded-xl bg-white">
-            <option value="percent">比例折抵 (如 0.05 代表 95 折)</option>
-            <option value="fixed">固定金額 (如 100 代表現折 100)</option>
-          </select>
-          <input type="number" step="0.01" id="newCouponVal" placeholder="數值 (0.05 或 100)" class="text-xs p-2.5 border border-taupe-border rounded-xl bg-white">
-          <input type="text" id="newCouponNote" placeholder="備註說明" class="text-xs p-2.5 border border-taupe-border rounded-xl bg-white">
+    <!-- 6. 人氣推薦自訂 ＆ 優惠活動管理分頁 -->
+    <section id="couponTab" class="tab-content bg-white border border-taupe-border rounded-2xl p-5 shadow-xs space-y-6 hidden">
+      
+      <!-- 區塊 A：人氣推薦自訂專區 (自選熱門爆款與排名) -->
+      <div class="space-y-3">
+        <div class="flex justify-between items-center border-b border-taupe-border pb-2">
+          <div>
+            <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase">首頁人氣推薦榜單自訂</h2>
+            <p class="text-[10px] text-stone-400 mt-0.5">直接挑選重點主打商品，設定顯示順序（前台將標示 TOP 1、TOP 2...）</p>
+          </div>
+          <button onclick="saveHotProductsSelection()" class="bg-taupe-main hover:bg-taupe-hover text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-xs">
+            儲存人氣推薦榜單
+          </button>
         </div>
-        <button onclick="addNewCoupon()" class="bg-taupe-main hover:bg-taupe-hover text-white text-xs font-bold px-5 py-2 rounded-xl transition shadow-xs">確認建立折扣碼</button>
-      </div>
-      <div class="overflow-x-auto border border-taupe-border rounded-xl">
-        <table class="w-full text-left text-xs bg-white">
-          <thead class="bg-taupe-light/50 border-b border-taupe-border text-taupe-dark font-bold">
-            <tr>
-              <th class="p-3">代碼</th>
-              <th class="p-3">折抵方式</th>
-              <th class="p-3">折抵數值</th>
-              <th class="p-3">發行備註</th>
-              <th class="p-3 text-center">操作</th>
-            </tr>
-          </thead>
-          <tbody id="couponTableBody" class="divide-y divide-stone-100"></tbody>
-        </table>
-      </div>
-    </section>
 
+        <div class="p-3 bg-taupe-canvas rounded-xl border border-taupe-border flex items-center gap-2">
+          <input type="text" id="hotSearchInput" oninput="filterHotCandidateProducts()" placeholder="搜尋欲加入人氣榜的貨號或品名..." class="w-full text-xs p-2 border border-taupe-border rounded-lg outline-none bg-white">
+        </div>
+
+        <!-- 候選與已選商品清單 (可勾選與排先後) -->
+        <div class="border border-taupe-border rounded-xl overflow-hidden max-h-60 overflow-y-auto no-scrollbar">
+          <table class="w-full text-left text-xs bg-white">
+            <thead class="bg-taupe-light/50 border-b border-taupe-border text-taupe-dark font-bold sticky top-0">
+              <tr>
+                <th class="p-2.5 w-12 text-center">推薦</th>
+                <th class="p-2.5 w-24">貨號</th>
+                <th class="p-2.5">商品品名</th>
+                <th class="p-2.5 w-24">分類</th>
+                <th class="p-2.5 w-20">特價</th>
+                <th class="p-2.5 w-20 text-center">排序權重</th>
+              </tr>
+            </thead>
+            <tbody id="hotCandidateTableBody" class="divide-y divide-stone-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 區塊 B：分區優惠活動管理 (支援滿件折扣 / 折抵 / 專案免運) -->
+      <div class="pt-5 border-t border-taupe-border space-y-4">
+        <div class="flex justify-between items-center border-b border-taupe-border pb-2">
+          <div>
+            <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase">行銷優惠活動配置 (前台自動套用折抵)</h2>
+            <p class="text-[10px] text-stone-400 mt-0.5">可設定整館或指定分類滿件打折、滿額折抵、或滿件專案免運</p>
+          </div>
+        </div>
+
+        <!-- 新增活動設定卡片 -->
+        <div class="bg-taupe-canvas p-4 rounded-xl border border-taupe-border space-y-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-bold text-stone-600 block mb-1">活動大標題 (必填)</label>
+              <input type="text" id="campTitle" placeholder="例如：【換季限定】指定鋪棉寢居結帳享 9 折" class="w-full text-xs p-2 border border-taupe-border rounded-lg bg-white outline-none">
+            </div>
+            <div>
+              <label class="text-xs font-bold text-stone-600 block mb-1">活動副說明 (選填)</label>
+              <input type="text" id="campSubtitle" placeholder="例如：全館鋪棉系列任選滿 2 件自動折扣" class="w-full text-xs p-2 border border-taupe-border rounded-lg bg-white outline-none">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div>
+              <label class="text-xs font-bold text-stone-600 block mb-1">優惠類型</label>
+              <select id="campDiscountType" onchange="toggleCampaignParamFields()" class="w-full text-xs p-2 border border-taupe-border rounded-lg bg-white outline-none font-bold">
+                <option value="percent">滿件打折 (例如 9 折輸入 0.9)</option>
+                <option value="fixed">滿件/滿額現折 (例如折 200 輸入 200)</option>
+                <option value="free_shipping">指定門檻免運費</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs font-bold text-stone-600 block mb-1">門檻件數 (滿幾件)</label>
+              <input type="number" id="campCondQty" value="2" class="w-full text-xs p-2 border border-taupe-border rounded-lg bg-white outline-none font-mono">
+            </div>
+            <div id="campValCol">
+              <label class="text-xs font-bold text-stone-600 block mb-1" id="campValLabel">折抵數值 (0.9 代表 9折)</label>
+              <input type="number" step="0.01" id="campDiscountVal" value="0.9" class="w-full text-xs p-2 border border-taupe-border rounded-lg bg-white outline-none font-mono">
+            </div>
+            <div>
+              <label class="text-xs font-bold text-stone-600 block mb-1">適用商品範圍</label>
+              <select id="campTargetMode" onchange="toggleCampaignCategorySelect()" class="w-full text-xs p-2 border border-taupe-border rounded-lg bg-white outline-none">
+                <option value="all">全館所有商品通用</option>
+                <option value="category">限定指定分類專區</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="campCategorySelectBox" class="hidden">
+            <label class="text-xs font-bold text-stone-600 block mb-1">選擇套用之商品分類：</label>
+            <select id="campTargetCategory" class="w-full text-xs p-2 border border-taupe-border rounded-lg bg-white outline-none"></select>
+          </div>
+
+          <div class="flex justify-end pt-1">
+            <button onclick="addNewCampaign()" class="bg-taupe-main hover:bg-taupe-hover text-white text-xs font-bold px-5 py-2 rounded-xl transition shadow-xs">
+              確認建立優惠活動
+            </button>
+          </div>
+        </div>
+
+        <!-- 進行中的活動清單表格 -->
+        <div class="overflow-x-auto border border-taupe-border rounded-xl">
+          <table class="w-full text-left text-xs bg-white">
+            <thead class="bg-taupe-light/50 border-b border-taupe-border text-taupe-dark font-bold">
+              <tr>
+                <th class="p-3">活動名稱</th>
+                <th class="p-3">優惠形式</th>
+                <th class="p-3">門檻條件</th>
+                <th class="p-3">折抵優惠</th>
+                <th class="p-3">適用專區</th>
+                <th class="p-3 text-center">操作</th>
+              </tr>
+            </thead>
+            <tbody id="campaignListTableBody" class="divide-y divide-stone-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 區塊 C：通用折扣券代碼管理 (原本的折扣碼) -->
+      <div class="pt-5 border-t border-taupe-border space-y-3">
+        <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase border-b border-taupe-border pb-2">結帳專屬折扣碼 (顧客手動輸入)</h2>
+        <div class="bg-taupe-canvas p-3.5 rounded-xl border border-taupe-border space-y-3">
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
+            <input type="text" id="newCouponCode" placeholder="折扣碼 (如 VIP95)" class="text-xs p-2 border border-taupe-border rounded-lg bg-white uppercase font-mono">
+            <select id="newCouponType" class="text-xs p-2 border border-taupe-border rounded-lg bg-white">
+              <option value="percent">比例折抵 (如 0.05 代表 95 折)</option>
+              <option value="fixed">固定現折 (如 100 代表折 100元)</option>
+            </select>
+            <input type="number" step="0.01" id="newCouponVal" placeholder="折抵數值 (0.05 或 100)" class="text-xs p-2 border border-taupe-border rounded-lg bg-white font-mono">
+            <input type="text" id="newCouponNote" placeholder="發行備註說明" class="text-xs p-2 border border-taupe-border rounded-lg bg-white">
+          </div>
+          <button onclick="addNewCoupon()" class="bg-taupe-main hover:bg-taupe-hover text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-xs">新增折扣碼</button>
+        </div>
+        <div class="overflow-x-auto border border-taupe-border rounded-xl">
+          <table class="w-full text-left text-xs bg-white">
+            <thead class="bg-taupe-light/50 border-b border-taupe-border text-taupe-dark font-bold">
+              <tr>
+                <th class="p-2.5">代碼</th>
+                <th class="p-2.5">折抵方式</th>
+                <th class="p-2.5">數值</th>
+                <th class="p-2.5">發行說明</th>
+                <th class="p-2.5 text-center">操作</th>
+              </tr>
+            </thead>
+            <tbody id="couponTableBody" class="divide-y divide-stone-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
     <!-- 7. 全域風格外觀與五大條款設定分頁 -->
     <section id="settingTab" class="tab-content bg-white border border-taupe-border rounded-2xl p-5 shadow-xs space-y-6 hidden">
       <div>
@@ -1726,7 +1842,17 @@
       else showToast("快選卡片儲存失敗");
     }
 
+    // ==================== 7. 人氣推薦自訂 ＆ 優惠活動管理 ====================
+    let activeCampaignsList = [];
+
     async function loadCouponsData() {
+      // 1. 載入人氣推薦候選清單
+      renderHotCandidateProducts();
+
+      // 2. 載入分區優惠活動清單
+      loadCampaignsData();
+
+      // 3. 載入折扣碼
       try {
         let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_coupons?store_id=eq.${STORE_ID}&order=created_at.desc`, {
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
@@ -1735,14 +1861,189 @@
         const tbody = document.getElementById('couponTableBody');
         tbody.innerHTML = coupons.map(c => `
           <tr class="hover:bg-taupe-canvas text-xs">
-            <td class="p-3 font-mono font-bold">${c.code}</td>
-            <td class="p-3">${c.discount_type === 'percent' ? '比例折抵' : '固定金額'}</td>
-            <td class="p-3 font-bold font-mono">${c.discount_val}</td>
-            <td class="p-3">${c.note || ''}</td>
-            <td class="p-3 text-center"><button type="button" onclick="deleteCoupon(${c.id})" class="text-rose-600 underline font-bold">刪除</button></td>
+            <td class="p-2.5 font-mono font-bold">${c.code}</td>
+            <td class="p-2.5">${c.discount_type === 'percent' ? '比例折抵' : '固定金額'}</td>
+            <td class="p-2.5 font-bold font-mono">${c.discount_val}</td>
+            <td class="p-2.5">${c.note || ''}</td>
+            <td class="p-2.5 text-center"><button type="button" onclick="deleteCoupon(${c.id})" class="text-rose-600 underline font-bold">刪除</button></td>
           </tr>
         `).join('');
       } catch(e){}
+    }
+
+    // --- 人氣推薦候選商品渲染與保存 ---
+    function renderHotCandidateProducts() {
+      const tbody = document.getElementById('hotCandidateTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = "";
+
+      let kw = (document.getElementById('hotSearchInput')?.value || '').trim().toLowerCase();
+      let list = globalProducts;
+      if (kw) {
+        list = list.filter(p => p.sku.toLowerCase().includes(kw) || p.name.toLowerCase().includes(kw));
+      }
+
+      // 依推薦狀態與 rank 排序
+      list.sort((a, b) => (b.is_hot ? 1 : 0) - (a.is_hot ? 1 : 0) || (a.hot_rank || 99) - (b.hot_rank || 99));
+
+      tbody.innerHTML = list.map(p => `
+        <tr class="hover:bg-taupe-canvas text-xs ${p.is_hot ? 'bg-amber-50/40' : ''}">
+          <td class="p-2.5 text-center">
+            <input type="checkbox" class="hot-chk w-4 h-4 accent-taupe-main" value="${p.sku}" ${p.is_hot ? 'checked' : ''} onchange="toggleHotProductLocal('${p.sku}', this.checked)">
+          </td>
+          <td class="p-2.5 font-mono font-bold">${p.sku}</td>
+          <td class="p-2.5 font-medium">${p.name}</td>
+          <td class="p-2.5">${p.sub_category || p.major_category || ''}</td>
+          <td class="p-2.5 font-mono font-bold text-taupe-crimson">NT$ ${p.price}</td>
+          <td class="p-2.5 text-center">
+            <input type="number" value="${p.hot_rank || 1}" onchange="updateHotRankLocal('${p.sku}', this.value)" class="w-14 p-1 border border-taupe-border rounded text-center font-mono text-xs ${p.is_hot ? 'bg-white' : 'bg-stone-100 text-stone-400'}" ${p.is_hot ? '' : 'disabled'}>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function filterHotCandidateProducts() {
+      renderHotCandidateProducts();
+    }
+
+    function toggleHotProductLocal(sku, isChecked) {
+      let p = globalProducts.find(x => x.sku === sku);
+      if (p) p.is_hot = isChecked;
+      renderHotCandidateProducts();
+    }
+
+    function updateHotRankLocal(sku, rankVal) {
+      let p = globalProducts.find(x => x.sku === sku);
+      if (p) p.hot_rank = parseInt(rankVal) || 99;
+    }
+
+    async function saveHotProductsSelection() {
+      showToast("正在儲存人氣推薦榜單...");
+      let updates = globalProducts.map(p => {
+        return fetch(`${SUPABASE_URL}/rest/v1/shop_products?sku=eq.${p.sku}&store_id=eq.${STORE_ID}`, {
+          method: 'PATCH',
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ is_hot: p.is_hot === true, hot_rank: p.hot_rank || 99 })
+        });
+      });
+
+      await Promise.all(updates);
+      showToast("人氣推薦榜單已成功同步至前台！");
+    }
+
+    // --- 優惠活動專區設定 ---
+    async function loadCampaignsData() {
+      // 填入適用分類下拉選項
+      const catSelect = document.getElementById('campTargetCategory');
+      if (catSelect) {
+        let cats = [...new Set(globalProducts.map(p => p.sub_category || p.major_category).filter(Boolean))];
+        catSelect.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+      }
+
+      try {
+        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_campaigns?store_id=eq.${STORE_ID}&order=sort_order.asc`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+        });
+        activeCampaignsList = await res.json();
+        renderCampaignsTable();
+      } catch(e){}
+    }
+
+    function renderCampaignsTable() {
+      const tbody = document.getElementById('campaignListTableBody');
+      if (!tbody) return;
+      if (activeCampaignsList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-stone-400">目前尚無建立任何優惠活動</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = activeCampaignsList.map(c => {
+        let typeText = c.discount_type === 'percent' ? '滿件打折' : (c.discount_type === 'fixed' ? '滿額折抵' : '指定免運');
+        let valText = c.discount_type === 'percent' ? `${c.discount_val * 10} 折` : (c.discount_type === 'fixed' ? `現折 NT$${c.discount_val}` : '免運費');
+        let targetText = c.target_mode === 'all' ? '全館通用' : `指定分類：${c.target_category}`;
+
+        return `
+          <tr class="hover:bg-taupe-canvas text-xs">
+            <td class="p-3 font-bold text-stone-800">${c.title}</td>
+            <td class="p-3">${typeText}</td>
+            <td class="p-3 font-mono font-bold">滿 ${c.condition_qty || 1} 件</td>
+            <td class="p-3 font-bold text-taupe-crimson font-mono">${valText}</td>
+            <td class="p-3">${targetText}</td>
+            <td class="p-3 text-center">
+              <button onclick="deleteCampaignItem(${c.id})" class="text-rose-600 underline font-bold">刪除</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function toggleCampaignParamFields() {
+      let type = document.getElementById('campDiscountType').value;
+      const valCol = document.getElementById('campValCol');
+      const valLabel = document.getElementById('campValLabel');
+      if (type === 'free_shipping') {
+        valCol.classList.add('hidden');
+      } else {
+        valCol.classList.remove('hidden');
+        valLabel.innerText = type === 'percent' ? '折抵數值 (0.9 代表 9折)' : '現折金額 (例如 200)';
+      }
+    }
+
+    function toggleCampaignCategorySelect() {
+      let mode = document.getElementById('campTargetMode').value;
+      document.getElementById('campCategorySelectBox').classList.toggle('hidden', mode !== 'category');
+    }
+
+    async function addNewCampaign() {
+      let title = document.getElementById('campTitle').value.trim();
+      let subtitle = document.getElementById('campSubtitle').value.trim();
+      let type = document.getElementById('campDiscountType').value;
+      let condQty = parseInt(document.getElementById('campCondQty').value) || 2;
+      let val = parseFloat(document.getElementById('campDiscountVal').value) || 0;
+      let targetMode = document.getElementById('campTargetMode').value;
+      let targetCat = document.getElementById('campTargetCategory').value;
+
+      if (!title) return showToast("請輸入活動標題！");
+
+      let payload = {
+        store_id: STORE_ID,
+        title: title,
+        subtitle: subtitle,
+        discount_type: type,
+        condition_qty: condQty,
+        discount_val: val,
+        target_mode: targetMode,
+        target_category: targetMode === 'category' ? targetCat : '',
+        is_active: true,
+        sort_order: activeCampaignsList.length + 1
+      };
+
+      let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_campaigns`, {
+        method: 'POST',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        document.getElementById('campTitle').value = '';
+        document.getElementById('campSubtitle').value = '';
+        loadCampaignsData();
+        showToast("行銷活動已成功建立！");
+      } else {
+        showToast("建立活動失敗，請檢查資料庫狀態");
+      }
+    }
+
+    async function deleteCampaignItem(id) {
+      showCustomConfirm("刪除確認", "確定刪除此優惠活動？", async (ok) => {
+        if (!ok) return;
+        await fetch(`${SUPABASE_URL}/rest/v1/shop_campaigns?id=eq.${id}`, {
+          method: 'DELETE',
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+        });
+        loadCampaignsData();
+        showToast("活動已刪除！");
+      });
     }
 
     async function addNewCoupon() {
