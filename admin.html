@@ -45,7 +45,7 @@
 </head>
 <body class="antialiased min-h-screen p-4 sm:p-6">
 
-  <!-- 安全驗證登入遮罩 -->
+  <!-- 密碼登入驗證遮罩 -->
   <div id="adminAuthOverlay" class="fixed inset-0 bg-stone-900/60 backdrop-blur-md z-[99999] flex flex-col justify-center items-center p-4">
     <div class="bg-white w-full max-w-sm rounded-3xl p-7 shadow-2xl text-center space-y-4 border border-taupe-border">
       <div class="w-12 h-12 rounded-2xl bg-taupe-light flex items-center justify-center mx-auto text-taupe-main">
@@ -69,7 +69,7 @@
     <!-- 頂部列 -->
     <header class="bg-white border border-taupe-border rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-taupe-main text-white flex items-center justify-center font-bold text-sm tracking-widest">
+        <div class="w-10 h-10 rounded-xl bg-taupe-main text-white flex items-center justify-center font-bold text-sm tracking-widest font-serif">
           S
         </div>
         <div>
@@ -109,10 +109,10 @@
         階層分類樹管理
       </button>
       <button onclick="switchTab('couponTab')" id="btn-couponTab" class="tab-btn px-5 py-3 text-xs font-medium border-b-2 border-transparent text-stone-400 hover:text-stone-700 transition-all">
-        折扣碼管理
+        折扣活動管理
       </button>
       <button onclick="switchTab('settingTab')" id="btn-settingTab" class="tab-btn px-5 py-3 text-xs font-medium border-b-2 border-transparent text-stone-400 hover:text-stone-700 transition-all">
-        全域公告與社群
+        全域風格與條款設定
       </button>
     </nav>
 
@@ -137,7 +137,7 @@
       </div>
 
       <div class="bg-taupe-canvas p-3 rounded-xl border border-taupe-border flex items-center gap-2 flex-wrap text-xs">
-        <button onclick="fireBatchPrintInvoices()" class="bg-taupe-main hover:bg-taupe-hover text-white px-3.5 py-1.5 rounded-lg font-bold shadow-sm">批量生成宅配揀貨單列印</button>
+        <button onclick="fireBatchPrintInvoices()" class="bg-taupe-main hover:bg-taupe-hover text-white px-3.5 py-1.5 rounded-lg font-bold shadow-sm">批量列印揀貨單</button>
         <button onclick="fireBatchExportCSV()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-3.5 py-1.5 rounded-lg font-bold shadow-sm">批量匯出 Excel (CSV)</button>
         <button onclick="fireBatchUpdateStatus('已結案')" class="bg-stone-600 hover:bg-stone-700 text-white px-3.5 py-1.5 rounded-lg font-bold">批量標記為已結案</button>
         <span class="text-[11px] text-stone-400 ml-auto font-bold" id="checkedCountIndicator">當前已勾選：0 筆訂單</span>
@@ -150,7 +150,7 @@
               <th class="p-3 w-10 text-center"><input type="checkbox" onchange="toggleAllOrders(this)"></th>
               <th class="p-3 w-28">下單時間</th>
               <th class="p-3 w-28">訂單編號</th>
-              <th class="p-3">訂購明細 (品名/規格/數量)</th>
+              <th class="p-3">訂購明細</th>
               <th class="p-3 w-20">應付總額</th>
               <th class="p-3 w-32">客戶資訊</th>
               <th class="p-3 w-48">收件地址 / 買家備註</th>
@@ -171,9 +171,9 @@
       </div>
     </section>
 
-    <!-- 2. 商品上架分頁 -->
+    <!-- 2. 商品上架分頁 (雙批量定價 + 縮圖排序) -->
     <section id="uploadTab" class="tab-content bg-white border border-taupe-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-4 hidden">
-      <h2 id="formActionTitle" class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase border-b border-taupe-border pb-2">商品配置</h2>
+      <h2 id="formActionTitle" class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase border-b border-taupe-border pb-2">商品快速配置</h2>
       
       <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <div>
@@ -207,32 +207,32 @@
           <select id="pSubSelect" onchange="syncChildCategoriesDropdown()" class="w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas"></select>
         </div>
         <div>
-          <label class="text-xs font-bold text-stone-500 block mb-1">促銷標籤 (可在前台展示)</label>
+          <label class="text-xs font-bold text-stone-500 block mb-1">促銷標籤 (可在前台商品卡片展示)</label>
           <input type="text" id="pTag" class="w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none focus:bg-white focus:border-taupe-main" placeholder="例如 熱銷預購 / 天絲莫代爾">
         </div>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label class="text-xs font-bold text-stone-500 block mb-1">款式規格 (逗號隔開)</label>
+          <label class="text-xs font-bold text-stone-500 block mb-1">款式花色清單 (逗號隔開)</label>
           <input type="text" id="pColors" oninput="regenerateMatrix()" class="w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none focus:bg-white focus:border-taupe-main" placeholder="例如 藍色, 粉色">
         </div>
         <div>
-          <label class="text-xs font-bold text-stone-500 block mb-1">尺寸規格 (逗號隔開)</label>
+          <label class="text-xs font-bold text-stone-500 block mb-1">尺寸規格清單 (逗號隔開)</label>
           <input type="text" id="pSizes" oninput="regenerateMatrix()" class="w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none focus:bg-white focus:border-taupe-main" placeholder="例如 S, Q">
         </div>
       </div>
 
-      <!-- 規格矩陣 (支援雙批量填入) -->
+      <!-- 規格矩陣 (雙批量設定) -->
       <div class="bg-taupe-canvas p-4 border border-taupe-border rounded-xl space-y-2">
         <div class="flex justify-between items-center flex-wrap gap-2">
-          <span class="text-xs font-bold text-taupe-dark">規格定價矩陣 (K欄原價 / L欄特價)</span>
+          <span class="text-xs font-bold text-taupe-dark">規格定價配置矩陣 (K欄原價 / L欄特價)</span>
           <div class="flex gap-2">
             <button type="button" onclick="batchSetMatrixOldPrice()" class="text-[11px] bg-taupe-light hover:bg-taupe-sand text-taupe-charcoal px-3 py-1 rounded-lg font-bold border border-taupe-border transition">
-              批量填入原價
+              批量統一填入原價
             </button>
-            <button type="button" onclick="batchSetMatrixPrice()" class="text-[11px] bg-taupe-main hover:bg-taupe-hover text-white px-3 py-1 rounded-lg font-bold transition">
-              批量填入特價
+            <button type="button" onclick="batchSetMatrixPrice()" class="text-[11px] bg-taupe-main hover:bg-taupe-hover text-white px-3 py-1 rounded-lg font-bold transition shadow-xs">
+              批量統一填入特價
             </button>
           </div>
         </div>
@@ -249,7 +249,7 @@
         </table>
       </div>
 
-      <!-- 圖片直傳 Supabase Storage + 縮圖順序調整卡片 -->
+      <!-- 圖片直傳 Supabase Storage + 縮圖排序卡片 -->
       <div class="space-y-3">
         <div class="border-2 border-dashed border-taupe-border rounded-2xl p-5 text-center bg-taupe-canvas cursor-pointer hover:bg-taupe-light/30 transition-all"
              onclick="document.getElementById('productStorageInput').click()">
@@ -259,7 +259,7 @@
         </div>
 
         <div>
-          <label class="text-xs font-bold text-taupe-dark block mb-1.5">商品圖庫排序 (可點擊左右按鈕調整封面與輪播順序)</label>
+          <label class="text-xs font-bold text-taupe-dark block mb-1.5">商品圖庫排序 (可點擊左右按鈕調換封面與輪播順序)</label>
           <div id="productThumbnailsContainer" class="grid grid-cols-3 sm:grid-cols-6 gap-3"></div>
           <div id="noImgNotice" class="text-xs text-stone-400 py-3 text-center border border-taupe-border rounded-xl bg-white">尚未上傳相片</div>
         </div>
@@ -271,7 +271,7 @@
       </div>
 
       <button onclick="publishProduct()" id="btnSubmitProduct" class="w-full bg-taupe-main hover:bg-taupe-hover text-white font-bold text-xs py-3.5 rounded-xl transition-all shadow-sm">
-        確認發布 (同步寫入 Supabase 與 Google 試算表)
+        一鍵確認商品上架 (同步寫入 Supabase 與 Google 試算表)
       </button>
     </section>
 
@@ -306,7 +306,7 @@
       </div>
     </section>
 
-    <!-- 4. 首頁輪播圖與專欄文案分頁 (支援插圖直傳) -->
+    <!-- 4. 首頁輪播圖與專欄文案分頁 (直傳插圖) -->
     <section id="bannerTab" class="tab-content bg-white border border-taupe-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-6 hidden">
       <div>
         <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase border-b border-taupe-border pb-2">首頁輪播圖管理 (完全置中)</h2>
@@ -326,7 +326,7 @@
         <div id="bannerListGrid" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4"></div>
       </div>
 
-      <!-- 相簿專欄圖文編輯專區 -->
+      <!-- 相簿專欄圖文編輯區 -->
       <div class="pt-4 border-t border-taupe-border">
         <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase border-b border-taupe-border pb-2">首頁輪播下方・相簿部落格圖文專區</h2>
         <div class="bg-taupe-canvas p-4 rounded-xl border border-taupe-border mt-3 space-y-3">
@@ -366,7 +366,7 @@
       </div>
     </section>
 
-    <!-- 5. 階層分類樹管理分頁 -->
+    <!-- 5. 階層分類樹管理分頁 (修復保存問題) -->
     <section id="categoryTab" class="tab-content bg-white border border-taupe-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-4 hidden">
       <div class="flex justify-between items-center border-b border-taupe-border pb-2">
         <div>
@@ -387,12 +387,12 @@
       </div>
     </section>
 
-    <!-- 6. 通用折扣碼分頁 -->
+    <!-- 6. 通用折扣活動管理分頁 -->
     <section id="couponTab" class="tab-content bg-white border border-taupe-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-4 hidden">
-      <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase border-b border-taupe-border pb-2">全站優惠折扣碼</h2>
+      <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase border-b border-taupe-border pb-2">全站優惠折扣與活動管理</h2>
       <div class="bg-taupe-canvas p-4 rounded-xl border border-taupe-border space-y-3">
         <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
-          <input type="text" id="newCouponCode" placeholder="代碼 (如 VIP95)" class="text-xs p-2.5 border border-taupe-border rounded-xl bg-white uppercase font-mono">
+          <input type="text" id="newCouponCode" placeholder="折扣代碼 (如 VIP95)" class="text-xs p-2.5 border border-taupe-border rounded-xl bg-white uppercase font-mono">
           <select id="newCouponType" class="text-xs p-2.5 border border-taupe-border rounded-xl bg-white">
             <option value="percent">比例折抵 (如 0.05 代表 95 折)</option>
             <option value="fixed">固定金額 (如 100 代表現折 100)</option>
@@ -418,35 +418,124 @@
       </div>
     </section>
 
-    <!-- 7. 全域跑馬燈與社群外連分頁 -->
-    <section id="settingTab" class="tab-content bg-white border border-taupe-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-5 hidden">
-      <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase border-b border-taupe-border pb-2">全域跑馬燈與頂部社群連結</h2>
+    <!-- 7. 全域風格與條款設定分頁 (新增：6大莫蘭迪色系切換、Logo形狀、頁尾與5大條款) -->
+    <section id="settingTab" class="tab-content bg-white border border-taupe-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-6 hidden">
       <div>
-        <label class="text-xs font-bold text-stone-600 block mb-1">首頁跑馬燈公告內容 (前台自動水平置中滾動)</label>
+        <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase border-b border-taupe-border pb-2">前台品牌色系主題 (莫蘭迪色系切換)</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-3">
+          <label class="p-3 rounded-2xl border cursor-pointer flex flex-col items-center gap-2 hover:border-taupe-main transition" id="theme-card-morandi_taupe">
+            <input type="radio" name="theme_color_radio" value="morandi_taupe" class="hidden" onchange="previewThemeSelect(this.value)">
+            <span class="w-8 h-8 rounded-full bg-[#8C7355] shadow-xs"></span>
+            <span class="text-xs font-bold text-taupe-charcoal">米棕色 (預設)</span>
+          </label>
+          <label class="p-3 rounded-2xl border cursor-pointer flex flex-col items-center gap-2 hover:border-taupe-main transition" id="theme-card-morandi_dusty_rose">
+            <input type="radio" name="theme_color_radio" value="morandi_dusty_rose" class="hidden" onchange="previewThemeSelect(this.value)">
+            <span class="w-8 h-8 rounded-full bg-[#A3485E] shadow-xs"></span>
+            <span class="text-xs font-bold text-taupe-charcoal">黛粉色 (輕奢)</span>
+          </label>
+          <label class="p-3 rounded-2xl border cursor-pointer flex flex-col items-center gap-2 hover:border-taupe-main transition" id="theme-card-morandi_forest">
+            <input type="radio" name="theme_color_radio" value="morandi_forest" class="hidden" onchange="previewThemeSelect(this.value)">
+            <span class="w-8 h-8 rounded-full bg-[#3D5A45] shadow-xs"></span>
+            <span class="text-xs font-bold text-taupe-charcoal">森林綠 (知性)</span>
+          </label>
+          <label class="p-3 rounded-2xl border cursor-pointer flex flex-col items-center gap-2 hover:border-taupe-main transition" id="theme-card-morandi_slate">
+            <input type="radio" name="theme_color_radio" value="morandi_slate" class="hidden" onchange="previewThemeSelect(this.value)">
+            <span class="w-8 h-8 rounded-full bg-[#4E6272] shadow-xs"></span>
+            <span class="text-xs font-bold text-taupe-charcoal">霧霾藍 (冷冽)</span>
+          </label>
+          <label class="p-3 rounded-2xl border cursor-pointer flex flex-col items-center gap-2 hover:border-taupe-main transition" id="theme-card-morandi_mono">
+            <input type="radio" name="theme_color_radio" value="morandi_mono" class="hidden" onchange="previewThemeSelect(this.value)">
+            <span class="w-8 h-8 rounded-full bg-[#262626] shadow-xs"></span>
+            <span class="text-xs font-bold text-taupe-charcoal">黑灰白 (極簡)</span>
+          </label>
+          <label class="p-3 rounded-2xl border cursor-pointer flex flex-col items-center gap-2 hover:border-taupe-main transition" id="theme-card-morandi_clean_white">
+            <input type="radio" name="theme_color_radio" value="morandi_clean_white" class="hidden" onchange="previewThemeSelect(this.value)">
+            <span class="w-8 h-8 rounded-full bg-[#F4F4F5] border border-stone-300 shadow-xs"></span>
+            <span class="text-xs font-bold text-taupe-charcoal">純白帶灰 (無印)</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- 品牌 Logo 上傳與形狀選擇 -->
+      <div class="pt-3 border-t border-taupe-border space-y-3">
+        <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase border-b border-taupe-border pb-2">前台品牌 Logo 設定</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="text-xs font-bold text-stone-500 block mb-1">Logo 圖片網址 (可直傳 Supabase)</label>
+            <div class="flex gap-2">
+              <input type="text" id="settingLogoUrl" class="w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none">
+              <button type="button" onclick="document.getElementById('logoFileInput').click()" class="bg-taupe-light hover:bg-taupe-sand text-taupe-dark text-xs font-bold px-3 py-2 rounded-xl border border-taupe-border shrink-0 transition">
+                選圖直傳
+              </button>
+              <input type="file" id="logoFileInput" accept="image/*" class="hidden" onchange="uploadLogoToSupabase(this.files)">
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-bold text-stone-500 block mb-1">Logo 形狀比例展示</label>
+            <select id="settingLogoShape" class="w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none">
+              <option value="square">正方形 1:1 (如圓形頭像/簡約微標，高度 36px)</option>
+              <option value="rectangle">長方形 3:1 (如品牌橫向字樣，高度 30px 自適應)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 頁尾宣告資訊編輯 -->
+      <div class="pt-3 border-t border-taupe-border space-y-3">
+        <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase border-b border-taupe-border pb-2">前台頁尾標示資訊設定</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="text-xs font-bold text-stone-500 block mb-1">官方線上客服 LINE ID</label>
+            <input type="text" id="settingFooterLine" value="@480kqjoj" class="w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-stone-500 block mb-1">營業人行號與統一編號</label>
+            <input type="text" id="settingFooterCompany" value="希貝兒設計所 | 統一編號 61347275" class="w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none">
+          </div>
+        </div>
+      </div>
+
+      <!-- 側邊漢堡抽屜五大條款內容編輯 -->
+      <div class="pt-3 border-t border-taupe-border space-y-3">
+        <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase border-b border-taupe-border pb-2">側邊選單・五大條款與品牌故事內容</h2>
+        <div class="space-y-3 text-xs">
+          <div>
+            <label class="font-bold text-stone-600 block mb-1">1. 品牌故事與選物理念</label>
+            <textarea id="termStory" rows="2" class="w-full p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none"></textarea>
+          </div>
+          <div>
+            <label class="font-bold text-stone-600 block mb-1">2. 購物與出貨說明</label>
+            <textarea id="termShopping" rows="2" class="w-full p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none"></textarea>
+          </div>
+          <div>
+            <label class="font-bold text-stone-600 block mb-1">3. 退換貨處理原則</label>
+            <textarea id="termRefund" rows="2" class="w-full p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none"></textarea>
+          </div>
+          <div>
+            <label class="font-bold text-stone-600 block mb-1">4. 隱私權及網站使用條款</label>
+            <textarea id="termPrivacy" rows="2" class="w-full p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none"></textarea>
+          </div>
+          <div>
+            <label class="font-bold text-stone-600 block mb-1">5. 會員權益聲明</label>
+            <textarea id="termMember" rows="2" class="w-full p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- 跑馬燈內容 -->
+      <div class="pt-3 border-t border-taupe-border">
+        <label class="text-xs font-bold text-stone-600 block mb-1">首頁跑馬燈公告內容 (自動水平置中滾動)</label>
         <textarea id="settingMarqueeText" rows="2" class="w-full text-xs p-3 border border-taupe-border rounded-xl bg-taupe-canvas outline-none focus:bg-white focus:border-taupe-main"></textarea>
       </div>
 
-      <div class="space-y-3 pt-3 border-t border-taupe-border">
-        <div class="flex justify-between items-center">
-          <div>
-            <label class="text-xs font-bold text-stone-600 block">頂部導航外部連結群 (如 Instagram、LINE 客服)</label>
-            <p class="text-[11px] text-stone-400">在前台頂部右側自動產生連結按鈕</p>
-          </div>
-          <button onclick="addNewNavLinkRow()" class="bg-taupe-light hover:bg-taupe-sand text-taupe-dark text-xs font-bold px-3 py-1.5 rounded-lg border border-taupe-border transition">
-            + 新增連結
-          </button>
-        </div>
-        <div id="navLinksContainer" class="space-y-2"></div>
-      </div>
-
-      <button onclick="saveGlobalSettings()" class="bg-taupe-main hover:bg-taupe-hover text-white text-xs font-bold px-6 py-2.5 rounded-xl shadow-sm transition">
-        儲存全域設定
+      <button onclick="saveGlobalSettings()" class="bg-taupe-main hover:bg-taupe-hover text-white text-xs font-bold px-6 py-3 rounded-xl shadow-sm transition">
+        儲存全域外觀與合約條款設定
       </button>
     </section>
 
   </div>
 
-  <!-- 自訂美學沙龍米棕色彈窗 Prompt / Confirm Modal (無瀏覽器醜陋框) -->
+  <!-- 自訂美學沙龍米棕色彈窗 Prompt / Confirm Modal (完全替代原生 alert) -->
   <div id="aestheticDialogModal" class="fixed inset-0 bg-stone-900/60 backdrop-blur-sm hidden z-[99999] items-center justify-center p-4">
     <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-4 border border-taupe-border">
       <h3 id="dialogTitle" class="text-sm font-bold text-taupe-charcoal">輸入提示</h3>
@@ -483,9 +572,18 @@
     let invPage = 1, invPageSize = 10;
 
     let visualCategoryTree = [];
-    let storeNavLinks = [];
     let dialogCallback = null;
     let currentUploadedImages = [];
+    let selectedThemeColor = "morandi_taupe";
+
+    function previewThemeSelect(themeKey) {
+      selectedThemeColor = themeKey;
+      document.querySelectorAll('[id^="theme-card-"]').forEach(card => {
+        card.classList.remove('border-taupe-main', 'bg-taupe-light/30');
+      });
+      let activeCard = document.getElementById(`theme-card-${themeKey}`);
+      if (activeCard) activeCard.classList.add('border-taupe-main', 'bg-taupe-light/30');
+    }
 
     // 縮圖卡片渲染
     function renderProductThumbnails() {
@@ -530,7 +628,7 @@
       renderProductThumbnails();
     }
 
-    // 自訂美感彈窗封裝 (完全替代原生 alert/prompt)
+    // 自訂美感彈窗封裝 (替代原生 alert)
     function showCustomPrompt(title, defaultValue, callback) {
       document.getElementById('dialogTitle').innerText = title;
       document.getElementById('dialogTextInput').value = defaultValue || '';
@@ -556,11 +654,8 @@
       const modal = document.getElementById('aestheticDialogModal');
       modal.classList.add('hidden'); modal.classList.remove('flex');
       if (dialogCallback) {
-        if (isConfirmed) {
-          dialogCallback(document.getElementById('dialogTextInput').value);
-        } else {
-          dialogCallback(null);
-        }
+        if (isConfirmed) dialogCallback(document.getElementById('dialogTextInput').value);
+        else dialogCallback(null);
         dialogCallback = null;
       }
     }
@@ -625,7 +720,7 @@
       loadCouponsData();
     }
 
-    // ==================== 1. 可視化分類樹 (PATCH 更新保證成功) ====================
+    // ==================== 1. 可視化分類樹 (PATCH 更新確保成功) ====================
     function renderVisualCategoryTree() {
       const container = document.getElementById('visualCategoryTreeContainer');
       container.innerHTML = "";
@@ -822,6 +917,23 @@
       } catch(e) {}
     }
 
+    async function uploadLogoToSupabase(files) {
+      if (!files || files.length === 0) return;
+      let f = files[0];
+      let cleanName = `logo_${Date.now()}.${f.name.split('.').pop()}`;
+      try {
+        let res = await fetch(`${SUPABASE_URL}/storage/v1/object/shop-images/${cleanName}`, {
+          method: 'POST',
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': f.type },
+          body: f
+        });
+        if (res.ok) {
+          document.getElementById('settingLogoUrl').value = `${SUPABASE_URL}/storage/v1/object/public/shop-images/${cleanName}`;
+          showToast("Logo 圖片已成功上傳！");
+        }
+      } catch(e) {}
+    }
+
     // ==================== 3. 訂單狀態管理 ====================
     async function loadOrdersData() {
       try {
@@ -981,7 +1093,7 @@
       link.click();
     }
 
-    // ==================== 4. 商品發布 (雙批量填入) ====================
+    // ==================== 4. 商品發布 (雙批量定價) ====================
     function regenerateMatrix() {
       const tbody = document.getElementById('matrixTableBody');
       tbody.innerHTML = "";
@@ -1098,7 +1210,7 @@
         showToast("發布失敗：" + e.message);
       } finally {
         btn.disabled = false;
-        btn.innerText = "確認發布 (同步寫入 Supabase 與 Google 試算表)";
+        btn.innerText = "一鍵確認商品上架 (同步寫入 Supabase 與 Google 試算表)";
       }
     }
 
@@ -1167,7 +1279,7 @@
       renderInventoryTable();
     }
 
-    // ==================== 6. 輪播圖與圖文專欄 (PATCH 保證儲存) ====================
+    // ==================== 6. 輪播圖與圖文專欄 ====================
     async function loadBannersData() {
       try {
         let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_banners?store_id=eq.${STORE_ID}&order=sort_order.asc`, {
@@ -1239,7 +1351,7 @@
       else showToast("專欄儲存失敗，請檢查資料庫連線。");
     }
 
-    // ==================== 7. 折扣碼與全域設定 (PATCH 更新) ====================
+    // ==================== 7. 折扣活動與全域風格條款 ====================
     async function loadCouponsData() {
       try {
         let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_coupons?store_id=eq.${STORE_ID}&order=created_at.desc`, {
@@ -1303,6 +1415,32 @@
           if (s.category_tree && s.category_tree.length > 0) visualCategoryTree = s.category_tree;
           renderVisualCategoryTree();
 
+          // 讀取主題配色
+          if (s.theme_color) {
+            selectedThemeColor = s.theme_color;
+            let radio = document.querySelector(`input[name="theme_color_radio"][value="${s.theme_color}"]`);
+            if (radio) radio.checked = true;
+            previewThemeSelect(s.theme_color);
+          }
+
+          // 讀取 Logo 設定
+          document.getElementById('settingLogoUrl').value = s.logo_url || '';
+          if (s.logo_shape) document.getElementById('settingLogoShape').value = s.logo_shape;
+
+          // 讀取頁尾資訊
+          if (s.footer_line_id) document.getElementById('settingFooterLine').value = s.footer_line_id;
+          if (s.footer_company_info) document.getElementById('settingFooterCompany').value = s.footer_company_info;
+
+          // 讀取合約條款
+          if (s.store_terms) {
+            let t = s.store_terms;
+            if (t.story) document.getElementById('termStory').value = t.story;
+            if (t.shopping) document.getElementById('termShopping').value = t.shopping;
+            if (t.refund) document.getElementById('termRefund').value = t.refund;
+            if (t.privacy) document.getElementById('termPrivacy').value = t.privacy;
+            if (t.member) document.getElementById('termMember').value = t.member;
+          }
+
           if (s.editorial_content) {
             let ed = s.editorial_content;
             document.getElementById('editorialTitle').value = ed.title || '';
@@ -1315,40 +1453,42 @@
             }
             document.getElementById('editorialActive').checked = ed.is_active !== false;
           }
-          storeNavLinks = s.nav_links || [];
-          renderNavLinks();
         }
       } catch(e){}
     }
 
-    function renderNavLinks() {
-      const box = document.getElementById('navLinksContainer');
-      box.innerHTML = storeNavLinks.map((l, idx) => `
-        <div class="flex items-center gap-2 bg-taupe-canvas p-2.5 rounded-xl border border-taupe-border">
-          <input type="text" value="${l.title}" onchange="storeNavLinks[${idx}].title = this.value" placeholder="顯示名稱" class="p-1 border border-taupe-border rounded text-xs w-36 outline-none bg-white">
-          <input type="text" value="${l.url}" onchange="storeNavLinks[${idx}].url = this.value" placeholder="連結網址" class="p-1 border border-taupe-border rounded text-xs flex-1 outline-none bg-white">
-          <label class="text-[11px] text-stone-500 font-bold flex items-center gap-1">
-            <input type="checkbox" ${l.is_active ? 'checked' : ''} onchange="storeNavLinks[${idx}].is_active = this.checked" class="accent-taupe-main"> 啟用
-          </label>
-          <button type="button" onclick="storeNavLinks.splice(${idx}, 1); renderNavLinks();" class="text-stone-400 hover:text-rose-600 px-1 font-bold">✕</button>
-        </div>
-      `).join('');
-    }
-
-    function addNewNavLinkRow() {
-      storeNavLinks.push({ title: "新連結", url: "https://", is_active: true });
-      renderNavLinks();
-    }
-
     async function saveGlobalSettings() {
       let marquee = document.getElementById('settingMarqueeText').value.trim();
+      let logoUrl = document.getElementById('settingLogoUrl').value.trim();
+      let logoShape = document.getElementById('settingLogoShape').value;
+      let footerLine = document.getElementById('settingFooterLine').value.trim();
+      let footerCompany = document.getElementById('settingFooterCompany').value.trim();
+
+      let terms = {
+        story: document.getElementById('termStory').value.trim(),
+        shopping: document.getElementById('termShopping').value.trim(),
+        refund: document.getElementById('termRefund').value.trim(),
+        privacy: document.getElementById('termPrivacy').value.trim(),
+        member: document.getElementById('termMember').value.trim()
+      };
+
+      let patchPayload = {
+        theme_color: selectedThemeColor,
+        logo_url: logoUrl,
+        logo_shape: logoShape,
+        footer_line_id: footerLine,
+        footer_company_info: footerCompany,
+        marquee_announcement: marquee,
+        store_terms: terms
+      };
+
       let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_stores?store_id=eq.${STORE_ID}`, {
         method: 'PATCH',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ marquee_announcement: marquee, nav_links: storeNavLinks })
+        body: JSON.stringify(patchPayload)
       });
-      if (res.ok) showToast("全域設定已成功儲存！");
-      else showToast("全域設定儲存失敗");
+      if (res.ok) showToast("全域外觀與條款設定已成功儲存！");
+      else showToast("全域設定儲存失敗，請檢查資料庫狀態。");
     }
 
     function showToast(msg) {
