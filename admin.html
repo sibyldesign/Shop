@@ -515,9 +515,10 @@
             </div>
           </div>
 
-          <div id="campCategorySelectBox" class="hidden">
-            <label class="text-xs font-bold text-stone-600 block mb-1">選擇套用之商品分類：</label>
-            <select id="campTargetCategory" class="w-full text-xs p-2 border border-taupe-border rounded-lg bg-white outline-none"></select>
+          <!-- 分類多選核取標籤池 (可複選多個分類專區) -->
+          <div id="campCategorySelectBox" class="hidden space-y-1.5">
+            <label class="text-xs font-bold text-stone-600 block">勾選套用之商品分類 (支援多選)：</label>
+            <div id="campCategoryCheckboxContainer" class="flex flex-wrap gap-2 p-2 bg-white rounded-xl border border-taupe-border"></div>
           </div>
 
           <div class="flex justify-end pt-1">
@@ -1459,37 +1460,39 @@
       }
     }
 
-    // ==================== 5. 商品清單 (91APP 規格多選批量操作) ====================
-    async function loadInventoryData() {
-      try {
-        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_products?store_id=eq.${STORE_ID}&order=created_at.desc`, {
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+    function populateCampaignCategoryCheckboxes() {
+      const container = document.getElementById('campCategoryCheckboxContainer');
+      if (!container) return;
+      // 讀取後台設定之次分類
+      let cats = [];
+      if (visualCategoryTree && visualCategoryTree.length > 0) {
+        visualCategoryTree.forEach(m => {
+          (m.children || []).forEach(s => cats.push(s.name));
         });
-        globalProducts = await res.json();
-        filteredProducts = [...globalProducts];
-        invPage = 1;
-        selectedInventorySkus = {};
-        renderInventoryTable();
-      } catch(e){}
-    }
-
-    // ==================== 5. 商品清單管理 (修復 # 號 URL 編碼，確保刪除與上下架 100% 正常) ====================
-    async function loadInventoryData() {
-      try {
-        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_products?store_id=eq.${STORE_ID}&order=created_at.desc`, {
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
-        });
-        globalProducts = await res.json();
-        filteredProducts = [...globalProducts];
-        invPage = 1;
-        selectedInventorySkus = {};
-        renderInventoryTable();
-        if (typeof renderHotCandidateProducts === 'function') {
-          renderHotCandidateProducts();
-        }
-      } catch(e) {
-        showToast("商品資料讀取失敗，請檢查網路連線");
       }
+      if (cats.length === 0) {
+        cats = [...new Set(globalProducts.map(p => p.sub_category || p.major_category).filter(Boolean))];
+      }
+      container.innerHTML = cats.map(c => `
+        <label class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-taupe-border bg-taupe-canvas hover:bg-taupe-light cursor-pointer text-xs font-bold">
+          <input type="checkbox" value="${c}" class="camp-cat-check accent-taupe-main">
+          <span>${c}</span>
+        </label>
+      `).join('');
+    }
+    
+    async function loadInventoryData() {
+      try {
+        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_products?store_id=eq.${STORE_ID}&order=created_at.desc`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+        });
+        globalProducts = await res.json();
+        filteredProducts = [...globalProducts];
+        invPage = 1;
+        selectedInventorySkus = {};
+        renderInventoryTable();
+        renderHotCandidateProducts(); // 確保人氣推薦同步獲取資料庫真實 is_hot
+      } catch(e){}
     }
 
     function renderInventoryTable() {
@@ -1802,24 +1805,6 @@
       }
     }
 
-    // 輪播圖刪除修復 (加上明確型別轉換與確認彈窗)
-    async function deleteBanner(id) {
-      showCustomConfirm("刪除確認", "確定要刪除這張輪播橫幅嗎？", async (ok) => {
-        if (!ok) return;
-        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_banners?id=eq.${id}`, {
-          method: 'DELETE',
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
-        });
-        if (res.ok) {
-          rawBannersList = rawBannersList.filter(b => b.id != id);
-          renderBannerCards();
-          showToast("已成功刪除輪播圖！");
-        } else {
-          showToast("刪除失敗，請檢查網路連線");
-        }
-      });
-    }
-
     // 輪播圖 ◀ ▶ 換順序 (即時更新)
     async function moveBannerItem(idx, dir) {
       let target = idx + dir;
@@ -1982,16 +1967,15 @@
       tbody.innerHTML = "";
 
       let kw = (document.getElementById('hotSearchInput')?.value || '').trim().toLowerCase();
-      let list = globalProducts;
+      let list = [...globalProducts];
       if (kw) {
         list = list.filter(p => p.sku.toLowerCase().includes(kw) || p.name.toLowerCase().includes(kw));
       }
 
-      // 依推薦狀態與 rank 排序
       list.sort((a, b) => (b.is_hot ? 1 : 0) - (a.is_hot ? 1 : 0) || (a.hot_rank || 99) - (b.hot_rank || 99));
 
       tbody.innerHTML = list.map(p => `
-        <tr class="hover:bg-taupe-canvas text-xs ${p.is_hot ? 'bg-amber-50/40' : ''}">
+        <tr class="hover:bg-taupe-canvas text-xs ${p.is_hot ? 'bg-amber-50/50' : ''}">
           <td class="p-2.5 text-center">
             <input type="checkbox" class="hot-chk w-4 h-4 accent-taupe-main" value="${p.sku}" ${p.is_hot ? 'checked' : ''} onchange="toggleHotProductLocal('${p.sku}', this.checked)">
           </td>
@@ -2000,7 +1984,7 @@
           <td class="p-2.5">${p.sub_category || p.major_category || ''}</td>
           <td class="p-2.5 font-mono font-bold text-taupe-crimson">NT$ ${p.price}</td>
           <td class="p-2.5 text-center">
-            <input type="number" value="${p.hot_rank || 1}" onchange="updateHotRankLocal('${p.sku}', this.value)" class="w-14 p-1 border border-taupe-border rounded text-center font-mono text-xs ${p.is_hot ? 'bg-white' : 'bg-stone-100 text-stone-400'}" ${p.is_hot ? '' : 'disabled'}>
+            <input type="number" value="${p.hot_rank || 1}" onchange="updateHotRankLocal('${p.sku}', this.value)" class="w-14 p-1 border border-taupe-border rounded text-center font-mono text-xs ${p.is_hot ? 'bg-white font-bold' : 'bg-stone-100 text-stone-400'}" ${p.is_hot ? '' : 'disabled'}>
           </td>
         </tr>
       `).join('');
@@ -2024,15 +2008,15 @@
     async function saveHotProductsSelection() {
       showToast("正在儲存人氣推薦榜單...");
       let updates = globalProducts.map(p => {
-        return fetch(`${SUPABASE_URL}/rest/v1/shop_products?sku=eq.${p.sku}&store_id=eq.${STORE_ID}`, {
+        return fetch(`${SUPABASE_URL}/rest/v1/shop_products?sku=eq.${encodeURIComponent(p.sku)}&store_id=eq.${STORE_ID}`, {
           method: 'PATCH',
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ is_hot: p.is_hot === true, hot_rank: p.hot_rank || 99 })
+          body: JSON.stringify({ is_hot: (p.is_hot === true), hot_rank: (p.hot_rank || 99) })
         });
       });
-
       await Promise.all(updates);
-      showToast("人氣推薦榜單已成功同步至前台！");
+      showToast("人氣推薦榜單已成功同步至資料庫！");
+      loadInventoryData();
     }
 
     // --- 優惠活動專區設定 ---
@@ -2093,11 +2077,6 @@
       }
     }
 
-    function toggleCampaignCategorySelect() {
-      let mode = document.getElementById('campTargetMode').value;
-      document.getElementById('campCategorySelectBox').classList.toggle('hidden', mode !== 'category');
-    }
-
     async function addNewCampaign() {
       let title = document.getElementById('campTitle').value.trim();
       let subtitle = document.getElementById('campSubtitle').value.trim();
@@ -2105,9 +2084,15 @@
       let condQty = parseInt(document.getElementById('campCondQty').value) || 2;
       let val = parseFloat(document.getElementById('campDiscountVal').value) || 0;
       let targetMode = document.getElementById('campTargetMode').value;
-      let targetCat = document.getElementById('campTargetCategory').value;
+      
+      // 收集複選分類
+      let selectedCats = [];
+      document.querySelectorAll('.camp-cat-check:checked').forEach(c => selectedCats.push(c.value));
 
       if (!title) return showToast("請輸入活動標題！");
+      if (targetMode === 'category' && selectedCats.length === 0) {
+        return showToast("請至少勾選一個套用的商品分類！");
+      }
 
       let payload = {
         store_id: STORE_ID,
@@ -2117,7 +2102,7 @@
         condition_qty: condQty,
         discount_val: val,
         target_mode: targetMode,
-        target_category: targetMode === 'category' ? targetCat : '',
+        target_category: targetMode === 'category' ? selectedCats.join(',') : '',
         is_active: true,
         sort_order: activeCampaignsList.length + 1
       };
@@ -2134,8 +2119,59 @@
         loadCampaignsData();
         showToast("行銷活動已成功建立！");
       } else {
-        showToast("建立活動失敗，請檢查資料庫狀態");
+        showToast("活動建立失敗");
       }
+    }
+
+    // 4. 輪播圖刪除修正
+    async function deleteBanner(id) {
+      showCustomConfirm("刪除確認", "確定要刪除這張輪播橫幅嗎？", async (ok) => {
+        if (!ok) return;
+        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_banners?id=eq.${id}&store_id=eq.${STORE_ID}`, {
+          method: 'DELETE',
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+        });
+        if (res.ok) {
+          rawBannersList = rawBannersList.filter(b => b.id != id);
+          renderBannerCards();
+          showToast("已成功刪除輪播圖！");
+        } else {
+          showToast("刪除失敗");
+        }
+      });
+    }
+
+    // 5. 折扣碼儲存修復 (強制插入並即時重新讀取)
+    async function addNewCoupon() {
+      let code = document.getElementById('newCouponCode').value.trim().toUpperCase();
+      let type = document.getElementById('newCouponType').value;
+      let val = Number(document.getElementById('newCouponVal').value);
+      let note = document.getElementById('newCouponNote').value.trim();
+      if (!code || isNaN(val)) return showToast("請輸入完整代碼與折抵數值！");
+
+      let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_coupons`, {
+        method: 'POST',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ store_id: STORE_ID, code: code, discount_type: type, discount_val: val, note: note, is_active: true })
+      });
+
+      if (res.ok) {
+        document.getElementById('newCouponCode').value = '';
+        document.getElementById('newCouponVal').value = '';
+        document.getElementById('newCouponNote').value = '';
+        loadCouponsData();
+        showToast("折扣碼已成功建立！");
+      } else {
+        let err = await res.json().catch(() => ({}));
+        showToast("建立失敗：" + (err.message || "代碼可能已存在"));
+      }
+    }
+
+    function toggleCampaignCategorySelect() {
+      let mode = document.getElementById('campTargetMode').value;
+      const box = document.getElementById('campCategorySelectBox');
+      box.classList.toggle('hidden', mode !== 'category');
+      if (mode === 'category') populateCampaignCategoryCheckboxes();
     }
 
     async function deleteCampaignItem(id) {
@@ -2148,24 +2184,6 @@
         loadCampaignsData();
         showToast("活動已刪除！");
       });
-    }
-
-    async function addNewCoupon() {
-      let code = document.getElementById('newCouponCode').value.trim().toUpperCase();
-      let type = document.getElementById('newCouponType').value;
-      let val = Number(document.getElementById('newCouponVal').value);
-      let note = document.getElementById('newCouponNote').value.trim();
-      if (!code || isNaN(val)) return showToast("請輸入完整代碼與數值！");
-
-      let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_coupons`, {
-        method: 'POST',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ store_id: STORE_ID, code: code, discount_type: type, discount_val: val, note: note, is_active: true })
-      });
-      if (res.ok) {
-        loadCouponsData();
-        showToast("折扣碼已成功建立！");
-      }
     }
 
     async function deleteCoupon(id) {
