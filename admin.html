@@ -1352,20 +1352,56 @@ fetch(GAS_URL, {
     }
 
     function editProduct(sku) {
-      let p = globalProducts.find(x => x.sku === sku);
-      if (!p) return;
-      document.getElementById('pSku').value = p.sku;
-      document.getElementById('pName').value = p.name;
-      document.getElementById('pStatus').value = p.status;
-      document.getElementById('pImgRatio').value = p.img_ratio || '1:1';
-      document.getElementById('pShowArrivalCheck').checked = (p.show_arrival_date !== false);
-      document.getElementById('pTag').value = p.tag || '';
-      document.getElementById('pArrivalDate').value = p.arrival_date || '';
-      document.getElementById('pDesc').value = p.description || '';
-      currentUploadedImages = p.images ? p.images.split(/[\s\n\r,]+/).filter(u => u) : [];
-      renderProductThumbnails();
-      switchTab('uploadTab');
-    }
+  let p = globalProducts.find(x => x.sku === sku);
+  if (!p) return;
+
+  document.getElementById('pSku').value = p.sku;
+  document.getElementById('pName').value = p.name;
+  document.getElementById('pStatus').value = p.status || '上架';
+  document.getElementById('pMajorSelect').value = p.major_category || '韓國棉被';
+  syncSubCategoriesDropdown();
+  document.getElementById('pSubSelect').value = p.sub_category || '四季被';
+  document.getElementById('pTag').value = p.tag || '';
+  document.getElementById('pArrivalDate').value = p.arrival_date || '';
+  document.getElementById('pImgRatio').value = p.img_ratio || '1:1';
+  document.getElementById('pShowArrivalCheck').checked = (p.show_arrival_date !== false);
+  document.getElementById('pDesc').value = p.description || '';
+
+  currentUploadedImages = p.images ? p.images.split(/[\s,]+/).filter(Boolean) : [];
+  renderProductThumbnails();
+
+  // 💡 關鍵修復：將 specs_data 反向完整渲染回矩陣表格
+  const tbody = document.getElementById('matrixTableBody');
+  tbody.innerHTML = "";
+
+  let specs = p.specs_data || [];
+  if (specs.length > 0) {
+    specs.forEach(sp => {
+      let displayName = sp.spec.replace("款式:", "").replace(" / 標準", "").trim();
+      tbody.innerHTML += `
+        <tr class="border-b border-taupe-border" data-key="${sp.spec}">
+          <td class="p-2 font-bold">${displayName}</td>
+          <td class="p-2"><input type="number" class="m-old w-full p-1 border border-taupe-border rounded text-xs" value="${sp.oldPrice || 0}"></td>
+          <td class="p-2"><input type="number" class="m-price w-full p-1 border border-taupe-border rounded text-xs font-bold text-taupe-crimson" value="${sp.price || 0}"></td>
+          <td class="p-2"><input type="number" class="m-stock w-full p-1 border border-taupe-border rounded text-xs" value="${sp.stock || 99}"></td>
+        </tr>
+      `;
+    });
+  } else {
+    // 單一規格
+    tbody.innerHTML = `
+      <tr class="border-b border-taupe-border" data-key="款式:單一規格 / 標準">
+        <td class="p-2 font-bold">單一規格</td>
+        <td class="p-2"><input type="number" class="m-old w-full p-1 border border-taupe-border rounded text-xs" value="${p.old_price || 0}"></td>
+        <td class="p-2"><input type="number" class="m-price w-full p-1 border border-taupe-border rounded text-xs font-bold text-taupe-crimson" value="${p.price || 0}"></td>
+        <td class="p-2"><input type="number" class="m-stock w-full p-1 border border-taupe-border rounded text-xs" value="99"></td>
+      </tr>
+    `;
+  }
+
+  switchTab('uploadTab');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
     function searchInventory() {
       let kw = document.getElementById('invSearch').value.trim().toLowerCase();
