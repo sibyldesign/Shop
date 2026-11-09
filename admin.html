@@ -261,7 +261,7 @@
       </button>
     </section>
 
-    <!-- 3. 商品清單分頁 (比照 91APP 規格：支援多選、批量上下架、批量刪除) -->
+    <!-- 3. 商品清單分頁 -->
     <section id="listTab" class="tab-content bg-white border border-taupe-border rounded-2xl p-5 shadow-xs space-y-4 hidden">
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase">商品庫存管理清單</h2>
@@ -433,33 +433,44 @@
     <!-- 6. 人氣推薦自訂 ＆ 優惠活動管理分頁 -->
     <section id="couponTab" class="tab-content bg-white border border-taupe-border rounded-2xl p-5 shadow-xs space-y-6 hidden">
       
-      <!-- 區塊 A：人氣推薦自訂專區 (自選熱門爆款與排名) -->
+      <!-- 區塊 A：人氣推薦自訂專區 (支援依分類批量選取 ＋ 單品勾選 ＋ 排序權重) -->
       <div class="space-y-3">
         <div class="flex justify-between items-center border-b border-taupe-border pb-2">
           <div>
             <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase">首頁人氣推薦榜單自訂</h2>
-            <p class="text-[10px] text-stone-400 mt-0.5">直接挑選重點主打商品，設定顯示順序（前台將標示 TOP 1、TOP 2...）</p>
+            <p class="text-[10px] text-stone-400 mt-0.5">可直接勾選單品，或「選取整個分類」一鍵加入推薦榜單</p>
           </div>
           <button onclick="saveHotProductsSelection()" class="bg-taupe-main hover:bg-taupe-hover text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-xs">
             儲存人氣推薦榜單
           </button>
         </div>
 
-        <div class="p-3 bg-taupe-canvas rounded-xl border border-taupe-border flex items-center gap-2">
-          <input type="text" id="hotSearchInput" oninput="filterHotCandidateProducts()" placeholder="搜尋欲加入人氣榜的貨號或品名..." class="w-full text-xs p-2 border border-taupe-border rounded-lg outline-none bg-white">
+        <!-- 快速依分類整批選取列 -->
+        <div class="p-3 bg-taupe-canvas rounded-xl border border-taupe-border flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <div class="flex items-center gap-2 flex-1">
+            <span class="text-xs font-bold text-stone-600 shrink-0">依分類批次勾選：</span>
+            <select id="hotCategoryBatchSelect" class="flex-1 text-xs p-2 border border-taupe-border rounded-lg bg-white outline-none"></select>
+            <button type="button" onclick="batchSelectHotByCategory(true)" class="px-3 py-2 bg-taupe-light hover:bg-taupe-sand text-taupe-charcoal text-xs font-bold rounded-lg border border-taupe-border transition shrink-0">
+              整類加入推薦
+            </button>
+            <button type="button" onclick="batchSelectHotByCategory(false)" class="px-2.5 py-2 text-stone-400 hover:text-rose-600 text-xs font-bold transition shrink-0">
+              取消該類
+            </button>
+          </div>
+          <input type="text" id="hotSearchInput" oninput="filterHotCandidateProducts()" placeholder="搜尋貨號或品名..." class="w-full sm:w-48 text-xs p-2 border border-taupe-border rounded-lg outline-none bg-white">
         </div>
 
-        <!-- 候選與已選商品清單 (可勾選與排先後) -->
-        <div class="border border-taupe-border rounded-xl overflow-hidden max-h-60 overflow-y-auto no-scrollbar">
+        <!-- 候選與已選商品清單 -->
+        <div class="border border-taupe-border rounded-xl overflow-hidden max-h-64 overflow-y-auto no-scrollbar">
           <table class="w-full text-left text-xs bg-white">
             <thead class="bg-taupe-light/50 border-b border-taupe-border text-taupe-dark font-bold sticky top-0">
               <tr>
                 <th class="p-2.5 w-12 text-center">推薦</th>
                 <th class="p-2.5 w-24">貨號</th>
                 <th class="p-2.5">商品品名</th>
-                <th class="p-2.5 w-24">分類</th>
+                <th class="p-2.5 w-28">分類目錄</th>
                 <th class="p-2.5 w-20">特價</th>
-                <th class="p-2.5 w-20 text-center">排序權重</th>
+                <th class="p-2.5 w-24 text-center">排行 (數字小在前)</th>
               </tr>
             </thead>
             <tbody id="hotCandidateTableBody" class="divide-y divide-stone-100"></tbody>
@@ -467,16 +478,21 @@
         </div>
       </div>
 
-      <!-- 區塊 B：分區優惠活動管理 (支援滿件折扣 / 折抵 / 專案免運) -->
+      <!-- 區塊 B：分區優惠活動管理 (支援多選分類、編輯回填、啟用開關、刪除) -->
       <div class="pt-5 border-t border-taupe-border space-y-4">
         <div class="flex justify-between items-center border-b border-taupe-border pb-2">
           <div>
-            <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase">行銷優惠活動配置 (前台自動套用折抵)</h2>
-            <p class="text-[10px] text-stone-400 mt-0.5">可設定整館或指定分類滿件打折、滿額折抵、或滿件專案免運</p>
+            <h2 id="campaignFormHeaderTitle" class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase">建立 / 編輯行銷優惠活動</h2>
+            <p class="text-[10px] text-stone-400 mt-0.5">支援全館或自選多個分類專區，自動命中滿件折扣、折抵或免運</p>
           </div>
+          <button id="btnCancelEditCampaign" onclick="resetCampaignForm()" class="text-xs text-stone-400 hover:text-stone-700 hidden font-bold">
+            取消編輯
+          </button>
         </div>
 
-        <!-- 新增活動設定卡片 -->
+        <input type="hidden" id="editingCampaignId" value="">
+
+        <!-- 活動設定表單卡片 -->
         <div class="bg-taupe-canvas p-4 rounded-xl border border-taupe-border space-y-3">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -515,20 +531,20 @@
             </div>
           </div>
 
-          <!-- 分類多選核取標籤池 (可複選多個分類專區) -->
+          <!-- 分類多選標籤池 (可複選) -->
           <div id="campCategorySelectBox" class="hidden space-y-1.5">
             <label class="text-xs font-bold text-stone-600 block">勾選套用之商品分類 (支援多選)：</label>
             <div id="campCategoryCheckboxContainer" class="flex flex-wrap gap-2 p-2 bg-white rounded-xl border border-taupe-border"></div>
           </div>
 
           <div class="flex justify-end pt-1">
-            <button onclick="addNewCampaign()" class="bg-taupe-main hover:bg-taupe-hover text-white text-xs font-bold px-5 py-2 rounded-xl transition shadow-xs">
+            <button onclick="submitSaveCampaign()" id="btnSubmitCampaign" class="bg-taupe-main hover:bg-taupe-hover text-white text-xs font-bold px-6 py-2.5 rounded-xl transition shadow-xs">
               確認建立優惠活動
             </button>
           </div>
         </div>
 
-        <!-- 進行中的活動清單表格 -->
+        <!-- 進行中的活動列表表格 -->
         <div class="overflow-x-auto border border-taupe-border rounded-xl">
           <table class="w-full text-left text-xs bg-white">
             <thead class="bg-taupe-light/50 border-b border-taupe-border text-taupe-dark font-bold">
@@ -538,7 +554,8 @@
                 <th class="p-3">門檻條件</th>
                 <th class="p-3">折抵優惠</th>
                 <th class="p-3">適用專區</th>
-                <th class="p-3 text-center">操作</th>
+                <th class="p-3 w-24 text-center">活動狀態</th>
+                <th class="p-3 w-28 text-center">操作</th>
               </tr>
             </thead>
             <tbody id="campaignListTableBody" class="divide-y divide-stone-100"></tbody>
@@ -546,7 +563,7 @@
         </div>
       </div>
 
-      <!-- 區塊 C：通用折扣券代碼管理 (原本的折扣碼) -->
+      <!-- 區塊 C：通用折扣碼管理 -->
       <div class="pt-5 border-t border-taupe-border space-y-3">
         <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase border-b border-taupe-border pb-2">結帳專屬折扣碼 (顧客手動輸入)</h2>
         <div class="bg-taupe-canvas p-3.5 rounded-xl border border-taupe-border space-y-3">
@@ -578,6 +595,7 @@
       </div>
 
     </section>
+
     <!-- 7. 全域風格外觀與五大條款設定分頁 -->
     <section id="settingTab" class="tab-content bg-white border border-taupe-border rounded-2xl p-5 shadow-xs space-y-6 hidden">
       <div>
@@ -730,7 +748,7 @@
         <span class="text-[9.5px]">活動</span>
       </button>
       <button onclick="switchTab('settingTab')" id="btn-settingTab" class="admin-tab-btn flex flex-col items-center justify-center text-stone-400 font-medium py-1">
-        <svg class="w-4 h-4 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <svg class="w-4 h-4 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
         <span class="text-[9.5px]">風格</span>
       </button>
     </div>
@@ -757,8 +775,7 @@
 
   <div id="printArea" class="print-invoice-area"></div>
   <div id="adminToast" class="fixed bottom-16 left-1/2 -translate-x-1/2 z-[99999] bg-stone-900/90 text-white text-xs px-4 py-2 rounded-full shadow-xl opacity-0 transition-opacity pointer-events-none"></div>
-
-  <script>
+<script>
     const STORE_ID = "sibyl";
     const ADMIN_PASSWORD = "8888";
     const SUPABASE_URL = "https://tzqpfnrpnfzzubofoqlt.supabase.co";
@@ -768,8 +785,9 @@
     let rawOrders = [], filteredOrders = [];
     let globalProducts = [], filteredProducts = [];
     let selectedOrderIds = {};
-    let selectedInventorySkus = {}; // 91APP 多選商品核取清單
+    let selectedInventorySkus = {};
     let rawBannersList = [];
+    let activeCampaignsList = [];
 
     let orderPage = 1, orderPageSize = 10;
     let invPage = 1, invPageSize = 10;
@@ -780,7 +798,7 @@
     let selectedThemeColor = "morandi_taupe";
     let quickActionsData = { is_active: true, items: [] };
 
-    // 監聽滾動自動隱藏／浮現底部導覽列 (FB 風格)
+    // 監聽滾動自動隱藏／浮現底部導覽列
     let lastScrollY = window.scrollY;
     window.addEventListener('scroll', () => {
       const nav = document.getElementById('adminBottomNav');
@@ -852,7 +870,6 @@
       renderProductThumbnails();
     }
 
-    // 自訂美感彈窗封裝
     function showCustomPrompt(title, defaultValue, callback) {
       document.getElementById('dialogTitle').innerText = title;
       document.getElementById('dialogTextInput').value = defaultValue || '';
@@ -1001,7 +1018,6 @@
       syncProductCategoryDropdowns();
     }
 
-    // 分類上下移動核心控制函式
     function moveCategoryItem(type, mIdx, sIdx, lIdx, dir) {
       if (type === 'major') {
         let target = mIdx + dir;
@@ -1073,7 +1089,9 @@
         body: JSON.stringify({ category_tree: visualCategoryTree })
       });
       if (res.ok) {
-        showToast("分類架構已成功儲存！");
+        showToast("分類架構已成功儲存！前台將以此樹狀順序顯示。");
+        populateCampaignCategoryCheckboxes();
+        populateHotCategorySelect();
       } else {
         showToast("分類儲存失敗");
       }
@@ -1436,7 +1454,6 @@
           throw new Error("Supabase 寫入失敗：" + (errJson.message || res.statusText));
         }
 
-        // 同步通知試算表
         fetch(GAS_URL, {
           method: 'POST',
           mode: 'no-cors',
@@ -1460,27 +1477,7 @@
       }
     }
 
-    function populateCampaignCategoryCheckboxes() {
-      const container = document.getElementById('campCategoryCheckboxContainer');
-      if (!container) return;
-      // 讀取後台設定之次分類
-      let cats = [];
-      if (visualCategoryTree && visualCategoryTree.length > 0) {
-        visualCategoryTree.forEach(m => {
-          (m.children || []).forEach(s => cats.push(s.name));
-        });
-      }
-      if (cats.length === 0) {
-        cats = [...new Set(globalProducts.map(p => p.sub_category || p.major_category).filter(Boolean))];
-      }
-      container.innerHTML = cats.map(c => `
-        <label class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-taupe-border bg-taupe-canvas hover:bg-taupe-light cursor-pointer text-xs font-bold">
-          <input type="checkbox" value="${c}" class="camp-cat-check accent-taupe-main">
-          <span>${c}</span>
-        </label>
-      `).join('');
-    }
-    
+    // ==================== 5. 商品清單管理 (修復 URL 編碼，確保刪除/編輯 100% 正常) ====================
     async function loadInventoryData() {
       try {
         let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_products?store_id=eq.${STORE_ID}&order=created_at.desc`, {
@@ -1491,8 +1488,11 @@
         invPage = 1;
         selectedInventorySkus = {};
         renderInventoryTable();
-        renderHotCandidateProducts(); // 確保人氣推薦同步獲取資料庫真實 is_hot
-      } catch(e){}
+        renderHotCandidateProducts();
+        populateHotCategorySelect();
+      } catch(e) {
+        showToast("商品資料讀取失敗，請檢查網路連線");
+      }
     }
 
     function renderInventoryTable() {
@@ -1565,19 +1565,14 @@
       if (countBadge) countBadge.innerText = `已選取：${Object.keys(selectedInventorySkus).length} 款商品`;
     }
 
-    // ⭐️ 關鍵修復：單品刪除（加上 encodeURIComponent 防止 # 被瀏覽器截斷）
     function deleteSingleProductPrompt(sku) {
       showCustomConfirm("刪除確認", `確定永久刪除商品【${sku}】？此操作無法復原。`, async (ok) => {
         if (!ok) return;
         try {
-          // # 號必須轉為 %23
           let safeSku = encodeURIComponent(sku);
           let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_products?sku=eq.${safeSku}&store_id=eq.${STORE_ID}`, {
             method: 'DELETE',
-            headers: { 
-              'apikey': SUPABASE_KEY, 
-              'Authorization': 'Bearer ' + SUPABASE_KEY 
-            }
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
           });
 
           if (res.ok) {
@@ -1594,7 +1589,6 @@
       });
     }
 
-    // ⭐️ 關鍵修復：批量刪除
     function batchDeleteProducts() {
       let skus = Object.keys(selectedInventorySkus);
       if (skus.length === 0) return showToast("請先勾選欲刪除的商品！");
@@ -1607,10 +1601,7 @@
             let safeSku = encodeURIComponent(sku);
             return fetch(`${SUPABASE_URL}/rest/v1/shop_products?sku=eq.${safeSku}&store_id=eq.${STORE_ID}`, {
               method: 'DELETE',
-              headers: { 
-                'apikey': SUPABASE_KEY, 
-                'Authorization': 'Bearer ' + SUPABASE_KEY 
-              }
+              headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
             });
           });
 
@@ -1624,17 +1615,12 @@
       });
     }
 
-    // 快速切換單品上架／下架狀態
     async function toggleSingleProductStatus(sku, nextStatus) {
       try {
         let safeSku = encodeURIComponent(sku);
         let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_products?sku=eq.${safeSku}&store_id=eq.${STORE_ID}`, {
           method: 'PATCH',
-          headers: { 
-            'apikey': SUPABASE_KEY, 
-            'Authorization': 'Bearer ' + SUPABASE_KEY, 
-            'Content-Type': 'application/json' 
-          },
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: nextStatus })
         });
 
@@ -1649,7 +1635,6 @@
       }
     }
 
-    // 批量設定上架／下架狀態
     async function batchSetProductStatus(nextStatus) {
       let skus = Object.keys(selectedInventorySkus);
       if (skus.length === 0) return showToast("請先勾選欲操作的商品！");
@@ -1660,11 +1645,7 @@
           let safeSku = encodeURIComponent(sku);
           return fetch(`${SUPABASE_URL}/rest/v1/shop_products?sku=eq.${safeSku}&store_id=eq.${STORE_ID}`, {
             method: 'PATCH',
-            headers: { 
-              'apikey': SUPABASE_KEY, 
-              'Authorization': 'Bearer ' + SUPABASE_KEY, 
-              'Content-Type': 'application/json' 
-            },
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: nextStatus })
           });
         });
@@ -1676,27 +1657,6 @@
       } catch(e) {
         showToast("批量更新異常：" + e.message);
       }
-    }
-    
-    function handleInventoryCheck(cb, sku) {
-      if (cb.checked) selectedInventorySkus[sku] = true;
-      else delete selectedInventorySkus[sku];
-      document.getElementById('invCheckedCount').innerText = `已選取：${Object.keys(selectedInventorySkus).length} 款商品`;
-    }
-
-    function toggleAllInventory(m) {
-      document.querySelectorAll('.inv-chk').forEach(c => {
-        c.checked = m.checked;
-        if (m.checked) selectedInventorySkus[c.value] = true;
-        else delete selectedInventorySkus[c.value];
-      });
-      document.getElementById('invCheckedCount').innerText = `已選取：${Object.keys(selectedInventorySkus).length} 款商品`;
-    }
-
-    function changeInvPage(dir) {
-      let maxP = Math.ceil(filteredProducts.length / invPageSize) || 1;
-      invPage = Math.max(1, Math.min(invPage + dir, maxP));
-      renderInventoryTable();
     }
 
     function editProduct(sku) {
@@ -1718,7 +1678,6 @@
       currentUploadedImages = p.images ? p.images.split(/[\s,]+/).filter(Boolean) : [];
       renderProductThumbnails();
 
-      // 反向完整回填多種規格與各別價格
       const tbody = document.getElementById('matrixTableBody');
       tbody.innerHTML = "";
 
@@ -1757,7 +1716,7 @@
       renderInventoryTable();
     }
 
-    // ==================== 6. 輪播圖 (◀ ▶ 排序)、專欄圖文、快選專區 ====================
+    // ==================== 6. 輪播圖 (◀ ▶ 排序、即時刪除與秒數設定) ====================
     async function loadBannersData() {
       try {
         let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_banners?store_id=eq.${STORE_ID}&order=sort_order.asc`, {
@@ -1800,12 +1759,28 @@
       });
       if (res.ok) {
         document.getElementById('newBannerImgUrl').value = "";
-        loadBannersData();
+        await loadBannersData();
         showToast("輪播橫幅已成功新增！");
       }
     }
 
-    // 輪播圖 ◀ ▶ 換順序 (即時更新)
+    async function deleteBanner(id) {
+      showCustomConfirm("刪除確認", "確定要刪除這張輪播橫幅嗎？", async (ok) => {
+        if (!ok) return;
+        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_banners?id=eq.${id}&store_id=eq.${STORE_ID}`, {
+          method: 'DELETE',
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+        });
+        if (res.ok) {
+          rawBannersList = rawBannersList.filter(b => b.id != id);
+          renderBannerCards();
+          showToast("已成功刪除輪播圖！");
+        } else {
+          showToast("刪除失敗");
+        }
+      });
+    }
+
     async function moveBannerItem(idx, dir) {
       let target = idx + dir;
       if (target < 0 || target >= rawBannersList.length) return;
@@ -1814,13 +1789,11 @@
       rawBannersList[idx].sort_order = rawBannersList[target].sort_order;
       rawBannersList[target].sort_order = tempOrder;
 
-      // 前端陣列交換
       let tempObj = rawBannersList[idx];
       rawBannersList[idx] = rawBannersList[target];
       rawBannersList[target] = tempObj;
       renderBannerCards();
 
-      // 背景寫入 Supabase
       await Promise.all([
         fetch(`${SUPABASE_URL}/rest/v1/shop_banners?id=eq.${rawBannersList[idx].id}`, {
           method: 'PATCH',
@@ -1931,17 +1904,12 @@
       else showToast("快選卡片儲存失敗");
     }
 
-    // ==================== 7. 人氣推薦自訂 ＆ 優惠活動管理 ====================
-    let activeCampaignsList = [];
-
+    // ==================== 7. 人氣推薦自訂 (支援選取整類) ＆ 優惠活動 (支援編輯/啟用/刪除) ====================
     async function loadCouponsData() {
-      // 1. 載入人氣推薦候選清單
       renderHotCandidateProducts();
-
-      // 2. 載入分區優惠活動清單
+      populateHotCategorySelect();
       loadCampaignsData();
 
-      // 3. 載入折扣碼
       try {
         let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_coupons?store_id=eq.${STORE_ID}&order=created_at.desc`, {
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
@@ -1960,7 +1928,42 @@
       } catch(e){}
     }
 
-    // --- 人氣推薦候選商品渲染與保存 ---
+    // 填充人氣推薦的分類選單
+    function populateHotCategorySelect() {
+      const select = document.getElementById('hotCategoryBatchSelect');
+      if (!select) return;
+      let cats = [];
+      if (visualCategoryTree && visualCategoryTree.length > 0) {
+        visualCategoryTree.forEach(m => {
+          (m.children || []).forEach(s => cats.push(s.name));
+        });
+      }
+      if (cats.length === 0) {
+        cats = [...new Set(globalProducts.map(p => p.sub_category || p.major_category).filter(Boolean))];
+      }
+      select.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+    // 一鍵將整個分類加入或移出人氣推薦
+    function batchSelectHotByCategory(isAdd) {
+      const selectedCat = document.getElementById('hotCategoryBatchSelect').value;
+      if (!selectedCat) return;
+
+      let count = 0;
+      globalProducts.forEach((p, idx) => {
+        let cat = p.sub_category || p.major_category;
+        if (cat === selectedCat) {
+          p.is_hot = isAdd;
+          if (isAdd && (!p.hot_rank || p.hot_rank === 99)) {
+            p.hot_rank = idx + 1;
+          }
+          count++;
+        }
+      });
+      renderHotCandidateProducts();
+      showToast(`已${isAdd ? '勾選' : '取消'}【${selectedCat}】分類共 ${count} 款商品！記得點右上角儲存。`);
+    }
+
     function renderHotCandidateProducts() {
       const tbody = document.getElementById('hotCandidateTableBody');
       if (!tbody) return;
@@ -2016,18 +2019,12 @@
       });
       await Promise.all(updates);
       showToast("人氣推薦榜單已成功同步至資料庫！");
-      loadInventoryData();
+      await loadInventoryData();
     }
 
-    // --- 優惠活動專區設定 ---
+    // 優惠活動管理：支援新增、編輯回填、啟用切換、刪除
     async function loadCampaignsData() {
-      // 填入適用分類下拉選項
-      const catSelect = document.getElementById('campTargetCategory');
-      if (catSelect) {
-        let cats = [...new Set(globalProducts.map(p => p.sub_category || p.major_category).filter(Boolean))];
-        catSelect.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
-      }
-
+      populateCampaignCategoryCheckboxes();
       try {
         let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_campaigns?store_id=eq.${STORE_ID}&order=sort_order.asc`, {
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
@@ -2037,18 +2034,39 @@
       } catch(e){}
     }
 
+    function populateCampaignCategoryCheckboxes() {
+      const container = document.getElementById('campCategoryCheckboxContainer');
+      if (!container) return;
+      let cats = [];
+      if (visualCategoryTree && visualCategoryTree.length > 0) {
+        visualCategoryTree.forEach(m => {
+          (m.children || []).forEach(s => cats.push(s.name));
+        });
+      }
+      if (cats.length === 0) {
+        cats = [...new Set(globalProducts.map(p => p.sub_category || p.major_category).filter(Boolean))];
+      }
+      container.innerHTML = cats.map(c => `
+        <label class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-taupe-border bg-taupe-canvas hover:bg-taupe-light cursor-pointer text-xs font-bold">
+          <input type="checkbox" value="${c}" class="camp-cat-check accent-taupe-main">
+          <span>${c}</span>
+        </label>
+      `).join('');
+    }
+
     function renderCampaignsTable() {
       const tbody = document.getElementById('campaignListTableBody');
       if (!tbody) return;
       if (activeCampaignsList.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-stone-400">目前尚無建立任何優惠活動</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-stone-400">目前尚無建立任何優惠活動</td></tr>`;
         return;
       }
 
       tbody.innerHTML = activeCampaignsList.map(c => {
-        let typeText = c.discount_type === 'percent' ? '滿件打折' : (c.discount_type === 'fixed' ? '滿額折抵' : '指定免運');
+        let typeText = c.discount_type === 'percent' ? '滿件打折' : (c.discount_type === 'fixed' ? '滿額現折' : '指定免運');
         let valText = c.discount_type === 'percent' ? `${c.discount_val * 10} 折` : (c.discount_type === 'fixed' ? `現折 NT$${c.discount_val}` : '免運費');
         let targetText = c.target_mode === 'all' ? '全館通用' : `指定分類：${c.target_category}`;
+        let isActive = (c.is_active !== false);
 
         return `
           <tr class="hover:bg-taupe-canvas text-xs">
@@ -2058,7 +2076,13 @@
             <td class="p-3 font-bold text-taupe-crimson font-mono">${valText}</td>
             <td class="p-3">${targetText}</td>
             <td class="p-3 text-center">
-              <button onclick="deleteCampaignItem(${c.id})" class="text-rose-600 underline font-bold">刪除</button>
+              <button onclick="toggleCampaignActiveStatus(${c.id}, ${!isActive})" class="px-2.5 py-1 rounded-full text-[10.5px] font-bold border transition ${isActive ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-stone-100 text-stone-400 border-stone-200'}">
+                ${isActive ? '已啟用' : '已停用'}
+              </button>
+            </td>
+            <td class="p-3 text-center whitespace-nowrap">
+              <button onclick="editCampaignItem(${c.id})" class="text-taupe-main hover:underline font-bold mr-2">編輯</button>
+              <button onclick="deleteCampaignItem(${c.id})" class="text-rose-600 hover:underline font-bold">刪除</button>
             </td>
           </tr>
         `;
@@ -2077,7 +2101,60 @@
       }
     }
 
-    async function addNewCampaign() {
+    function toggleCampaignCategorySelect() {
+      let mode = document.getElementById('campTargetMode').value;
+      const box = document.getElementById('campCategorySelectBox');
+      box.classList.toggle('hidden', mode !== 'category');
+    }
+
+    // 編輯活動：將資料回填至表單
+    function editCampaignItem(id) {
+      let c = activeCampaignsList.find(x => x.id == id);
+      if (!c) return;
+
+      document.getElementById('editingCampaignId').value = c.id;
+      document.getElementById('campTitle').value = c.title || '';
+      document.getElementById('campSubtitle').value = c.subtitle || '';
+      document.getElementById('campDiscountType').value = c.discount_type || 'percent';
+      document.getElementById('campCondQty').value = c.condition_qty || 2;
+      document.getElementById('campDiscountVal').value = c.discount_val || 0.9;
+      document.getElementById('campTargetMode').value = c.target_mode || 'all';
+
+      toggleCampaignParamFields();
+      toggleCampaignCategorySelect();
+
+      // 還原選取的分類核取方塊
+      let cats = (c.target_category || '').split(',').map(s => s.trim());
+      document.querySelectorAll('.camp-cat-check').forEach(cb => {
+        cb.checked = cats.includes(cb.value);
+      });
+
+      document.getElementById('campaignFormHeaderTitle').innerText = `編輯優惠活動 (ID: ${c.id})`;
+      document.getElementById('btnSubmitCampaign').innerText = "確認儲存修改";
+      document.getElementById('btnCancelEditCampaign').classList.remove('hidden');
+      document.getElementById('campTitle').focus();
+    }
+
+    function resetCampaignForm() {
+      document.getElementById('editingCampaignId').value = "";
+      document.getElementById('campTitle').value = "";
+      document.getElementById('campSubtitle').value = "";
+      document.getElementById('campDiscountType').value = "percent";
+      document.getElementById('campCondQty').value = "2";
+      document.getElementById('campDiscountVal').value = "0.9";
+      document.getElementById('campTargetMode').value = "all";
+      toggleCampaignParamFields();
+      toggleCampaignCategorySelect();
+      document.querySelectorAll('.camp-cat-check').forEach(cb => cb.checked = false);
+
+      document.getElementById('campaignFormHeaderTitle').innerText = "建立 / 編輯行銷優惠活動";
+      document.getElementById('btnSubmitCampaign').innerText = "確認建立優惠活動";
+      document.getElementById('btnCancelEditCampaign').classList.add('hidden');
+    }
+
+    // 儲存優惠活動 (新增或覆蓋更新)
+    async function submitSaveCampaign() {
+      let editId = document.getElementById('editingCampaignId').value;
       let title = document.getElementById('campTitle').value.trim();
       let subtitle = document.getElementById('campSubtitle').value.trim();
       let type = document.getElementById('campDiscountType').value;
@@ -2085,7 +2162,6 @@
       let val = parseFloat(document.getElementById('campDiscountVal').value) || 0;
       let targetMode = document.getElementById('campTargetMode').value;
       
-      // 收集複選分類
       let selectedCats = [];
       document.querySelectorAll('.camp-cat-check:checked').forEach(c => selectedCats.push(c.value));
 
@@ -2103,45 +2179,63 @@
         discount_val: val,
         target_mode: targetMode,
         target_category: targetMode === 'category' ? selectedCats.join(',') : '',
-        is_active: true,
-        sort_order: activeCampaignsList.length + 1
+        is_active: true
       };
 
-      let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_campaigns`, {
-        method: 'POST',
+      let url = `${SUPABASE_URL}/rest/v1/shop_campaigns`;
+      let method = 'POST';
+
+      if (editId) {
+        url = `${SUPABASE_URL}/rest/v1/shop_campaigns?id=eq.${editId}&store_id=eq.${STORE_ID}`;
+        method = 'PATCH';
+      } else {
+        payload.sort_order = activeCampaignsList.length + 1;
+      }
+
+      let res = await fetch(url, {
+        method: method,
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
       if (res.ok) {
-        document.getElementById('campTitle').value = '';
-        document.getElementById('campSubtitle').value = '';
-        loadCampaignsData();
-        showToast("行銷活動已成功建立！");
+        resetCampaignForm();
+        await loadCampaignsData();
+        showToast(editId ? "優惠活動修改已成功儲存！" : "優惠活動已成功建立！");
       } else {
-        showToast("活動建立失敗");
+        showToast("活動儲存失敗，請檢查資料庫狀態");
       }
     }
 
-    // 4. 輪播圖刪除修正
-    async function deleteBanner(id) {
-      showCustomConfirm("刪除確認", "確定要刪除這張輪播橫幅嗎？", async (ok) => {
+    // 切換活動啟用狀態
+    async function toggleCampaignActiveStatus(id, nextActive) {
+      let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_campaigns?id=eq.${id}&store_id=eq.${STORE_ID}`, {
+        method: 'PATCH',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: nextActive })
+      });
+      if (res.ok) {
+        showToast(`活動已${nextActive ? '啟用' : '停用'}`);
+        await loadCampaignsData();
+      }
+    }
+
+    async function deleteCampaignItem(id) {
+      showCustomConfirm("刪除確認", "確定刪除此優惠活動？", async (ok) => {
         if (!ok) return;
-        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_banners?id=eq.${id}&store_id=eq.${STORE_ID}`, {
+        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_campaigns?id=eq.${id}&store_id=eq.${STORE_ID}`, {
           method: 'DELETE',
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
         });
         if (res.ok) {
-          rawBannersList = rawBannersList.filter(b => b.id != id);
-          renderBannerCards();
-          showToast("已成功刪除輪播圖！");
+          showToast("活動已刪除！");
+          await loadCampaignsData();
         } else {
           showToast("刪除失敗");
         }
       });
     }
 
-    // 5. 折扣碼儲存修復 (強制插入並即時重新讀取)
     async function addNewCoupon() {
       let code = document.getElementById('newCouponCode').value.trim().toUpperCase();
       let type = document.getElementById('newCouponType').value;
@@ -2159,7 +2253,7 @@
         document.getElementById('newCouponCode').value = '';
         document.getElementById('newCouponVal').value = '';
         document.getElementById('newCouponNote').value = '';
-        loadCouponsData();
+        await loadCouponsData();
         showToast("折扣碼已成功建立！");
       } else {
         let err = await res.json().catch(() => ({}));
@@ -2167,34 +2261,17 @@
       }
     }
 
-    function toggleCampaignCategorySelect() {
-      let mode = document.getElementById('campTargetMode').value;
-      const box = document.getElementById('campCategorySelectBox');
-      box.classList.toggle('hidden', mode !== 'category');
-      if (mode === 'category') populateCampaignCategoryCheckboxes();
-    }
-
-    async function deleteCampaignItem(id) {
-      showCustomConfirm("刪除確認", "確定刪除此優惠活動？", async (ok) => {
-        if (!ok) return;
-        await fetch(`${SUPABASE_URL}/rest/v1/shop_campaigns?id=eq.${id}`, {
-          method: 'DELETE',
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
-        });
-        loadCampaignsData();
-        showToast("活動已刪除！");
-      });
-    }
-
     async function deleteCoupon(id) {
       showCustomConfirm("刪除確認", "確定刪除此折扣碼？", async (ok) => {
         if (!ok) return;
-        await fetch(`${SUPABASE_URL}/rest/v1/shop_coupons?id=eq.${id}`, {
+        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_coupons?id=eq.${id}&store_id=eq.${STORE_ID}`, {
           method: 'DELETE',
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
         });
-        loadCouponsData();
-        showToast("已刪除折扣碼");
+        if (res.ok) {
+          showToast("已刪除折扣碼");
+          await loadCouponsData();
+        }
       });
     }
 
