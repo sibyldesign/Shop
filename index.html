@@ -125,7 +125,7 @@
       <!-- 子分頁 2：人氣推薦 -->
       <div id="home-sub-popular" class="space-y-4 hidden">
         <div class="p-3.5 rounded-2xl border text-xs text-stone-500 leading-relaxed" style="background-color: var(--theme-sand); border-color: var(--theme-border);">
-          精選本季熱銷人氣推薦款式，依銷量即時更新。
+          精選本季熱銷人氣推薦款式，依銷量與推薦排序即時更新。
         </div>
         <div id="popularProductGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4"></div>
       </div>
@@ -137,8 +137,7 @@
 
     </section>
 
-    <!-- ==================== 2. 【獨立商品全頁面 View】(非懸浮彈窗) ==================== -->
-    <!-- 獨立商品全頁面 View -->
+    <!-- ==================== 2. 【獨立商品全頁面 View】 ==================== -->
     <section id="view-product-detail" class="space-y-4 hidden">
       <!-- 置頂分類麵包屑導覽 -->
       <div class="sticky top-[53px] z-30 py-2 px-4 -mx-4 bg-white/95 backdrop-blur-md border-b flex justify-between items-center text-xs" style="border-color: var(--theme-border);">
@@ -231,7 +230,7 @@
       </div>
     </section>
 
-    <!-- ==================== 3. 【我的收藏】主畫面 (補回獨立刪除 ✕) ==================== -->
+    <!-- ==================== 3. 【我的收藏】主畫面 ==================== -->
     <section id="view-wishlist" class="main-view space-y-4 hidden">
       <div class="flex justify-between items-center border-b pb-3" style="border-color: var(--theme-border);">
         <div>
@@ -243,7 +242,7 @@
       <div id="wishlistItemsContainer" class="space-y-3"></div>
     </section>
 
-    <!-- ==================== 4. 【購物車】主畫面 (顯示商品縮圖) ==================== -->
+    <!-- ==================== 4. 【購物車】主畫面 ==================== -->
     <section id="view-cart" class="main-view space-y-4 hidden">
       <div class="flex justify-between items-center border-b pb-3" style="border-color: var(--theme-border);">
         <h2 class="text-sm font-bold text-stone-800">購物車清單</h2>
@@ -285,10 +284,10 @@
               <option value="b2b_tax">公司三聯式發票 (統一編號)</option>
             </select>
             <div id="invoicePhoneBlock" class="hidden">
-              <input type="text" id="orderCarrierNum" placeholder="請輸入手機載具 (如 /ABC1234)" class="w-full p-2 border rounded-lg text-xs outline-none bg-white font-mono" style="border-color: var(--theme-border);">
+              <input type="text" id="orderCarrierNum" placeholder="請輸入手機載具 (如 /ABC1234)" class="w-full p-2 border border-store-border rounded-lg text-xs outline-none bg-white font-mono" style="border-color: var(--theme-border);">
             </div>
             <div id="invoiceTaxBlock" class="hidden space-y-1.5">
-              <input type="text" id="orderBuyerUbn" maxlength="8" placeholder="公司統一編號 (8 碼)" class="w-full p-2 border rounded-lg text-xs font-mono outline-none bg-white" style="border-color: var(--theme-border);">
+              <input type="text" id="orderBuyerUbn" maxlength="8" placeholder="公司統一編號 (8 碼)" class="w-full p-2 border border-store-border rounded-lg text-xs font-mono outline-none bg-white" style="border-color: var(--theme-border);">
               <input type="text" id="orderBuyerTitle" placeholder="買受人公司抬頭" class="w-full p-2 border rounded-lg text-xs outline-none bg-white" style="border-color: var(--theme-border);">
             </div>
           </div>
@@ -314,7 +313,7 @@
       <div id="searchResultGrid" class="grid grid-cols-2 md:grid-cols-4 gap-3.5 sm:gap-4"></div>
     </section>
 
-    <!-- ==================== 6. 【會員專區】主畫面 (無原生彈窗，純質感浮層) ==================== -->
+    <!-- ==================== 6. 【會員專區】主畫面 ==================== -->
     <section id="view-member" class="main-view space-y-4 hidden">
       <div class="p-5 rounded-3xl border shadow-xs space-y-3" style="background-color: var(--theme-sand); border-color: var(--theme-border);">
         <div class="flex justify-between items-start">
@@ -454,7 +453,7 @@
     </div>
   </div>
 
-  <!-- 前台會員常用設定 Modal (替換原生 prompt) -->
+  <!-- 前台會員常用設定 Modal -->
   <div id="customProfileModal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-4">
     <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-3.5 border" style="border-color: var(--theme-border);">
       <div class="flex justify-between items-center border-b pb-2" style="border-color: var(--theme-border);">
@@ -524,9 +523,12 @@
       morandi_clean_white: { primary: "#52525B", hover: "#3F3F46", canvas: "#FFFFFF", sand: "#F4F4F5", border: "#E4E4E7", espresso: "#18181B" }
     };
 
+    // ⭐️ 核心修正：完整全域變數定義，防止任何 ReferenceError 中斷腳本
     let allProducts = [], filteredProducts = [];
     let allCampaigns = [];
     let rawBanners = [];
+    let categoryTree = []; // 👈 補齊分類樹全域變數
+    let currentCategoryFilter = "全部"; // 👈 補齊當前分類狀態全域變數
     let cart = JSON.parse(localStorage.getItem('shop_cart') || '[]');
     let favorites = JSON.parse(localStorage.getItem('shop_favs') || '[]');
     let storeTerms = {};
@@ -547,6 +549,7 @@
       loadSavedProfile();
       setupScrollListener();
       setupTouchSwipe();
+      setupDetailSwipe();
 
       let urlParams = new URLSearchParams(window.location.search);
       let targetSku = urlParams.get('sku');
@@ -564,6 +567,7 @@
     // 支援輪播圖觸控滑動
     function setupTouchSwipe() {
       const slider = document.getElementById('bannerSlider');
+      if (!slider) return;
       let startX = 0;
       slider.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
       slider.addEventListener('touchend', e => {
@@ -585,6 +589,7 @@
     }
     function updateBannerView() {
       const slider = document.getElementById('bannerSlider');
+      if (!slider) return;
       slider.style.transform = `translateX(-${bannerIndex * 100}%)`;
       document.querySelectorAll('.banner-dot').forEach((d, idx) => {
         d.className = `banner-dot ${idx === bannerIndex ? 'active' : ''}`;
@@ -601,9 +606,14 @@
         if (data && data[0]) {
           let s = data[0];
           document.getElementById('headerStoreName').innerText = s.store_name || "SIBYL SELECT";
-          document.getElementById('marqueeText').innerText = s.marquee_announcement || "全館單筆滿 2 件享免運出貨。";
+          document.getElementById('marqueeText').innerText = s.marquee_announcement || "全館單筆滿 2 件享免運優惠。";
 
           if (s.banner_speed) bannerSpeedSeconds = parseInt(s.banner_speed);
+
+          // ⭐️ 核心修正：將後台設定的階層樹存入全域變數
+          if (s.category_tree && Array.isArray(s.category_tree) && s.category_tree.length > 0) {
+            categoryTree = s.category_tree;
+          }
 
           let pal = THEME_PALETTES[s.theme_color] || THEME_PALETTES.morandi_taupe;
           document.documentElement.style.setProperty('--theme-primary', pal.primary);
@@ -622,13 +632,6 @@
               : "w-7 h-7 rounded-full object-cover border border-border-base";
           }
 
-        // 若後台尚未設定 quick_actions，自動套用優雅預設版面
-    const DEFAULT_QUICK_ACTIONS = [
-      { type: "text", tag: "優惠組合", title: "滿件享折扣", desc: "點此看詳情 ➔", link: "#promotions" },
-      { type: "text", tag: "熱門品項", title: "四季鋪棉被", desc: "換季熱選中 ➔", link: "#四季被" },
-      { type: "text", tag: "免運出貨", title: "全館滿2件", desc: "宅配直接免運", link: "#cart" }
-    ];
-          
           // 右上角自訂按鈕
           if (s.header_nav_btn) {
             let nb = s.header_nav_btn;
@@ -664,13 +667,16 @@
             document.getElementById('editorialSection').classList.remove('hidden');
           }
 
-          if (s.quick_actions && s.quick_actions.is_active && s.quick_actions.items && s.quick_actions.items.length > 0) {
-            renderQuickActions(s.quick_actions.items);
-            document.getElementById('quickActionArea').classList.remove('hidden');
-          }
+          checkAndRenderQuickActions(s.quick_actions);
         }
       } catch(e){}
     }
+
+    const DEFAULT_QUICK_ACTIONS = [
+      { type: "text", tag: "優惠組合", title: "滿件享折扣", desc: "點此看詳情 ➔", link: "#promotions" },
+      { type: "text", tag: "熱門品項", title: "四季鋪棉被", desc: "換季熱選中 ➔", link: "#四季被" },
+      { type: "text", tag: "免運出貨", title: "全館滿2件", desc: "宅配直接免運", link: "#cart" }
+    ];
 
     function checkAndRenderQuickActions(qa) {
       const area = document.getElementById('quickActionArea');
@@ -783,7 +789,7 @@
             <span class="text-xs font-mono font-bold theme-text-primary">滿 ${c.condition_qty || 2} 件</span>
           </div>
           <div class="pt-2 border-t flex justify-between items-center text-xs" style="border-color: var(--theme-border);">
-            <span class="text-stone-400 text-[11px]">適用對象：${c.target_mode === 'all' ? '全館商品' : '指定款式'}</span>
+            <span class="text-stone-400 text-[11px]">適用對象：${c.target_mode === 'all' ? '全館商品' : '指定專區：' + (c.target_category || '精選')}</span>
             <button onclick="switchHomeSubTab('feed'); filterByCategory('全部');" class="font-bold theme-text-primary hover:underline">立即前往挑選 ➔</button>
           </div>
         </div>
@@ -804,23 +810,35 @@
       } catch(e){}
     }
 
-    // 確保 currentCategoryFilter 存在，預設為「全部」
-    if (typeof currentCategoryFilter === 'undefined') {
-      var currentCategoryFilter = "全部";
-    }
-
-    // 4. 取得商品主檔與分類條渲染 (徹底去重，同步渲染首頁與商品頁面)
+    // ⭐️ 核心修正：前台分類完全依據後台「可視化分類樹」順序呈現，徹底消除重複
     function renderCategoryFilterBar() {
       const bar = document.getElementById('categoryFilterBar');
       const detailBar = document.getElementById('detailCategoryPillsRow');
       const drawerList = document.getElementById('drawerCategoriesList');
 
-      // 嚴格過濾無效值與重複字詞，確保「全部」唯一置頂
-      let rawCats = (allProducts || []).map(p => p.sub_category || p.major_category).filter(Boolean);
-      let uniqueCats = [...new Set(rawCats.map(c => c.trim()).filter(c => c !== "" && c !== "全部"))];
-      let cats = ["全部", ...uniqueCats];
+      let cats = ["全部"];
 
-      // 1. 渲染首頁橢圓分類按鈕
+      // 優先讀取後台設定的階層分類樹順序
+      if (categoryTree && Array.isArray(categoryTree) && categoryTree.length > 0) {
+        categoryTree.forEach(major => {
+          if (major.children && major.children.length > 0) {
+            major.children.forEach(sub => {
+              if (sub.name && sub.name.trim() !== "全部") cats.push(sub.name.trim());
+            });
+          } else if (major.name && major.name.trim() !== "全部") {
+            cats.push(major.name.trim());
+          }
+        });
+      } else {
+        let rawCats = (allProducts || []).map(p => p.sub_category || p.major_category).filter(Boolean);
+        let uniq = [...new Set(rawCats.map(c => c.trim()).filter(c => c !== "" && c !== "全部"))];
+        cats = ["全部", ...uniq];
+      }
+
+      // 嚴格消除任何重複項
+      cats = [...new Set(cats)];
+
+      // 1. 首頁分類滑動條
       if (bar) {
         bar.innerHTML = cats.map(c => `
           <button type="button" onclick="filterByCategory('${c}', this)" class="cat-pill px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition ${c === currentCategoryFilter ? 'theme-btn-primary font-bold shadow-xs' : 'bg-white text-stone-600 border'}" style="border-color: var(--theme-border);">
@@ -829,7 +847,7 @@
         `).join('');
       }
 
-      // 2. 渲染商品詳細頁跑馬燈下方的橢圓分類鈕 (可左右滑動切換分類)
+      // 2. 商品頁置頂麵包屑下方・橢圓分類鈕 (點選切換分類並跳回首頁)
       if (detailBar) {
         detailBar.innerHTML = cats.map(c => `
           <button type="button" onclick="switchCategoryFromDetail('${c}')" class="detail-cat-pill px-3.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition bg-white text-stone-700 border hover:border-stone-400" style="border-color: var(--theme-border);">
@@ -838,7 +856,7 @@
         `).join('');
       }
 
-      // 3. 渲染左上漢堡側邊抽屜分類清單
+      // 3. 左上漢堡抽屜分類清單
       if (drawerList) {
         drawerList.innerHTML = cats.map(c => `
           <div onclick="filterByCategory('${c}'); toggleSideDrawer(false);" class="cursor-pointer py-1.5 text-stone-700 hover:opacity-75">${c}</div>
@@ -846,7 +864,7 @@
       }
     }
 
-    // 商品頁橢圓分類鈕跳轉回首頁該分類專區
+    // 商品頁分類鈕跳轉回首頁
     function switchCategoryFromDetail(cat) {
       closeProductDetailPage();
       switchNavTab('home');
@@ -854,11 +872,20 @@
     }
 
     function filterByCategory(cat, btn) {
+      currentCategoryFilter = cat;
       document.querySelectorAll('.cat-pill').forEach(b => {
         b.className = "cat-pill px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition bg-white text-stone-600 border";
         b.style.borderColor = "var(--theme-border)";
       });
-      if (btn) btn.className = "cat-pill px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition theme-btn-primary shadow-xs";
+      if (btn) {
+        btn.className = "cat-pill px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition theme-btn-primary shadow-xs";
+      } else {
+        document.querySelectorAll('.cat-pill').forEach(b => {
+          if (b.innerText.trim() === cat) {
+            b.className = "cat-pill px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition theme-btn-primary shadow-xs";
+          }
+        });
+      }
 
       if (cat === "全部") {
         filteredProducts = [...allProducts];
@@ -956,6 +983,17 @@
       let catPath = `${p.major_category || '選品'} ➔ ${p.sub_category || '精選系列'}`;
       document.getElementById('detailBreadcrumbCategory').innerText = catPath;
 
+      // 跑馬燈下方橢圓分類鈕高亮對應項目
+      let curCat = p.sub_category || p.major_category || "全部";
+      document.querySelectorAll('.detail-cat-pill').forEach(btn => {
+        if (btn.innerText.trim() === curCat) {
+          btn.className = "detail-cat-pill px-3.5 py-1 rounded-full text-xs font-bold whitespace-nowrap transition theme-btn-primary shadow-xs";
+        } else {
+          btn.className = "detail-cat-pill px-3.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition bg-white text-stone-700 border";
+          btn.style.borderColor = "var(--theme-border)";
+        }
+      });
+
       // 圖框比例自適應
       const wrapper = document.getElementById('detailMainImgWrapper');
       wrapper.className = (p.img_ratio === '4:6') 
@@ -991,17 +1029,6 @@
         <button onclick="selectDetailColor('${c}', this)" class="spec-btn px-3.5 py-1.5 rounded-xl border text-xs font-bold transition shadow-2xs ${c === detailColor ? 'theme-btn-primary shadow-xs' : 'bg-white text-stone-700'}" style="border-color: var(--theme-border);">${c}</button>
       `).join('');
 
-      // 高亮商品頁分類按鈕
-      let curCat = p.sub_category || p.major_category || "全部";
-      document.querySelectorAll('.detail-cat-pill').forEach(btn => {
-        if (btn.innerText.trim() === curCat) {
-          btn.className = "detail-cat-pill px-3.5 py-1 rounded-full text-xs font-bold whitespace-nowrap transition theme-btn-primary shadow-xs";
-        } else {
-          btn.className = "detail-cat-pill px-3.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition bg-white text-stone-700 border";
-          btn.style.borderColor = "var(--theme-border)";
-        }
-      });
-      
       let sizes = p.specs_data && p.specs_data.length > 0 
         ? [...new Set(p.specs_data.map(s => s.spec.split('/')[1] ? s.spec.split('/')[1].trim() : '單一規格'))] : ['單一規格'];
       detailSize = sizes[0];
@@ -1402,7 +1429,7 @@
       document.getElementById('termsModal').classList.remove('flex');
     }
 
-    // 11. 會員專區安全記憶機制 (無任何原生 prompt/alert，全面改為自訂浮層)
+    // 11. 會員專區安全記憶機制
     function loadSavedProfile() {
       let p = JSON.parse(localStorage.getItem('sibyl_user_profile') || '{}');
       if (p.name) {
@@ -1463,11 +1490,15 @@
     function openCustomOrderQueryModal() {
       let p = JSON.parse(localStorage.getItem('sibyl_user_profile') || '{}');
       document.getElementById('queryInputPhoneField').value = p.phone || '';
-      // 若該手機本地儲存過該顧客的最新 PIN 碼，自動預填，本機體驗極致順暢
       document.getElementById('queryInputPinField').value = p.latest_pin || '';
       document.getElementById('orderQueryResultsContainer').innerHTML = '';
       const modal = document.getElementById('customOrderQueryModal');
       modal.classList.remove('hidden'); modal.classList.add('flex');
+    }
+
+    function closeCustomOrderQueryModal() {
+      document.getElementById('customOrderQueryModal').classList.add('hidden');
+      document.getElementById('customOrderQueryModal').classList.remove('flex');
     }
 
     async function executeOrderLookup() {
@@ -1480,7 +1511,6 @@
 
       container.innerHTML = `<div class="text-center py-4 text-stone-400">正在進行身分安全驗證...</div>`;
       try {
-        // 🔒 雙重條件比對：手機號碼 ＋ 4 位數 PIN 碼皆符合才釋出資料
         let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_orders?store_id=eq.${STORE_ID}&customer_phone=eq.${phone}&order_pin=eq.${pin}&order=created_at.desc`, {
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
         });
@@ -1490,7 +1520,7 @@
           container.innerHTML = `
             <div class="text-center py-4 text-rose-600 space-y-1">
               <div class="font-bold">驗證未通過</div>
-              <div class="text-[11px] text-stone-400">手機號碼或 4 位數 PIN 碼有誤，請確認訂單 Email。</div>
+              <div class="text-[11px] text-stone-400">手機號碼或 4 位數 PIN 碼有誤，請確認訂單通知信。</div>
             </div>`;
           return;
         }
@@ -1508,10 +1538,6 @@
       } catch(e) {
         container.innerHTML = `<div class="text-center py-4 text-rose-500">連線異常，請稍後再試</div>`;
       }
-    }
-    function closeCustomOrderQueryModal() {
-      document.getElementById('customOrderQueryModal').classList.add('hidden');
-      document.getElementById('customOrderQueryModal').classList.remove('flex');
     }
 
     // 12. 結帳送單 (整合 PayUni 刷卡與發票開立)
@@ -1569,7 +1595,7 @@
       let orderPayload = {
         store_id: STORE_ID, 
         order_id: orderId, 
-        order_pin: randomPin, // 寫入 4 位數安全防盜查 PIN 碼
+        order_pin: randomPin,
         customer_name: name, 
         customer_phone: phone, 
         customer_email: email,
@@ -1592,7 +1618,6 @@
       };
 
       try {
-        // 寫入 Supabase 訂單表
         await fetch(`${SUPABASE_URL}/rest/v1/shop_orders`, {
           method: 'POST',
           headers: { 
@@ -1603,7 +1628,6 @@
           body: JSON.stringify(orderPayload)
         });
 
-        // 呼叫 GAS 建立 PayUni 交易封包與發送 Email
         let gasResp = await fetch(GAS_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain' },
@@ -1659,6 +1683,7 @@
         btn.innerText = "前往 PayUni 安全付款";
       }
     }
+
     function showToast(msg) {
       const t = document.getElementById('toastBox');
       t.innerText = msg; 
@@ -1668,6 +1693,7 @@
 
     function setupDetailSwipe() {
       const wrapper = document.getElementById('detailMainImgWrapper');
+      if (!wrapper) return;
       let touchStartX = 0;
       wrapper.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
       wrapper.addEventListener('touchend', e => {
