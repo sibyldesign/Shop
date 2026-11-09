@@ -138,26 +138,39 @@
     </section>
 
     <!-- ==================== 2. 【獨立商品全頁面 View】(非懸浮彈窗) ==================== -->
-    <section id="view-product-detail" class="space-y-6 hidden">
-      <!-- 置頂分類麵包屑與上下層快速切換導覽列 -->
-      <div class="sticky top-[53px] z-30 py-2.5 px-4 -mx-4 bg-white/95 backdrop-blur-md border-b flex justify-between items-center text-xs" style="border-color: var(--theme-border);">
-        <div class="flex items-center gap-1.5 font-bold truncate">
-          <button onclick="closeProductDetailPage()" class="text-stone-400 hover:text-stone-700 flex items-center gap-0.5">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-            <span>返回目錄</span>
-          </button>
-          <span class="text-stone-300">/</span>
-          <span id="detailBreadcrumbCategory" class="theme-text-primary cursor-pointer hover:underline" onclick="jumpToCategoryFromDetail()"></span>
-        </div>
-        <button onclick="closeProductDetailPage()" class="text-xs bg-stone-100 hover:bg-stone-200 px-3 py-1 rounded-full text-stone-600 font-bold">✕ 關閉</button>
+    <!-- 獨立商品全頁面 View -->
+    <section id="view-product-detail" class="space-y-4 hidden">
+      <!-- 置頂分類麵包屑導覽 -->
+      <div class="sticky top-[53px] z-30 py-2 px-4 -mx-4 bg-white/95 backdrop-blur-md border-b flex justify-between items-center text-xs" style="border-color: var(--theme-border);">
+        <button onclick="closeProductDetailPage()" class="text-stone-500 hover:text-stone-900 font-bold flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          <span>返回首頁</span>
+        </button>
+        <span id="detailBreadcrumbCategory" class="theme-text-primary font-bold"></span>
       </div>
 
-      <!-- 商品大圖 (支援自適應 1:1 或 4:6，支援左右觸控滑動) + 縮圖列 + 放大燈箱 -->
+      <!-- 跑馬燈下方・商品頁專屬橢圓形分類滑動列 (可直接切換其他類別) -->
+      <div class="py-1 -mx-4 px-4 bg-white/90 border-b overflow-x-auto no-scrollbar" style="border-color: var(--theme-border);">
+        <div id="detailCategoryPillsRow" class="flex gap-2"></div>
+      </div>
+
+      <!-- 大圖展示區：電腦顯示 ◀ ▶ 按鈕，手機支援觸控快速左右滑動 -->
       <div class="space-y-3">
-        <div id="detailMainImgWrapper" class="relative w-full rounded-3xl overflow-hidden bg-stone-100 border flex items-center justify-center cursor-zoom-in group select-none" style="border-color: var(--theme-border);" onclick="openLightbox()">
-          <img id="detailMainImg" src="" class="w-full h-full object-cover object-center group-hover:scale-102 transition-transform duration-300">
-          <span class="absolute bottom-3 right-3 bg-black/50 text-white text-[10px] px-2.5 py-1 rounded-full backdrop-blur-md font-medium">點擊放大檢視</span>
+        <div id="detailMainImgWrapper" class="relative w-full rounded-3xl overflow-hidden bg-stone-100 border flex items-center justify-center cursor-zoom-in group select-none" style="border-color: var(--theme-border);">
+          <img id="detailMainImg" src="" class="w-full h-full object-cover object-center pointer-events-none" onclick="openLightbox()">
+          
+          <!-- 電腦版左右切換按鈕 -->
+          <button type="button" onclick="prevDetailImg(event)" class="hidden sm:flex absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/80 hover:bg-white text-stone-800 items-center justify-center shadow-md transition z-10">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <button type="button" onclick="nextDetailImg(event)" class="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/80 hover:bg-white text-stone-800 items-center justify-center shadow-md transition z-10">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </button>
+
+          <span class="absolute bottom-3 right-3 bg-black/50 text-white text-[10px] px-2.5 py-1 rounded-full backdrop-blur-md font-medium pointer-events-none">點擊放大檢視</span>
         </div>
+
+        <!-- 縮圖點選列 -->
         <div id="detailThumbnailsRow" class="flex gap-2 overflow-x-auto no-scrollbar py-1"></div>
       </div>
 
@@ -459,18 +472,31 @@
     </div>
   </div>
 
-  <!-- 前台會員訂單快查 Modal (替換原生 prompt) -->
+  <!-- 前台會員訂單快查 Modal (手機號碼 + 4位數安全 PIN 雙重驗證) -->
   <div id="customOrderQueryModal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-4">
     <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-3.5 border" style="border-color: var(--theme-border);">
       <div class="flex justify-between items-center border-b pb-2" style="border-color: var(--theme-border);">
-        <h3 class="text-xs font-bold tracking-wider text-stone-800">查詢我的歷史訂單</h3>
-        <button onclick="closeCustomOrderQueryModal()" class="text-stone-400">✕</button>
+        <div>
+          <h3 class="text-xs font-bold tracking-wider text-stone-800">查詢我的歷史訂單</h3>
+          <p class="text-[10px] text-stone-400 mt-0.5">為保護隱私，請輸入下單手機與 4 位數安全 PIN</p>
+        </div>
+        <button onclick="closeCustomOrderQueryModal()" class="text-stone-400 hover:text-stone-700">✕</button>
       </div>
-      <div class="flex gap-2">
-        <input type="tel" id="queryInputPhoneField" placeholder="輸入下單手機號碼" class="flex-1 p-2 border rounded-xl text-xs outline-none" style="border-color: var(--theme-border);">
-        <button onclick="executeOrderLookup()" class="theme-btn-primary px-3.5 py-2 rounded-xl text-xs font-bold shrink-0">查詢</button>
+
+      <div class="space-y-2 text-xs">
+        <input type="tel" id="queryInputPhoneField" placeholder="輸入下單手機號碼" class="w-full p-2.5 border rounded-xl outline-none" style="border-color: var(--theme-border); background-color: var(--theme-canvas);">
+        <div class="flex gap-2">
+          <input type="password" id="queryInputPinField" maxlength="4" placeholder="4 位數安全 PIN (見訂單信)" class="flex-1 p-2.5 border rounded-xl outline-none font-mono text-center tracking-widest" style="border-color: var(--theme-border); background-color: var(--theme-canvas);">
+          <button onclick="executeOrderLookup()" class="theme-btn-primary px-4 py-2.5 rounded-xl font-bold shrink-0 shadow-xs">
+            驗證查詢
+          </button>
+        </div>
+        <div class="text-[10px] text-stone-400 leading-tight">
+          💡 安全 PIN 碼已附於您首次下單時收到的 Email 訂單通知信中。
+        </div>
       </div>
-      <div id="orderQueryResultsContainer" class="max-h-60 overflow-y-auto no-scrollbar space-y-2 text-xs"></div>
+
+      <div id="orderQueryResultsContainer" class="max-h-60 overflow-y-auto no-scrollbar space-y-2 text-xs pt-1"></div>
     </div>
   </div>
 
@@ -596,6 +622,13 @@
               : "w-7 h-7 rounded-full object-cover border border-border-base";
           }
 
+        // 若後台尚未設定 quick_actions，自動套用優雅預設版面
+    const DEFAULT_QUICK_ACTIONS = [
+      { type: "text", tag: "優惠組合", title: "滿件享折扣", desc: "點此看詳情 ➔", link: "#promotions" },
+      { type: "text", tag: "熱門品項", title: "四季鋪棉被", desc: "換季熱選中 ➔", link: "#四季被" },
+      { type: "text", tag: "免運出貨", title: "全館滿2件", desc: "宅配直接免運", link: "#cart" }
+    ];
+          
           // 右上角自訂按鈕
           if (s.header_nav_btn) {
             let nb = s.header_nav_btn;
@@ -639,6 +672,19 @@
       } catch(e){}
     }
 
+    function checkAndRenderQuickActions(qa) {
+      const area = document.getElementById('quickActionArea');
+      let items = (qa && qa.items && qa.items.length > 0) ? qa.items : DEFAULT_QUICK_ACTIONS;
+      let isActive = (qa && qa.is_active !== undefined) ? qa.is_active : true;
+
+      if (isActive && items.length > 0) {
+        renderQuickActions(items);
+        area.classList.remove('hidden');
+      } else {
+        area.classList.add('hidden');
+      }
+    }
+    
     function renderQuickActions(items) {
       const grid = document.getElementById('quickActionGrid');
       grid.innerHTML = items.map(item => {
@@ -758,20 +804,53 @@
       } catch(e){}
     }
 
+    // 確保 currentCategoryFilter 存在，預設為「全部」
+    if (typeof currentCategoryFilter === 'undefined') {
+      var currentCategoryFilter = "全部";
+    }
+
+    // 4. 取得商品主檔與分類條渲染 (徹底去重，同步渲染首頁與商品頁面)
     function renderCategoryFilterBar() {
       const bar = document.getElementById('categoryFilterBar');
+      const detailBar = document.getElementById('detailCategoryPillsRow');
       const drawerList = document.getElementById('drawerCategoriesList');
-      let cats = ["全部", ...new Set(allProducts.map(p => p.sub_category || p.major_category).filter(Boolean))];
 
-      bar.innerHTML = cats.map(c => `
-        <button onclick="filterByCategory('${c}', this)" class="cat-pill px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition ${c === '全部' ? 'theme-btn-primary font-bold shadow-xs' : 'bg-white text-stone-600 border'}" style="border-color: var(--theme-border);">
-          ${c}
-        </button>
-      `).join('');
+      // 嚴格過濾無效值與重複字詞，確保「全部」唯一置頂
+      let rawCats = (allProducts || []).map(p => p.sub_category || p.major_category).filter(Boolean);
+      let uniqueCats = [...new Set(rawCats.map(c => c.trim()).filter(c => c !== "" && c !== "全部"))];
+      let cats = ["全部", ...uniqueCats];
 
-      drawerList.innerHTML = cats.map(c => `
-        <div onclick="filterByCategory('${c}'); toggleSideDrawer(false);" class="cursor-pointer py-1 text-stone-700 hover:opacity-75">${c}</div>
-      `).join('');
+      // 1. 渲染首頁橢圓分類按鈕
+      if (bar) {
+        bar.innerHTML = cats.map(c => `
+          <button type="button" onclick="filterByCategory('${c}', this)" class="cat-pill px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition ${c === currentCategoryFilter ? 'theme-btn-primary font-bold shadow-xs' : 'bg-white text-stone-600 border'}" style="border-color: var(--theme-border);">
+            ${c}
+          </button>
+        `).join('');
+      }
+
+      // 2. 渲染商品詳細頁跑馬燈下方的橢圓分類鈕 (可左右滑動切換分類)
+      if (detailBar) {
+        detailBar.innerHTML = cats.map(c => `
+          <button type="button" onclick="switchCategoryFromDetail('${c}')" class="detail-cat-pill px-3.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition bg-white text-stone-700 border hover:border-stone-400" style="border-color: var(--theme-border);">
+            ${c}
+          </button>
+        `).join('');
+      }
+
+      // 3. 渲染左上漢堡側邊抽屜分類清單
+      if (drawerList) {
+        drawerList.innerHTML = cats.map(c => `
+          <div onclick="filterByCategory('${c}'); toggleSideDrawer(false);" class="cursor-pointer py-1.5 text-stone-700 hover:opacity-75">${c}</div>
+        `).join('');
+      }
+    }
+
+    // 商品頁橢圓分類鈕跳轉回首頁該分類專區
+    function switchCategoryFromDetail(cat) {
+      closeProductDetailPage();
+      switchNavTab('home');
+      filterByCategory(cat);
     }
 
     function filterByCategory(cat, btn) {
@@ -912,6 +991,17 @@
         <button onclick="selectDetailColor('${c}', this)" class="spec-btn px-3.5 py-1.5 rounded-xl border text-xs font-bold transition shadow-2xs ${c === detailColor ? 'theme-btn-primary shadow-xs' : 'bg-white text-stone-700'}" style="border-color: var(--theme-border);">${c}</button>
       `).join('');
 
+      // 高亮商品頁分類按鈕
+      let curCat = p.sub_category || p.major_category || "全部";
+      document.querySelectorAll('.detail-cat-pill').forEach(btn => {
+        if (btn.innerText.trim() === curCat) {
+          btn.className = "detail-cat-pill px-3.5 py-1 rounded-full text-xs font-bold whitespace-nowrap transition theme-btn-primary shadow-xs";
+        } else {
+          btn.className = "detail-cat-pill px-3.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition bg-white text-stone-700 border";
+          btn.style.borderColor = "var(--theme-border)";
+        }
+      });
+      
       let sizes = p.specs_data && p.specs_data.length > 0 
         ? [...new Set(p.specs_data.map(s => s.spec.split('/')[1] ? s.spec.split('/')[1].trim() : '單一規格'))] : ['單一規格'];
       detailSize = sizes[0];
@@ -1373,29 +1463,35 @@
     function openCustomOrderQueryModal() {
       let p = JSON.parse(localStorage.getItem('sibyl_user_profile') || '{}');
       document.getElementById('queryInputPhoneField').value = p.phone || '';
+      // 若該手機本地儲存過該顧客的最新 PIN 碼，自動預填，本機體驗極致順暢
+      document.getElementById('queryInputPinField').value = p.latest_pin || '';
       document.getElementById('orderQueryResultsContainer').innerHTML = '';
       const modal = document.getElementById('customOrderQueryModal');
       modal.classList.remove('hidden'); modal.classList.add('flex');
     }
 
-    function closeCustomOrderQueryModal() {
-      document.getElementById('customOrderQueryModal').classList.add('hidden');
-      document.getElementById('customOrderQueryModal').classList.remove('flex');
-    }
-
     async function executeOrderLookup() {
       let phone = document.getElementById('queryInputPhoneField').value.trim();
+      let pin = document.getElementById('queryInputPinField').value.trim();
       const container = document.getElementById('orderQueryResultsContainer');
-      if (!phone) return showToast("請輸入手機號碼");
 
-      container.innerHTML = `<div class="text-center py-4 text-stone-400">查詢中...</div>`;
+      if (!phone) return showToast("請輸入手機號碼");
+      if (!pin || pin.length < 4) return showToast("請輸入 4 位數安全 PIN 碼");
+
+      container.innerHTML = `<div class="text-center py-4 text-stone-400">正在進行身分安全驗證...</div>`;
       try {
-        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_orders?store_id=eq.${STORE_ID}&customer_phone=eq.${phone}&order=created_at.desc`, {
+        // 🔒 雙重條件比對：手機號碼 ＋ 4 位數 PIN 碼皆符合才釋出資料
+        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_orders?store_id=eq.${STORE_ID}&customer_phone=eq.${phone}&order_pin=eq.${pin}&order=created_at.desc`, {
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
         });
         let orders = await res.json();
+        
         if (!orders || orders.length === 0) {
-          container.innerHTML = `<div class="text-center py-4 text-stone-400">查無此號碼的訂單紀錄</div>`;
+          container.innerHTML = `
+            <div class="text-center py-4 text-rose-600 space-y-1">
+              <div class="font-bold">驗證未通過</div>
+              <div class="text-[11px] text-stone-400">手機號碼或 4 位數 PIN 碼有誤，請確認訂單 Email。</div>
+            </div>`;
           return;
         }
 
@@ -1410,8 +1506,12 @@
           </div>
         `).join('');
       } catch(e) {
-        container.innerHTML = `<div class="text-center py-4 text-rose-500">連線異常</div>`;
+        container.innerHTML = `<div class="text-center py-4 text-rose-500">連線異常，請稍後再試</div>`;
       }
+    }
+    function closeCustomOrderQueryModal() {
+      document.getElementById('customOrderQueryModal').classList.add('hidden');
+      document.getElementById('customOrderQueryModal').classList.remove('flex');
     }
 
     // 12. 結帳送單 (整合 PayUni 刷卡與發票開立)
@@ -1433,9 +1533,24 @@
       if (invType === 'b2c_phone' && !carrierNum.startsWith('/')) return showToast("載具需為 / 開頭");
       if (invType === 'b2b_tax' && buyerUbn.length !== 8) return showToast("統一編號需為 8 碼");
 
+      // 1. 自動隨機產生 4 位數防盜查單 PIN 碼 (1000 ~ 9999)
+      let randomPin = Math.floor(1000 + Math.random() * 9000).toString();
+
+      // 2. 本機安全記憶收件人資訊與最新 PIN 碼
+      let savedProfile = JSON.parse(localStorage.getItem('sibyl_user_profile') || '{}');
       if (document.getElementById('saveProfileCheck').checked) {
-        localStorage.setItem('sibyl_user_profile', JSON.stringify({ name, phone, email, address, carrierNum }));
+        savedProfile = { 
+          name: name, 
+          phone: phone, 
+          email: email, 
+          address: address, 
+          carrierNum: carrierNum,
+          latest_pin: randomPin 
+        };
+      } else {
+        savedProfile.latest_pin = randomPin;
       }
+      localStorage.setItem('sibyl_user_profile', JSON.stringify(savedProfile));
 
       let totalQty = cart.reduce((sum, i) => sum + i.qty, 0);
       let grandTotal = Number(document.getElementById('cartGrandTotal').innerText);
@@ -1444,15 +1559,17 @@
       let shippingFee = totalQty >= 2 ? 0 : 100;
 
       let now = new Date();
-      let datePart = String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0');
+      let datePart = String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
       let orderId = `S${datePart}-${Math.floor(Math.random() * 900 + 100)}`;
 
       let btn = document.getElementById('btnSubmitOrder');
-      btn.innerText = "連線金流中..."; btn.disabled = true;
+      btn.innerText = "連線金流中..."; 
+      btn.disabled = true;
 
       let orderPayload = {
         store_id: STORE_ID, 
         order_id: orderId, 
+        order_pin: randomPin, // 寫入 4 位數安全防盜查 PIN 碼
         customer_name: name, 
         customer_phone: phone, 
         customer_email: email,
@@ -1475,12 +1592,18 @@
       };
 
       try {
+        // 寫入 Supabase 訂單表
         await fetch(`${SUPABASE_URL}/rest/v1/shop_orders`, {
           method: 'POST',
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
+          headers: { 
+            'apikey': SUPABASE_KEY, 
+            'Authorization': 'Bearer ' + SUPABASE_KEY, 
+            'Content-Type': 'application/json' 
+          },
           body: JSON.stringify(orderPayload)
         });
 
+        // 呼叫 GAS 建立 PayUni 交易封包與發送 Email
         let gasResp = await fetch(GAS_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain' },
@@ -1489,6 +1612,7 @@
             orderData: { 
               storeId: STORE_ID, 
               orderId: orderId, 
+              orderPin: randomPin,
               grandTotal: grandTotal, 
               items: cart, 
               shippingFee: shippingFee, 
@@ -1526,7 +1650,7 @@
           document.body.appendChild(form);
           form.submit();
         } else {
-          showToast(`訂單已建立，單號：${orderId}`);
+          showToast(`訂單已建立，單號：${orderId} (PIN: ${randomPin})`);
           setTimeout(() => window.location.reload(), 1500);
         }
       } catch(e) {
@@ -1535,12 +1659,36 @@
         btn.innerText = "前往 PayUni 安全付款";
       }
     }
-
     function showToast(msg) {
       const t = document.getElementById('toastBox');
       t.innerText = msg; 
       t.style.opacity = '1';
       setTimeout(() => { t.style.opacity = '0'; }, 3000);
+    }
+
+    function setupDetailSwipe() {
+      const wrapper = document.getElementById('detailMainImgWrapper');
+      let touchStartX = 0;
+      wrapper.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+      wrapper.addEventListener('touchend', e => {
+        let diff = e.changedTouches[0].clientX - touchStartX;
+        if (diff > 40) prevDetailImg();
+        else if (diff < -40) nextDetailImg();
+      }, { passive: true });
+    }
+
+    function prevDetailImg(e) {
+      if (e) e.stopPropagation();
+      if (detailSelectedImgs.length <= 1) return;
+      detailImgIdx = (detailImgIdx - 1 + detailSelectedImgs.length) % detailSelectedImgs.length;
+      setDetailMainImage(detailImgIdx);
+    }
+
+    function nextDetailImg(e) {
+      if (e) e.stopPropagation();
+      if (detailSelectedImgs.length <= 1) return;
+      detailImgIdx = (detailImgIdx + 1) % detailSelectedImgs.length;
+      setDetailMainImage(detailImgIdx);
     }
   </script>
 </body>
