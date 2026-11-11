@@ -167,6 +167,11 @@
             <input type="checkbox" id="pShowArrivalCheck" checked class="accent-taupe-main">
             <span>在前台顯示預計到貨期標籤</span>
           </label>
+          <!-- ⭐️ 新增：隱藏原價核取方塊 -->
+          <label class="flex items-center gap-1.5 text-[11px] text-stone-600 font-bold mt-1 cursor-pointer">
+            <input type="checkbox" id="pHideOldPriceCheck" class="accent-taupe-main">
+            <span>隱藏原價 (前台不顯示劃線價)</span>
+          </label>
         </div>
       </div>
 
@@ -1452,6 +1457,7 @@
         status: document.getElementById('pStatus').value,
         img_ratio: document.getElementById('pImgRatio').value,
         show_arrival_date: document.getElementById('pShowArrivalCheck').checked,
+        hide_old_price: document.getElementById('pHideOldPriceCheck').checked, // 👈 寫入隱藏原價設定
         major_category: document.getElementById('pMajorSelect').value,
         sub_category: document.getElementById('pSubSelect').value,
         tag: document.getElementById('pTag').value.trim(),
@@ -1743,6 +1749,8 @@
       document.getElementById('pTag').value = p.tag || '';
       document.getElementById('pArrivalDate').value = p.arrival_date || '';
       document.getElementById('pDesc').value = p.description || '';
+      document.getElementById('pShowArrivalCheck').checked = (p.show_arrival_date !== false);
+      document.getElementById('pHideOldPriceCheck').checked = (p.hide_old_price === true); // 👈 編輯時自動打勾
 
       currentUploadedImages = p.images ? p.images.split(/[\s,]+/).filter(Boolean) : [];
       renderProductThumbnails();
