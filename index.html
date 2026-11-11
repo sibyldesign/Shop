@@ -811,6 +811,7 @@
     }
 
     // ⭐️ 核心修正：前台分類完全依據後台「可視化分類樹」順序呈現，徹底消除重複
+    // 前台分類完全依照後台「可視化分類樹」設置為主顯示
     function renderCategoryFilterBar() {
       const bar = document.getElementById('categoryFilterBar');
       const detailBar = document.getElementById('detailCategoryPillsRow');
@@ -818,24 +819,27 @@
 
       let cats = ["全部"];
 
-      // 優先讀取後台設定的階層分類樹順序
+      // 優先完全依據後台保存的 category_tree 順序提取次分類
       if (categoryTree && Array.isArray(categoryTree) && categoryTree.length > 0) {
         categoryTree.forEach(major => {
           if (major.children && major.children.length > 0) {
             major.children.forEach(sub => {
-              if (sub.name && sub.name.trim() !== "全部") cats.push(sub.name.trim());
+              if (sub.name && sub.name.trim() !== "" && sub.name.trim() !== "全部") {
+                cats.push(sub.name.trim());
+              }
             });
-          } else if (major.name && major.name.trim() !== "全部") {
+          } else if (major.name && major.name.trim() !== "" && major.name.trim() !== "全部") {
             cats.push(major.name.trim());
           }
         });
       } else {
+        // 備援：若後台未建樹狀結構，才由商品次分類反推
         let rawCats = (allProducts || []).map(p => p.sub_category || p.major_category).filter(Boolean);
         let uniq = [...new Set(rawCats.map(c => c.trim()).filter(c => c !== "" && c !== "全部"))];
         cats = ["全部", ...uniq];
       }
 
-      // 嚴格消除任何重複項
+      // 消除所有可能重複項
       cats = [...new Set(cats)];
 
       // 1. 首頁分類滑動條
@@ -847,7 +851,7 @@
         `).join('');
       }
 
-      // 2. 商品頁置頂麵包屑下方・橢圓分類鈕 (點選切換分類並跳回首頁)
+      // 2. 商品頁跑馬燈下方橢圓形分類鈕
       if (detailBar) {
         detailBar.innerHTML = cats.map(c => `
           <button type="button" onclick="switchCategoryFromDetail('${c}')" class="detail-cat-pill px-3.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition bg-white text-stone-700 border hover:border-stone-400" style="border-color: var(--theme-border);">
@@ -856,7 +860,7 @@
         `).join('');
       }
 
-      // 3. 左上漢堡抽屜分類清單
+      // 3. 側邊漢堡抽屜分類清單
       if (drawerList) {
         drawerList.innerHTML = cats.map(c => `
           <div onclick="filterByCategory('${c}'); toggleSideDrawer(false);" class="cursor-pointer py-1.5 text-stone-700 hover:opacity-75">${c}</div>
