@@ -66,7 +66,7 @@
 
   <div class="max-w-7xl mx-auto admin-wrapper space-y-4">
 
-    <!-- 頂部一列式極簡列 -->
+    <!-- 頂部導覽列 -->
     <header class="bg-white border border-taupe-border rounded-2xl px-4 py-2.5 shadow-xs flex justify-between items-center gap-2">
       <div class="flex items-center gap-2 min-w-0">
         <div class="w-7 h-7 rounded-lg bg-taupe-main text-white flex items-center justify-center font-bold text-xs tracking-wider shrink-0 font-serif">
@@ -76,10 +76,9 @@
           <h1 class="text-xs font-bold text-taupe-charcoal truncate" id="adminHeaderStoreName">Sibyl Select 總管中心</h1>
         </div>
       </div>
-      <!-- 頂部按鈕群 -->
       <div class="flex items-center gap-1.5 shrink-0">
         <button type="button" onclick="refreshAdminDataOnly()" class="px-2.5 py-1 text-[11px] font-bold text-taupe-dark hover:text-white bg-taupe-light hover:bg-taupe-main rounded-lg border border-taupe-border transition flex items-center gap-1 shadow-2xs">
-          <span>重新整理</span>
+          <span>🔄 重新整理</span>
         </button>
         <button onclick="openChangePasswordModal()" class="px-2.5 py-1 text-[11px] font-bold text-stone-600 hover:text-taupe-main bg-taupe-canvas rounded-lg border border-taupe-border transition flex items-center gap-1">
           <span>密碼</span>
@@ -148,7 +147,7 @@
       </div>
     </section>
 
-    <!-- 2. 商品上架分頁 -->
+    <!-- 2. 商品上架分頁 (已清理外部殘留表格) -->
     <section id="uploadTab" class="tab-content bg-white border border-taupe-border rounded-2xl p-5 shadow-xs space-y-4 hidden">
       <h2 id="formActionTitle" class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase border-b border-taupe-border pb-2">商品配置設定</h2>
       
@@ -211,7 +210,7 @@
         </div>
       </div>
 
-      <!-- 規格矩陣 (支援雙批量設定) -->
+      <!-- 規格矩陣 (支援單列刪除與批量填入) -->
       <div class="bg-taupe-canvas p-4 border border-taupe-border rounded-xl space-y-2">
         <div class="flex justify-between items-center flex-wrap gap-2">
           <span class="text-xs font-bold text-taupe-dark">規格定價矩陣 (K欄原價 / L欄特價)</span>
@@ -231,6 +230,7 @@
               <th class="p-2 w-32">原價 (劃線參考價)</th>
               <th class="p-2 w-32">特價 (客實付單價)</th>
               <th class="p-2 w-24">庫存上限</th>
+              <th class="p-2 w-16 text-center">操作</th>
             </tr>
           </thead>
           <tbody id="matrixTableBody" class="divide-y divide-stone-100"></tbody>
@@ -433,7 +433,7 @@
     <!-- 6. 人氣推薦自訂 ＆ 優惠活動管理分頁 -->
     <section id="couponTab" class="tab-content bg-white border border-taupe-border rounded-2xl p-5 shadow-xs space-y-6 hidden">
       
-      <!-- 區塊 A：人氣推薦自訂專區 (支援依分類批量選取 ＋ 單品勾選 ＋ 排序權重) -->
+      <!-- 區塊 A：人氣推薦自訂專區 -->
       <div class="space-y-3">
         <div class="flex justify-between items-center border-b border-taupe-border pb-2">
           <div>
@@ -445,7 +445,6 @@
           </button>
         </div>
 
-        <!-- 快速依分類整批加入推薦列 -->
         <div class="p-3 bg-taupe-canvas rounded-xl border border-taupe-border flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           <div class="flex items-center gap-2 flex-1">
             <span class="text-xs font-bold text-stone-600 shrink-0">依分類整批加入：</span>
@@ -460,7 +459,6 @@
           <input type="text" id="hotSearchInput" oninput="filterHotCandidateProducts()" placeholder="搜尋貨號或品名..." class="w-full sm:w-48 text-xs p-2 border border-taupe-border rounded-lg outline-none bg-white">
         </div>
 
-        <!-- 候選與已選商品清單 -->
         <div class="border border-taupe-border rounded-xl overflow-hidden max-h-64 overflow-y-auto no-scrollbar">
           <table class="w-full text-left text-xs bg-white">
             <thead class="bg-taupe-light/50 border-b border-taupe-border text-taupe-dark font-bold sticky top-0">
@@ -478,7 +476,7 @@
         </div>
       </div>
 
-      <!-- 區塊 B：分區優惠活動管理 (支援多選分類、編輯回填、啟用開關、刪除) -->
+      <!-- 區塊 B：分區優惠活動管理 -->
       <div class="pt-5 border-t border-taupe-border space-y-4">
         <div class="flex justify-between items-center border-b border-taupe-border pb-2">
           <div>
@@ -492,7 +490,6 @@
 
         <input type="hidden" id="editingCampaignId" value="">
 
-        <!-- 活動設定表單卡片 -->
         <div class="bg-taupe-canvas p-4 rounded-xl border border-taupe-border space-y-3">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -531,7 +528,6 @@
             </div>
           </div>
 
-          <!-- 分類多選標籤池 (可複選) -->
           <div id="campCategorySelectBox" class="hidden space-y-1.5">
             <label class="text-xs font-bold text-stone-600 block">勾選套用之商品分類 (支援多選)：</label>
             <div id="campCategoryCheckboxContainer" class="flex flex-wrap gap-2 p-2 bg-white rounded-xl border border-taupe-border"></div>
@@ -544,7 +540,6 @@
           </div>
         </div>
 
-        <!-- 進行中的活動列表表格 -->
         <div class="overflow-x-auto border border-taupe-border rounded-xl">
           <table class="w-full text-left text-xs bg-white">
             <thead class="bg-taupe-light/50 border-b border-taupe-border text-taupe-dark font-bold">
@@ -593,10 +588,9 @@
           </table>
         </div>
       </div>
-
     </section>
 
-    <!-- 7. 全域風格外觀與五大條款設定分頁 -->
+    <!-- 7. 全域風格外觀與五大條款設定分頁 (已清理殘留斷裂標籤) -->
     <section id="settingTab" class="tab-content bg-white border border-taupe-border rounded-2xl p-5 shadow-xs space-y-6 hidden">
       <div>
         <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase border-b border-taupe-border pb-2">前台品牌莫蘭迪色系切換</h2>
@@ -608,8 +602,8 @@
           </label>
           <label class="p-3 rounded-2xl border cursor-pointer flex flex-col items-center gap-2 hover:border-taupe-main transition" id="theme-card-morandi_dusty_rose">
             <input type="radio" name="theme_color_radio" value="morandi_dusty_rose" class="hidden" onchange="previewThemeSelect(this.value)">
-            <span class="w-7 h-7 rounded-full bg-[#A3485E] shadow-xs"></span>
-            <span class="text-xs font-bold text-taupe-charcoal">黛粉色 (輕奢)</span>
+            <span class="w-7 h-7 rounded-full bg-[#9E7B82] shadow-xs"></span>
+            <span class="text-xs font-bold text-taupe-charcoal">黛粉色 (知性灰粉)</span>
           </label>
           <label class="p-3 rounded-2xl border cursor-pointer flex flex-col items-center gap-2 hover:border-taupe-main transition" id="theme-card-morandi_forest">
             <input type="radio" name="theme_color_radio" value="morandi_forest" class="hidden" onchange="previewThemeSelect(this.value)">
@@ -634,43 +628,25 @@
         </div>
       </div>
 
-      <!-- 綁定 Google 試算表 ID 設定 (多租戶通用) -->
+      <!-- 綁定 Google 試算表 ID 設定 -->
       <div class="pt-3 border-t border-taupe-border space-y-2">
         <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase border-b border-taupe-border pb-2">綁定 Google 試算表 ID</h2>
         <input type="text" id="settingSpreadsheetId" value="1DQWbYQpvtA2iY-9Gd-P1Ud_Eok5ISAOu" class="w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas font-mono outline-none">
         <p class="text-[10px] text-stone-400">系統上架商品時將自動同步寫入此試算表中的【商品清單】工作表。</p>
       </div>
 
-      <!-- 前台右上角快捷導航按鈕設定 (官網 / 客服 / IG / FB) -->
+      <!-- 前台右上角快捷導航按鈕設定 (支援多個、自選圖示、編輯刪除) -->
       <div class="pt-3 border-t border-taupe-border space-y-3">
-        <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase border-b border-taupe-border pb-2">前台右上角快捷導航按鈕設定</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-taupe-canvas p-3.5 rounded-xl border border-taupe-border text-xs">
+        <div class="flex justify-between items-center border-b border-taupe-border pb-2">
           <div>
-            <label class="font-bold text-stone-600 block mb-1">顯示模式</label>
-            <select id="settingNavBtnMode" class="w-full p-2 border border-taupe-border rounded-lg bg-white outline-none">
-              <option value="both">純文字按鈕 ＋ 質感圖示</option>
-              <option value="text_only">僅顯示純文字按鈕</option>
-              <option value="icon_only">僅顯示質感圖示</option>
-            </select>
+            <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase">前台右上角快捷按鈕群管理</h2>
+            <p class="text-[10px] text-stone-400 mt-0.5">可新增多個按鈕（如：LINE客服、官方IG、品牌官網），前台自動排版</p>
           </div>
-          <div>
-            <label class="font-bold text-stone-600 block mb-1">質感圖示樣式</label>
-            <select id="settingNavBtnIcon" class="w-full p-2 border border-taupe-border rounded-lg bg-white outline-none">
-              <option value="chat">訊息對話圖 (LINE/客服)</option>
-              <option value="globe">地球網絡圖 (官方網站/部落格)</option>
-              <option value="instagram">Instagram 質感相機 (社群專頁)</option>
-              <option value="facebook">Facebook 社交圖標 (粉絲專頁)</option>
-            </select>
-          </div>
-          <div>
-            <label class="font-bold text-stone-600 block mb-1">自訂按鈕文字</label>
-            <input type="text" id="settingNavBtnTitle" value="官方客服" placeholder="例如：官方客服 / 品牌官網 / 追蹤 IG" class="w-full p-2 border border-taupe-border rounded-lg bg-white outline-none">
-          </div>
-          <div>
-            <label class="font-bold text-stone-600 block mb-1">點擊跳轉網址</label>
-            <input type="text" id="settingNavBtnLink" value="https://line.me/R/ti/p/@480kqjoj" placeholder="https://..." class="w-full p-2 border border-taupe-border rounded-lg bg-white outline-none font-mono">
-          </div>
+          <button type="button" onclick="addHeaderNavBtnItem()" class="px-3 py-1 bg-taupe-light hover:bg-taupe-sand text-taupe-dark text-xs font-bold rounded-lg border border-taupe-border transition">
+            + 新增按鈕
+          </button>
         </div>
+        <div id="headerNavButtonsContainer" class="space-y-2.5"></div>
       </div>
 
       <!-- 品牌 Logo 設定 -->
@@ -752,7 +728,7 @@
 
   </div>
 
-  <!-- 底部 FB 風格固定導覽列 (向下滑動自動隱藏、向上滑動浮現) -->
+  <!-- 底部固定導覽列 -->
   <nav id="adminBottomNav" class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-taupe-border shadow-lg transition-transform duration-300">
     <div class="max-w-md mx-auto grid grid-cols-7 py-1.5 px-1 text-center">
       <button onclick="switchTab('orderTab')" id="btn-orderTab" class="admin-tab-btn flex flex-col items-center justify-center text-taupe-main font-bold py-1">
@@ -780,13 +756,13 @@
         <span class="text-[9.5px]">活動</span>
       </button>
       <button onclick="switchTab('settingTab')" id="btn-settingTab" class="admin-tab-btn flex flex-col items-center justify-center text-stone-400 font-medium py-1">
-        <svg class="w-4 h-4 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <svg class="w-4 h-4 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
         <span class="text-[9.5px]">風格</span>
       </button>
     </div>
   </nav>
 
-  <!-- 自訂美學沙龍米棕色彈窗 Prompt / Confirm Modal -->
+  <!-- 美學彈窗 Modal -->
   <div id="aestheticDialogModal" class="fixed inset-0 bg-stone-900/60 backdrop-blur-sm hidden z-[99999] items-center justify-center p-4">
     <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-4 border border-taupe-border">
       <h3 id="dialogTitle" class="text-sm font-bold text-taupe-charcoal">輸入提示</h3>
@@ -814,12 +790,14 @@
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6cXBmbnJwbmZ6enVib2ZvcWx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1ODQ5ODYsImV4cCI6MjEwODE2MDk4Nn0.B-ub7DCpzF3b2gjpTrM9jdW0SLOqRPillZTmoXPuNgk";
     const GAS_URL = "https://script.google.com/macros/s/AKfycbxnR6FWbp729CAom_b4L5K9zLecQkN5g8gVSiXEU3NT-1vY5cgimwSU4K8wiXu1UsM/exec";
 
+    // ⭐️ 核心修正：頂部全域變數一次性乾淨宣告，杜絕 ReferenceError 與重複宣告
     let rawOrders = [], filteredOrders = [];
     let globalProducts = [], filteredProducts = [];
     let selectedOrderIds = {};
     let selectedInventorySkus = {};
     let rawBannersList = [];
     let activeCampaignsList = [];
+    let headerNavButtonsList = []; // 👈 提至頂部宣告，防止 TDZ 崩潰
 
     let orderPage = 1, orderPageSize = 10;
     let invPage = 1, invPageSize = 10;
@@ -923,14 +901,13 @@
       modal.classList.remove('hidden'); modal.classList.add('flex');
     }
 
-    // ⭐️ 核心修復：區分 Prompt (文字輸入) 與 Confirm (確定/取消)，不再傳回空字串
+    // ⭐️ 核心修復：正確判定 Confirm (true) 與 Prompt (文字)，不被空字串阻斷
     function closeAestheticDialog(isConfirmed) {
       const modal = document.getElementById('aestheticDialogModal');
       modal.classList.add('hidden'); modal.classList.remove('flex');
       if (dialogCallback) {
         let isInputVisible = !document.getElementById('dialogInputContainer').classList.contains('hidden');
         if (isConfirmed) {
-          // 若為輸入框傳回文字；若為確認框傳回布林值 true (保證 if(!ok) return 不會被阻斷)
           dialogCallback(isInputVisible ? document.getElementById('dialogTextInput').value : true);
         } else {
           dialogCallback(isInputVisible ? null : false);
@@ -951,7 +928,7 @@
       } catch(e){}
 
       if (input === realPin || input === "198722" || input === "alyn9999") {
-        localStorage.setItem("sibyl_admin_auth", "true"); // 👈 永久記憶，刷新不登出
+        localStorage.setItem("sibyl_admin_auth", "true"); // 👈 永久記憶，刷新不被登出
         document.getElementById("adminAuthOverlay").style.display = "none";
         initDashboard();
       } else {
@@ -971,7 +948,6 @@
       }
     };
 
-    // 免刷新瀏覽器的即時更新資料函式
     async function refreshAdminDataOnly() {
       showToast("正在同步最新雲端資料...");
       await Promise.all([
@@ -983,6 +959,7 @@
       ]);
       showToast("雲端資料已同步更新完畢！");
     }
+
     function openChangePasswordModal() {
       showCustomPrompt("請輸入新的後台管理密碼：", "", async (newPwd) => {
         if (!newPwd || newPwd.trim().length < 4) return showToast("密碼不能少於 4 個字元！");
@@ -1015,7 +992,7 @@
       loadCouponsData();
     }
 
-    // ==================== 1. 可視化分類樹 ====================
+    // ==================== 1. 可視化多層分類樹管理 ====================
     function renderVisualCategoryTree() {
       const container = document.getElementById('visualCategoryTreeContainer');
       container.innerHTML = "";
@@ -1404,14 +1381,14 @@
       link.click();
     }
 
-    // ==================== 4. 商品發布 (雙向寫入試算表) ====================
+    // ==================== 4. 商品發布與規格矩陣 ====================
     function regenerateMatrix() {
       const tbody = document.getElementById('matrixTableBody');
       tbody.innerHTML = "";
-      let colors = document.getElementById('pColors').value.split(',').map(s => s.trim()).filter(s => s);
-      let sizes = document.getElementById('pSizes').value.split(',').map(s => s.trim()).filter(s => s);
+      let colors = document.getElementById('pColors').value.split(',').map(s => s.trim()).filter(Boolean);
+      let sizes = document.getElementById('pSizes').value.split(',').map(s => s.trim()).filter(Boolean);
       if (colors.length === 0) colors = ["單一花色"];
-      if (sizes.length === 0) sizes = ["單一尺寸"];
+      if (sizes.length === 0) sizes = ["單一規格"];
 
       colors.forEach(c => {
         sizes.forEach(s => {
@@ -1421,6 +1398,9 @@
               <td class="p-2"><input type="number" class="m-old w-full p-1 border border-taupe-border rounded text-xs" value="0"></td>
               <td class="p-2"><input type="number" class="m-price w-full p-1 border border-taupe-border rounded text-xs font-bold text-taupe-crimson"></td>
               <td class="p-2"><input type="number" class="m-stock w-full p-1 border border-taupe-border rounded text-xs" value="99"></td>
+              <td class="p-2 text-center">
+                <button type="button" onclick="this.closest('tr').remove()" class="text-rose-600 hover:text-rose-800 font-bold px-1.5 py-0.5">✕ 刪除</button>
+              </td>
             </tr>
           `;
         });
@@ -1448,14 +1428,14 @@
 
       let specs = [], prices = [], oldPrices = [];
       document.querySelectorAll('#matrixTableBody tr').forEach(row => {
-        let pr = row.querySelector('.m-price').value;
-        let oldPr = row.querySelector('.m-old').value;
+        let pr = row.querySelector('.m-price')?.value;
+        let oldPr = row.querySelector('.m-old')?.value;
         if (pr) {
           specs.push({ 
             spec: row.dataset.key, 
             oldPrice: oldPr || "0", 
             price: pr, 
-            stock: row.querySelector('.m-stock').value || 99 
+            stock: row.querySelector('.m-stock')?.value || 99 
           });
           prices.push(Number(pr));
           if (oldPr && Number(oldPr) > 0) oldPrices.push(Number(oldPr));
@@ -1527,7 +1507,7 @@
       }
     }
 
-    // ==================== 5. 商品清單管理 (修復 URL 編碼，確保刪除/編輯 100% 正常) ====================
+    // ==================== 5. 商品庫存清單與數字符號分頁 ====================
     async function loadInventoryData() {
       try {
         let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_products?store_id=eq.${STORE_ID}&order=created_at.desc`, {
@@ -1629,7 +1609,7 @@
       invPage = pageNo;
       renderInventoryTable();
     }
-  
+
     function handleInventoryCheck(cb, sku) {
       if (cb.checked) selectedInventorySkus[sku] = true;
       else delete selectedInventorySkus[sku];
@@ -1661,7 +1641,6 @@
             delete selectedInventorySkus[sku];
             showToast(`商品 ${sku} 已從商城刪除！`);
 
-            // ⭐️ 同步通知 Google 試算表刪除對應的列
             fetch(GAS_URL, {
               method: 'POST',
               mode: 'no-cors',
@@ -1781,6 +1760,9 @@
               <td class="p-2"><input type="number" class="m-old w-full p-1 border border-taupe-border rounded text-xs" value="${sp.oldPrice || 0}"></td>
               <td class="p-2"><input type="number" class="m-price w-full p-1 border border-taupe-border rounded text-xs font-bold text-taupe-crimson" value="${sp.price || 0}"></td>
               <td class="p-2"><input type="number" class="m-stock w-full p-1 border border-taupe-border rounded text-xs" value="${sp.stock || 99}"></td>
+              <td class="p-2 text-center">
+                <button type="button" onclick="this.closest('tr').remove()" class="text-rose-600 hover:text-rose-800 font-bold px-1.5 py-0.5">✕ 刪除</button>
+              </td>
             </tr>
           `;
         });
@@ -1791,6 +1773,9 @@
             <td class="p-2"><input type="number" class="m-old w-full p-1 border border-taupe-border rounded text-xs" value="${p.old_price || 0}"></td>
             <td class="p-2"><input type="number" class="m-price w-full p-1 border border-taupe-border rounded text-xs font-bold text-taupe-crimson" value="${p.price || 0}"></td>
             <td class="p-2"><input type="number" class="m-stock w-full p-1 border border-taupe-border rounded text-xs" value="99"></td>
+            <td class="p-2 text-center">
+              <button type="button" onclick="this.closest('tr').remove()" class="text-rose-600 hover:text-rose-800 font-bold px-1.5 py-0.5">✕ 刪除</button>
+            </td>
           </tr>
         `;
       }
@@ -1806,7 +1791,7 @@
       renderInventoryTable();
     }
 
-    // ==================== 6. 輪播圖 (◀ ▶ 排序、即時刪除與秒數設定) ====================
+    // ==================== 6. 輪播圖管理 ====================
     async function loadBannersData() {
       try {
         let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_banners?store_id=eq.${STORE_ID}&order=sort_order.asc`, {
@@ -1994,7 +1979,7 @@
       else showToast("快選卡片儲存失敗");
     }
 
-    // ==================== 7. 人氣推薦自訂 (支援選取整類) ＆ 優惠活動 (支援編輯/啟用/刪除) ====================
+    // ==================== 7. 人氣推薦自訂 ＆ 優惠活動管理 ====================
     async function loadCouponsData() {
       renderHotCandidateProducts();
       populateHotCategorySelect();
@@ -2018,7 +2003,6 @@
       } catch(e){}
     }
 
-    // 填充人氣推薦的分類選單
     function populateHotCategorySelect() {
       const select = document.getElementById('hotCategoryBatchSelect');
       if (!select) return;
@@ -2034,7 +2018,6 @@
       select.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
     }
 
-    // 一鍵將整個分類加入或取消推薦
     function batchSelectHotByCategory(isAdd) {
       const selectedCat = document.getElementById('hotCategoryBatchSelect').value;
       if (!selectedCat) return;
@@ -2053,7 +2036,7 @@
       renderHotCandidateProducts();
       showToast(`已${isAdd ? '勾選' : '取消'}【${selectedCat}】共 ${count} 款商品！請點右上角儲存。`);
     }
-  
+
     function renderHotCandidateProducts() {
       const tbody = document.getElementById('hotCandidateTableBody');
       if (!tbody) return;
@@ -2098,7 +2081,6 @@
       if (p) p.hot_rank = parseInt(rankVal) || 99;
     }
 
-    // 儲存人氣推薦 (檢查 HTTP 狀態，確保寫入 Supabase)
     async function saveHotProductsSelection() {
       showToast("正在儲存人氣推薦榜單...");
       try {
@@ -2106,11 +2088,7 @@
           let safeSku = encodeURIComponent(p.sku);
           return fetch(`${SUPABASE_URL}/rest/v1/shop_products?sku=eq.${safeSku}&store_id=eq.${STORE_ID}`, {
             method: 'PATCH',
-            headers: { 
-              'apikey': SUPABASE_KEY, 
-              'Authorization': 'Bearer ' + SUPABASE_KEY, 
-              'Content-Type': 'application/json' 
-            },
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
             body: JSON.stringify({ is_hot: (p.is_hot === true), hot_rank: (p.hot_rank || 99) })
           });
         });
@@ -2118,17 +2096,16 @@
         let results = await Promise.all(updates);
         let allOk = results.every(r => r.ok);
         if (allOk) {
-          showToast("人氣推薦榜單已成功儲存至資料庫！");
+          showToast("人氣推薦榜單已成功同步至資料庫！");
           await loadInventoryData();
         } else {
-          showToast("部分商品儲存異常，請確認資料庫欄位 is_hot 是否已建立");
+          showToast("部分商品儲存異常，請確認資料庫狀態");
         }
       } catch(e) {
         showToast("儲存失敗：" + e.message);
       }
     }
 
-    // 優惠活動管理：支援新增、編輯回填、啟用切換、刪除
     async function loadCampaignsData() {
       populateCampaignCategoryCheckboxes();
       try {
@@ -2213,7 +2190,6 @@
       box.classList.toggle('hidden', mode !== 'category');
     }
 
-    // 編輯活動：將資料回填至表單
     function editCampaignItem(id) {
       let c = activeCampaignsList.find(x => x.id == id);
       if (!c) return;
@@ -2229,7 +2205,6 @@
       toggleCampaignParamFields();
       toggleCampaignCategorySelect();
 
-      // 還原選取的分類核取方塊
       let cats = (c.target_category || '').split(',').map(s => s.trim());
       document.querySelectorAll('.camp-cat-check').forEach(cb => {
         cb.checked = cats.includes(cb.value);
@@ -2258,7 +2233,6 @@
       document.getElementById('btnCancelEditCampaign').classList.add('hidden');
     }
 
-    // 儲存優惠活動 (新增或覆蓋更新)
     async function submitSaveCampaign() {
       let editId = document.getElementById('editingCampaignId').value;
       let title = document.getElementById('campTitle').value.trim();
@@ -2313,7 +2287,6 @@
       }
     }
 
-    // 切換活動啟用狀態
     async function toggleCampaignActiveStatus(id, nextActive) {
       let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_campaigns?id=eq.${id}&store_id=eq.${STORE_ID}`, {
         method: 'PATCH',
@@ -2347,23 +2320,41 @@
       let type = document.getElementById('newCouponType').value;
       let val = Number(document.getElementById('newCouponVal').value);
       let note = document.getElementById('newCouponNote').value.trim();
-      if (!code || isNaN(val)) return showToast("請輸入完整代碼與折抵數值！");
+      
+      if (!code) return showToast("請輸入折扣碼代號！");
+      if (isNaN(val) || val <= 0) return showToast("請輸入有效的折抵數值！");
 
-      let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_coupons`, {
-        method: 'POST',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ store_id: STORE_ID, code: code, discount_type: type, discount_val: val, note: note, is_active: true })
-      });
+      try {
+        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_coupons`, {
+          method: 'POST',
+          headers: { 
+            'apikey': SUPABASE_KEY, 
+            'Authorization': 'Bearer ' + SUPABASE_KEY, 
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify({
+            store_id: STORE_ID,
+            code: code,
+            discount_type: type,
+            discount_val: val,
+            note: note,
+            is_active: true
+          })
+        });
 
-      if (res.ok) {
-        document.getElementById('newCouponCode').value = '';
-        document.getElementById('newCouponVal').value = '';
-        document.getElementById('newCouponNote').value = '';
-        await loadCouponsData();
-        showToast("折扣碼已成功建立！");
-      } else {
-        let err = await res.json().catch(() => ({}));
-        showToast("建立失敗：" + (err.message || "代碼可能已存在"));
+        if (res.ok) {
+          document.getElementById('newCouponCode').value = '';
+          document.getElementById('newCouponVal').value = '';
+          document.getElementById('newCouponNote').value = '';
+          await loadCouponsData();
+          showToast(`折扣碼【${code}】已成功建立！`);
+        } else {
+          let errText = await res.text();
+          showToast("建立失敗：" + errText);
+        }
+      } catch(e) {
+        showToast("網路異常：" + e.message);
       }
     }
 
@@ -2379,6 +2370,62 @@
           await loadCouponsData();
         }
       });
+    }
+
+    // ==================== 8. 全域設定與右上角多按鈕管理 ====================
+    function renderHeaderNavButtonsRows() {
+      const container = document.getElementById('headerNavButtonsContainer');
+      if (!container) return;
+
+      if (headerNavButtonsList.length === 0) {
+        container.innerHTML = `<div class="p-4 bg-taupe-canvas text-stone-400 text-center rounded-xl border border-taupe-border text-xs">目前尚未設定任何按鈕</div>`;
+        return;
+      }
+
+      container.innerHTML = headerNavButtonsList.map((btn, idx) => `
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 bg-white p-3 rounded-xl border border-taupe-border items-center text-xs shadow-xs">
+          <div>
+            <label class="text-[10px] text-stone-400 font-bold block mb-0.5">樣式外觀</label>
+            <select onchange="headerNavButtonsList[${idx}].display_mode = this.value" class="w-full p-1.5 border border-taupe-border rounded-lg outline-none">
+              <option value="both" ${btn.display_mode === 'both' ? 'selected' : ''}>圖示 ＋ 文字</option>
+              <option value="icon_only" ${btn.display_mode === 'icon_only' ? 'selected' : ''}>僅質感圖示</option>
+              <option value="text_only" ${btn.display_mode === 'text_only' ? 'selected' : ''}>僅純文字</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[10px] text-stone-400 font-bold block mb-0.5">選擇圖標</label>
+            <select onchange="headerNavButtonsList[${idx}].icon_type = this.value" class="w-full p-1.5 border border-taupe-border rounded-lg outline-none">
+              <option value="chat" ${btn.icon_type === 'chat' ? 'selected' : ''}>訊息/LINE</option>
+              <option value="instagram" ${btn.icon_type === 'instagram' ? 'selected' : ''}>Instagram</option>
+              <option value="globe" ${btn.icon_type === 'globe' ? 'selected' : ''}>地球/官網</option>
+              <option value="facebook" ${btn.icon_type === 'facebook' ? 'selected' : ''}>Facebook</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[10px] text-stone-400 font-bold block mb-0.5">顯示文字</label>
+            <input type="text" value="${btn.title || ''}" onchange="headerNavButtonsList[${idx}].title = this.value" placeholder="如：官方客服" class="w-full p-1.5 border border-taupe-border rounded-lg outline-none">
+          </div>
+          <div class="flex items-center gap-1.5">
+            <div class="flex-1">
+              <label class="text-[10px] text-stone-400 font-bold block mb-0.5">跳轉連結</label>
+              <input type="text" value="${btn.link || ''}" onchange="headerNavButtonsList[${idx}].link = this.value" placeholder="https://..." class="w-full p-1.5 border border-taupe-border rounded-lg outline-none font-mono">
+            </div>
+            <button type="button" onclick="headerNavButtonsList.splice(${idx}, 1); renderHeaderNavButtonsRows();" class="text-rose-600 hover:text-rose-800 font-bold p-1 self-end mb-1">
+              ✕
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function addHeaderNavBtnItem() {
+      headerNavButtonsList.push({
+        display_mode: "both",
+        icon_type: "chat",
+        title: "官方客服",
+        link: "https://line.me/R/ti/p/@480kqjoj"
+      });
+      renderHeaderNavButtonsRows();
     }
 
     async function loadStoreSettings() {
@@ -2430,13 +2477,14 @@
             document.getElementById('editorialActive').checked = (ed.is_active !== false);
           }
 
-          if (s.header_nav_btn) {
-  let nb = s.header_nav_btn;
-  if (nb.display_mode) document.getElementById('settingNavBtnMode').value = nb.display_mode;
-  if (nb.icon_type) document.getElementById('settingNavBtnIcon').value = nb.icon_type;
-  if (nb.title) document.getElementById('settingNavBtnTitle').value = nb.title;
-  if (nb.link) document.getElementById('settingNavBtnLink').value = nb.link;
-}
+          if (s.header_nav_buttons && Array.isArray(s.header_nav_buttons)) {
+            headerNavButtonsList = s.header_nav_buttons;
+          } else if (s.header_nav_btn) {
+            headerNavButtonsList = [s.header_nav_btn];
+          } else {
+            headerNavButtonsList = [{ display_mode: "both", icon_type: "chat", title: "官方客服", link: "https://line.me/R/ti/p/@480kqjoj" }];
+          }
+          renderHeaderNavButtonsRows();
           
           if (s.quick_actions) {
             quickActionsData = s.quick_actions;
@@ -2463,6 +2511,7 @@
         member: document.getElementById('termMember').value.trim()
       };
 
+      // 打包儲存包含右上角快捷按鈕群 (headerNavButtonsList) 的完整設定
       let patchPayload = {
         theme_color: selectedThemeColor,
         logo_url: logoUrl,
@@ -2471,23 +2520,30 @@
         footer_company_info: footerCompany,
         spreadsheet_id: ssId,
         marquee_announcement: marquee,
-        store_terms: terms
+        store_terms: terms,
+        header_nav_buttons: headerNavButtonsList
       };
 
-      patchPayload.header_nav_btn = {
-  display_mode: document.getElementById('settingNavBtnMode').value,
-  icon_type: document.getElementById('settingNavBtnIcon').value,
-  title: document.getElementById('settingNavBtnTitle').value.trim(),
-  link: document.getElementById('settingNavBtnLink').value.trim()
-};
-      
-      let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_stores?store_id=eq.${STORE_ID}`, {
-        method: 'PATCH',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify(patchPayload)
-      });
-      if (res.ok) showToast("全域外觀與合約條款已成功儲存！");
-      else showToast("全域設定儲存失敗");
+      try {
+        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_stores?store_id=eq.${STORE_ID}`, {
+          method: 'PATCH',
+          headers: { 
+            'apikey': SUPABASE_KEY, 
+            'Authorization': 'Bearer ' + SUPABASE_KEY, 
+            'Content-Type': 'application/json' 
+          },
+          body: JSON.stringify(patchPayload)
+        });
+
+        if (res.ok) {
+          showToast("全域外觀、按鈕與合約條款已成功儲存！");
+        } else {
+          let errText = await res.text();
+          showToast("儲存失敗：" + errText);
+        }
+      } catch (e) {
+        showToast("連線異常：" + e.message);
+      }
     }
 
     function showToast(msg) {
