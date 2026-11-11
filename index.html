@@ -521,7 +521,8 @@
 
     const THEME_PALETTES = {
       morandi_taupe: { primary: "#8C7355", hover: "#7A6246", canvas: "#FDFBF7", sand: "#F4EFEB", border: "#E6DFD7", espresso: "#3D3126" },
-      morandi_dusty_rose: { primary: "#A3485E", hover: "#8A3B4E", canvas: "#FFFDFC", sand: "#FCEEEF", border: "#F0E1E4", espresso: "#4A2E35" },
+      // ⭐️ 核心調色：更低飽和度、知性高雅的煙燻灰粉色
+      morandi_dusty_rose: { primary: "#9E7B82", hover: "#87656C", canvas: "#FDFBFB", sand: "#F6F0F1", border: "#EBE0E2", espresso: "#38292C" },
       morandi_forest: { primary: "#3D5A45", hover: "#324B39", canvas: "#F9FAF8", sand: "#ECF2ED", border: "#DCE5DD", espresso: "#202E24" },
       morandi_slate: { primary: "#4E6272", hover: "#405260", canvas: "#F9FAFB", sand: "#EEF2F5", border: "#DDE3E8", espresso: "#253038" },
       morandi_mono: { primary: "#262626", hover: "#171717", canvas: "#FAFAFA", sand: "#F0F0F0", border: "#E5E5E5", espresso: "#171717" },
@@ -638,11 +639,11 @@
           }
 
           // 右上角多功能質感按鈕渲染 (支援 LINE / 官網地球 / IG / FB)
-          if (s.header_nav_btn) {
-            let nb = s.header_nav_btn;
-            const btn = document.getElementById('headerCustomNavBtn');
-            btn.href = nb.link || 'https://line.me/R/ti/p/@480kqjoj';
-
+          // 渲染右上角多按鈕群 (支援美感自適應膠囊排版)
+          const actionBox = document.getElementById('headerCustomActionBox');
+          let btnList = s.header_nav_buttons || (s.header_nav_btn ? [s.header_nav_btn] : []);
+          
+          if (btnList.length > 0) {
             const iconMap = {
               chat: `<svg class="w-3.5 h-3.5 text-emerald-700" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.03 2 11c0 2.87 1.51 5.41 3.86 7.02-.17.62-.64 2.27-.73 2.62-.12.43.16.42.33.31.14-.09 1.95-1.32 2.74-1.85.58.16 1.18.25 1.8.25 5.52 0 10-4.03 10-9s-4.48-9-10-9z"/></svg>`,
               globe: `<svg class="w-3.5 h-3.5 text-sky-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0m-9-9c2.5 3.5 3 6.5 3 9s-.5 5.5-3 9m0-18c-2.5 3.5-3 6.5-3 9s.5 5.5 3 9m-9-9h18"/></svg>`,
@@ -650,16 +651,22 @@
               facebook: `<svg class="w-3.5 h-3.5 text-blue-700" fill="currentColor" viewBox="0 0 24 24"><path d="M9 8H6v4h3v12h5V12h3.642L18 8h-4V6.333C14 5.374 14.456 5 15.658 5H18V0h-3.808C10.596 0 9 1.583 9 4.615V8z"/></svg>`
             };
 
-            let selectedIconSvg = iconMap[nb.icon_type || 'chat'] || iconMap.chat;
-            let titleText = nb.title || '官方客服';
-
-            if (nb.display_mode === 'icon_only') {
-              btn.innerHTML = selectedIconSvg;
-            } else if (nb.display_mode === 'text_only') {
-              btn.innerHTML = `<span class="font-bold">${titleText}</span>`;
-            } else {
-              btn.innerHTML = `${selectedIconSvg}<span class="font-bold">${titleText}</span>`;
-            }
+            actionBox.innerHTML = btnList.map(btn => {
+              let iconSvg = iconMap[btn.icon_type || 'chat'] || iconMap.chat;
+              let content = '';
+              if (btn.display_mode === 'icon_only') {
+                content = iconSvg;
+              } else if (btn.display_mode === 'text_only') {
+                content = `<span>${btn.title}</span>`;
+              } else {
+                content = `${iconSvg}<span>${btn.title}</span>`;
+              }
+              return `
+                <a href="${btn.link || '#'}" target="_blank" class="text-[11px] font-bold text-stone-700 hover:opacity-75 transition flex items-center gap-1.5 px-3 py-1 rounded-full border shadow-2xs bg-white" style="border-color: var(--theme-border);">
+                  ${content}
+                </a>
+              `;
+            }).join('');
           }
           
           if (s.footer_line_id) {
