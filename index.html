@@ -142,7 +142,7 @@
 
     </section>
 
-    <!-- ==================== 2. 【獨立商品全頁面 View】 ==================== -->
+    <!-- ==================== 2. 【獨立商品全頁面 View】(已清理語法錯誤) ==================== -->
     <section id="view-product-detail" class="space-y-4 hidden">
       <!-- 置頂分類麵包屑導覽 -->
       <div class="sticky top-[53px] z-30 py-2 px-4 -mx-4 bg-white/95 backdrop-blur-md border-b flex justify-between items-center text-xs" style="border-color: var(--theme-border);">
@@ -153,7 +153,7 @@
         <span id="detailBreadcrumbCategory" class="theme-text-primary font-bold"></span>
       </div>
 
-      <!-- 跑馬燈下方・商品頁專屬橢圓形分類滑動列 (可直接切換其他類別) -->
+      <!-- 跑馬燈下方・商品頁專屬橢圓形分類滑動列 -->
       <div class="py-1 -mx-4 px-4 bg-white/90 border-b overflow-x-auto no-scrollbar" style="border-color: var(--theme-border);">
         <div id="detailCategoryPillsRow" class="flex gap-2"></div>
       </div>
@@ -178,12 +178,12 @@
         <div id="detailThumbnailsRow" class="flex gap-2 overflow-x-auto no-scrollbar py-1"></div>
       </div>
 
-      <!-- 標題、標籤、價格、分享與主題色愛心 -->
+      <!-- 標題、標籤、價格、分享與主題色愛心卡片 -->
       <div class="bg-white p-5 sm:p-6 rounded-3xl border space-y-4 shadow-xs" style="border-color: var(--theme-border);">
         <div class="flex justify-between items-start gap-4 border-b pb-4" style="border-color: var(--theme-border);">
-          <div>
+          <div class="flex-1 min-w-0">
             <span id="detailTagBadge" class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-md mb-1.5" style="background-color: var(--theme-sand); color: var(--theme-primary);"></span>
-            <h2 id="detailTitle" class="text-base sm:text-xl font-bold text-stone-800 leading-snug"></h2>
+            <h2 id="detailTitle" class="text-base sm:text-xl font-bold text-stone-800 leading-snug break-words"></h2>
             <div id="detailArrival" class="text-[11px] text-stone-400 mt-1"></div>
           </div>
           <!-- 分享與收藏按鈕群 -->
@@ -197,6 +197,7 @@
           </div>
         </div>
 
+        <!-- 價格區 -->
         <div class="flex items-baseline gap-2 font-mono">
           <span id="detailOldPrice" class="text-xs text-stone-400 line-through"></span>
           <span id="detailPrice" class="text-2xl font-bold theme-text-primary"></span>
@@ -309,12 +310,28 @@
       </div>
     </section>
 
-    <!-- ==================== 5. 【搜尋】主畫面 ==================== -->
+    <!-- ==================== 5. 【搜尋】主畫面 (支援近 10 筆歷史紀錄) ==================== -->
     <section id="view-search" class="main-view space-y-4 hidden">
+      <!-- 搜尋輸入框 -->
       <div class="relative">
-        <input type="text" id="searchPageViewInput" oninput="handleSearchPageInput()" placeholder="搜尋商品品名、貨號或款式..." class="w-full pl-9 pr-4 py-3 text-xs rounded-2xl bg-white border shadow-xs outline-none focus:border-stone-500" style="border-color: var(--theme-border);">
+        <input type="text" id="searchPageViewInput" oninput="handleSearchPageInput()" onkeydown="handleSearchKeyDown(event)" placeholder="搜尋商品品名、貨號或款式..." class="w-full pl-9 pr-10 py-3 text-xs rounded-2xl bg-white border shadow-xs outline-none focus:border-stone-500" style="border-color: var(--theme-border);">
         <svg class="w-4 h-4 text-stone-400 absolute left-3.5 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <button type="button" onclick="clearSearchInput()" id="btnSearchClear" class="absolute right-3 top-3 text-stone-400 hover:text-stone-700 text-xs hidden font-bold">✕</button>
       </div>
+
+      <!-- 近 10 筆搜尋歷史紀錄專區 -->
+      <div id="searchHistorySection" class="space-y-2">
+        <div class="flex justify-between items-center px-1">
+          <span class="text-[11px] font-bold text-stone-500 flex items-center gap-1">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>最近搜尋紀錄</span>
+          </span>
+          <button type="button" onclick="clearAllSearchHistory()" class="text-[10.5px] text-stone-400 hover:text-rose-600 transition">清空紀錄</button>
+        </div>
+        <div id="searchHistoryPills" class="flex flex-wrap gap-2"></div>
+      </div>
+
+      <!-- 搜尋結果網格 -->
       <div id="searchResultGrid" class="grid grid-cols-2 md:grid-cols-4 gap-3.5 sm:gap-4"></div>
     </section>
 
@@ -988,7 +1005,7 @@
       }
 
       grid.innerHTML = filteredProducts.map(p => {
-        let firstImg = (p.images||'').split(/[\s,]+/)[0] || 'https://via.placeholder.com/300x300';
+        let firstImg = (p.images || '').split(/[\s,]+/)[0] || 'https://via.placeholder.com/300x300';
         let isFav = favorites.includes(p.sku);
         let catLabel = p.sub_category || p.major_category || '選品';
         let ratioClass = (p.img_ratio === '4:6') ? 'aspect-[4/6]' : 'aspect-square';
@@ -1009,11 +1026,11 @@
               <h3 onclick="openProductDetailPage('${p.sku}')" class="text-xs font-bold text-stone-800 line-clamp-1 cursor-pointer hover:opacity-75 transition">${p.name}</h3>
               
               <div class="flex items-baseline gap-1 mt-1 font-mono">
-                ${p.old_price ? `<span class="text-[10px] text-stone-400 line-through">NT$${p.old_price}</span>` : ''}
+                ${(!p.hide_old_price && p.old_price) ? `<span class="text-[10px] text-stone-400 line-through">NT$${p.old_price}</span>` : ''}
                 <span class="text-xs font-bold theme-text-primary">NT$ ${p.price}</span>
               </div>
 
-              <!-- 收藏愛心 (主題色) 與購物車 -->
+              <!-- 收藏愛心與購物車 -->
               <div class="flex justify-between items-center pt-2 mt-1 border-t" style="border-color: var(--theme-border);">
                 <button onclick="toggleFavorite('${p.sku}', event)" class="p-1 transition" title="收藏">
                   <svg class="w-4 h-4 ${isFav ? 'theme-fill-primary' : 'text-stone-300'}" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
@@ -1056,20 +1073,30 @@
       `).join('');
     }
     // ==================== 5. 獨立商品全頁面 View ====================
+    // ==================== 5. 獨立商品全頁面 View (徹底修復資料空白 Bug) ====================
+    // ==================== 5. 獨立商品全頁面 View (100% 防呆解析修復) ====================
     function openProductDetailPage(sku) {
-      const p = allProducts.find(x => x.sku === sku);
-      if (!p) return;
+      if (!sku) return;
+      let decodedSku = decodeURIComponent(sku);
+      const p = allProducts.find(x => x.sku === decodedSku || x.sku === sku);
+      if (!p) {
+        showToast("查無此商品資訊");
+        return;
+      }
       currentDetailProduct = p;
       detailQty = 1;
 
+      // 切換頁面視圖
       document.querySelectorAll('.main-view').forEach(v => v.classList.add('hidden'));
-      document.getElementById('view-product-detail').classList.remove('hidden');
+      const detailView = document.getElementById('view-product-detail');
+      if (detailView) detailView.classList.remove('hidden');
 
-      // 置頂分類路徑
+      // 1. 置頂分類路徑麵包屑
       let catPath = `${p.major_category || '選品'} ➔ ${p.sub_category || '精選系列'}`;
-      document.getElementById('detailBreadcrumbCategory').innerText = catPath;
+      const breadcrumbEl = document.getElementById('detailBreadcrumbCategory');
+      if (breadcrumbEl) breadcrumbEl.innerText = catPath;
 
-      // 跑馬燈下方橢圓分類鈕高亮對應項目
+      // 2. 橢圓分類鈕高亮
       let curCat = p.sub_category || p.major_category || "全部";
       document.querySelectorAll('.detail-cat-pill').forEach(btn => {
         if (btn.innerText.trim() === curCat) {
@@ -1080,53 +1107,133 @@
         }
       });
 
-      // 圖框比例自適應
+      // 3. 圖框比例自適應
       const wrapper = document.getElementById('detailMainImgWrapper');
-      wrapper.className = (p.img_ratio === '4:6') 
-        ? "relative w-full aspect-[4/6] max-h-[480px] rounded-3xl overflow-hidden bg-stone-100 border flex items-center justify-center cursor-zoom-in group select-none"
-        : "relative w-full aspect-square max-h-[440px] rounded-3xl overflow-hidden bg-stone-100 border flex items-center justify-center cursor-zoom-in group select-none";
-      wrapper.style.borderColor = "var(--theme-border)";
+      if (wrapper) {
+        wrapper.className = (p.img_ratio === '4:6') 
+          ? "relative w-full aspect-[4/6] max-h-[480px] rounded-3xl overflow-hidden bg-stone-100 border flex items-center justify-center cursor-zoom-in group select-none"
+          : "relative w-full aspect-square max-h-[440px] rounded-3xl overflow-hidden bg-stone-100 border flex items-center justify-center cursor-zoom-in group select-none";
+        wrapper.style.borderColor = "var(--theme-border)";
+      }
 
+      // 4. 圖片與縮圖渲染
       detailSelectedImgs = p.images ? p.images.split(/[\s,]+/).filter(Boolean) : ['https://via.placeholder.com/500x500'];
       setDetailMainImage(0);
 
-      document.getElementById('detailTitle').innerText = p.name;
-      document.getElementById('detailTagBadge').innerText = p.tag || '熱銷選品';
-      document.getElementById('detailOldPrice').innerText = p.old_price ? `NT$ ${p.old_price}` : '';
-      document.getElementById('detailPrice').innerText = `NT$ ${p.price}`;
+      // 5. 標題、標籤與劃線原價防呆處理
+      const titleEl = document.getElementById('detailTitle');
+      if (titleEl) titleEl.innerText = p.name || '未命名商品';
 
-      // 到貨期標籤顯示控制
-      const arrivalEl = document.getElementById('detailArrival');
-      if (p.show_arrival_date !== false && p.arrival_date) {
-        arrivalEl.innerText = `預計出貨期：${p.arrival_date}`;
-        arrivalEl.classList.remove('hidden');
-      } else {
-        arrivalEl.classList.add('hidden');
+      const tagEl = document.getElementById('detailTagBadge');
+      if (tagEl) {
+        tagEl.innerText = p.tag || '熱銷選品';
+        tagEl.classList.toggle('hidden', !p.tag);
       }
 
-      document.getElementById('detailDesc').innerText = p.description || '韓國原裝進口頂級鋪棉系列，極致親膚透氣。';
-      document.getElementById('detailQty').innerText = 1;
+      const oldPriceEl = document.getElementById('detailOldPrice');
+      if (oldPriceEl) {
+        oldPriceEl.innerText = (!p.hide_old_price && p.old_price && Number(p.old_price) > 0) ? `NT$ ${p.old_price}` : '';
+      }
 
-      // 規格渲染 (點選高對比高亮主題色白字)
-      let colors = p.specs_data && p.specs_data.length > 0 
-        ? [...new Set(p.specs_data.map(s => s.spec.split('/')[0].replace('款式:', '').trim()))] : ['單一花色'];
+      const priceEl = document.getElementById('detailPrice');
+      if (priceEl) priceEl.innerText = `NT$ ${p.price || 0}`;
+
+      // 6. 到貨期標籤顯示控制
+      const arrivalEl = document.getElementById('detailArrival');
+      if (arrivalEl) {
+        if (p.show_arrival_date !== false && p.arrival_date) {
+          arrivalEl.innerText = `預計出貨期：${p.arrival_date}`;
+          arrivalEl.classList.remove('hidden');
+        } else {
+          arrivalEl.classList.add('hidden');
+        }
+      }
+
+      const descEl = document.getElementById('detailDesc');
+      if (descEl) descEl.innerText = p.description || '頂級嚴選系列，極致親膚透氣，品質保證。';
+
+      const qtyEl = document.getElementById('detailQty');
+      if (qtyEl) qtyEl.innerText = 1;
+
+      // 7. ⭐️ 核心防呆：安全解析 specs_data (若是純文字字串自動 JSON.parse)
+      let parsedSpecs = [];
+      if (p.specs_data) {
+        if (typeof p.specs_data === 'string') {
+          try {
+            parsedSpecs = JSON.parse(p.specs_data);
+          } catch(e) {
+            parsedSpecs = [];
+          }
+        } else if (Array.isArray(p.specs_data)) {
+          parsedSpecs = p.specs_data;
+        }
+      }
+      p.specs_data = parsedSpecs; // 確保放回物件中一定是陣列
+
+      // 8. 款式規格安全拆解
+      let colors = [];
+      if (parsedSpecs.length > 0) {
+        colors = [...new Set(parsedSpecs.map(s => {
+          let specStr = (s && s.spec) ? s.spec : '';
+          return specStr.split('/')[0].replace('款式:', '').trim();
+        }).filter(Boolean))];
+      }
+      if (colors.length === 0) colors = ["單一款式"];
       detailColor = colors[0];
-      document.getElementById('detailColorOptions').innerHTML = colors.map(c => `
-        <button onclick="selectDetailColor('${c}', this)" class="spec-btn px-3.5 py-1.5 rounded-xl border text-xs font-bold transition shadow-2xs ${c === detailColor ? 'theme-btn-primary shadow-xs' : 'bg-white text-stone-700'}" style="border-color: var(--theme-border);">${c}</button>
-      `).join('');
 
-      let sizes = p.specs_data && p.specs_data.length > 0 
-        ? [...new Set(p.specs_data.map(s => s.spec.split('/')[1] ? s.spec.split('/')[1].trim() : '單一規格'))] : ['單一規格'];
+      const colorBox = document.getElementById('detailColorOptions');
+      if (colorBox) {
+        colorBox.innerHTML = colors.map((c, idx) => `
+          <button type="button" onclick="selectDetailColor('${c}', this)" class="spec-btn px-3.5 py-1.5 rounded-xl border text-xs font-bold transition shadow-2xs ${idx === 0 ? 'theme-btn-primary shadow-xs' : 'bg-white text-stone-700'}" style="border-color: var(--theme-border);">${c}</button>
+        `).join('');
+      }
+
+      // 9. 尺寸規格安全拆解
+      let sizes = [];
+      if (parsedSpecs.length > 0) {
+        sizes = [...new Set(parsedSpecs.map(s => {
+          let specStr = (s && s.spec) ? s.spec : '';
+          return specStr.split('/')[1] ? specStr.split('/')[1].trim() : '標準規格';
+        }).filter(Boolean))];
+      }
+      if (sizes.length === 0) sizes = ["單一規格"];
       detailSize = sizes[0];
-      document.getElementById('detailSizeOptions').innerHTML = sizes.map(s => `
-        <button onclick="selectDetailSize('${s}', this)" class="spec-size-btn px-3.5 py-1.5 rounded-xl border text-xs font-bold transition shadow-2xs ${s === detailSize ? 'theme-btn-primary shadow-xs' : 'bg-white text-stone-700'}" style="border-color: var(--theme-border);">${s}</button>
-      `).join('');
+
+      const sizeBox = document.getElementById('detailSizeOptions');
+      if (sizeBox) {
+        sizeBox.innerHTML = sizes.map((s, idx) => `
+          <button type="button" onclick="selectDetailSize('${s}', this)" class="spec-size-btn px-3.5 py-1.5 rounded-xl border text-xs font-bold transition shadow-2xs ${idx === 0 ? 'theme-btn-primary shadow-xs' : 'bg-white text-stone-700'}" style="border-color: var(--theme-border);">${s}</button>
+        `).join('');
+      }
 
       updateDetailHeartUI();
       syncDetailPrice();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
+    // 連動價格防呆計算
+    function syncDetailPrice() {
+      if (!currentDetailProduct) return;
+      let targetKey = `款式:${detailColor} / ${detailSize}`;
+      let specs = Array.isArray(currentDetailProduct.specs_data) ? currentDetailProduct.specs_data : [];
+      let matched = specs.find(v => v && v.spec === targetKey);
+      
+      const priceEl = document.getElementById('detailPrice');
+      const oldPriceEl = document.getElementById('detailOldPrice');
+
+      if (matched && matched.price) {
+        if (priceEl) priceEl.innerText = `NT$ ${matched.price}`;
+        if (oldPriceEl) {
+          oldPriceEl.innerText = (!currentDetailProduct.hide_old_price && matched.oldPrice && Number(matched.oldPrice) > 0) ? `NT$ ${matched.oldPrice}` : '';
+        }
+      } else {
+        if (priceEl) priceEl.innerText = `NT$ ${currentDetailProduct.price || 0}`;
+        if (oldPriceEl) {
+          oldPriceEl.innerText = (!currentDetailProduct.hide_old_price && currentDetailProduct.old_price && Number(currentDetailProduct.old_price) > 0) ? `NT$ ${currentDetailProduct.old_price}` : '';
+        }
+      }
+    }
+    
     function closeProductDetailPage() {
       document.getElementById('view-product-detail').classList.add('hidden');
       document.getElementById('view-home').classList.remove('hidden');
@@ -1214,16 +1321,6 @@
       });
       el.className = "spec-size-btn px-3.5 py-1.5 rounded-xl border text-xs font-bold transition theme-btn-primary shadow-xs";
       syncDetailPrice();
-    }
-
-    function syncDetailPrice() {
-      if (!currentDetailProduct || !currentDetailProduct.specs_data) return;
-      let targetKey = `款式:${detailColor} / ${detailSize}`;
-      let matched = currentDetailProduct.specs_data.find(v => v.spec === targetKey);
-      if (matched && matched.price) {
-        document.getElementById('detailPrice').innerText = `NT$ ${matched.price}`;
-        if (matched.oldPrice) document.getElementById('detailOldPrice').innerText = `NT$ ${matched.oldPrice}`;
-      }
     }
 
     function changeDetailQty(amt) {
@@ -1417,22 +1514,105 @@
     }
 
     // ==================== 8. 搜尋功能 (修復即時反應) ====================
-    function handleSearchPageInput() {
-      let kw = document.getElementById('searchPageViewInput').value.trim().toLowerCase();
-      const grid = document.getElementById('searchResultGrid');
-      if (!kw) {
-        grid.innerHTML = `<div class="col-span-full py-12 text-center text-xs text-stone-400">請輸入關鍵字搜尋商品</div>`;
+    // ==================== 8. 搜尋功能 (近 10 筆歷史紀錄、快速搜尋、單筆刪除) ====================
+    let searchHistory = JSON.parse(localStorage.getItem('sibyl_search_history') || '[]');
+
+    function renderSearchHistoryUI() {
+      const container = document.getElementById('searchHistoryPills');
+      const section = document.getElementById('searchHistorySection');
+      if (!container || !section) return;
+
+      if (searchHistory.length === 0) {
+        section.classList.add('hidden');
         return;
       }
+      section.classList.remove('hidden');
+
+      container.innerHTML = searchHistory.map((kw, idx) => `
+        <div class="flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs bg-white text-stone-700 shadow-2xs hover:border-stone-400 transition" style="border-color: var(--theme-border);">
+          <span class="cursor-pointer" onclick="clickSearchHistory('${kw}')">${kw}</span>
+          <button type="button" onclick="deleteSearchHistoryItem(${idx}, event)" class="text-stone-400 hover:text-rose-600 font-bold ml-0.5">✕</button>
+        </div>
+      `).join('');
+    }
+
+    function addSearchHistoryKeyword(kw) {
+      if (!kw || !kw.trim()) return;
+      kw = kw.trim();
+      // 移除重複並推入最前端，限制最多 10 筆
+      searchHistory = searchHistory.filter(item => item !== kw);
+      searchHistory.unshift(kw);
+      if (searchHistory.length > 10) searchHistory = searchHistory.slice(0, 10);
+      localStorage.setItem('sibyl_search_history', JSON.stringify(searchHistory));
+      renderSearchHistoryUI();
+    }
+
+    function deleteSearchHistoryItem(idx, e) {
+      if (e) e.stopPropagation();
+      searchHistory.splice(idx, 1);
+      localStorage.setItem('sibyl_search_history', JSON.stringify(searchHistory));
+      renderSearchHistoryUI();
+    }
+
+    function clearAllSearchHistory() {
+      searchHistory = [];
+      localStorage.removeItem('sibyl_search_history');
+      renderSearchHistoryUI();
+      showToast("已清空搜尋紀錄");
+    }
+
+    function clickSearchHistory(kw) {
+      const input = document.getElementById('searchPageViewInput');
+      if (input) {
+        input.value = kw;
+        handleSearchPageInput();
+      }
+    }
+
+    function handleSearchKeyDown(e) {
+      if (e.key === 'Enter') {
+        let kw = document.getElementById('searchPageViewInput').value.trim();
+        if (kw) addSearchHistoryKeyword(kw);
+      }
+    }
+
+    function clearSearchInput() {
+      const input = document.getElementById('searchPageViewInput');
+      if (input) {
+        input.value = '';
+        handleSearchPageInput();
+      }
+    }
+
+    // 搜尋輸入監聽
+    function handleSearchPageInput() {
+      let inputEl = document.getElementById('searchPageViewInput');
+      let clearBtn = document.getElementById('btnSearchClear');
+      let kw = inputEl.value.trim().toLowerCase();
+      const grid = document.getElementById('searchResultGrid');
+
+      if (clearBtn) clearBtn.classList.toggle('hidden', kw === '');
+
+      if (!kw) {
+        grid.innerHTML = `<div class="col-span-full py-12 text-center text-xs text-stone-400">請輸入關鍵字搜尋商品</div>`;
+        renderSearchHistoryUI();
+        return;
+      }
+
+      // 輸入超過 2 個字且停止打字時自動加入歷史
+      if (kw.length >= 2) {
+        addSearchHistoryKeyword(inputEl.value.trim());
+      }
+
       let results = allProducts.filter(p => 
-        p.name.toLowerCase().includes(kw) || 
-        p.sku.toLowerCase().includes(kw) || 
+        (p.name || '').toLowerCase().includes(kw) || 
+        (p.sku || '').toLowerCase().includes(kw) || 
         (p.sub_category || '').toLowerCase().includes(kw) ||
         (p.major_category || '').toLowerCase().includes(kw)
       );
 
       if (results.length === 0) {
-        grid.innerHTML = `<div class="col-span-full py-12 text-center text-xs text-stone-400">查無符合【${kw}】的商品</div>`;
+        grid.innerHTML = `<div class="col-span-full py-12 text-center text-xs text-stone-400">查無符合【${inputEl.value.trim()}】的商品</div>`;
         return;
       }
 
@@ -1463,6 +1643,10 @@
       if (tab === 'cart') updateCartUI();
       if (tab === 'search') handleSearchPageInput();
       if (tab === 'member') loadMemberCounts();
+      if (tab === 'search') {
+        renderSearchHistoryUI();
+        handleSearchPageInput();
+      }
 
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
