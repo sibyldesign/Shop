@@ -108,8 +108,13 @@
         </div>
 
         <!-- 水平滑動分類標籤列 (Sticky Header) -->
-        <div class="sticky top-[53px] z-30 py-2 -mx-4 px-4 bg-white/95 backdrop-blur-md border-b" style="border-color: var(--theme-border);">
-          <div id="categoryFilterBar" class="flex gap-2 overflow-x-auto no-scrollbar"></div>
+        <!-- 水平滑動分類導航 (大分類頁籤 + 次分類橢圓膠囊鈕) -->
+        <div class="sticky top-[53px] z-30 py-2 -mx-4 px-4 bg-white/95 backdrop-blur-md border-b space-y-2 shadow-2xs" style="border-color: var(--theme-border);">
+          <!-- 第一層：大分類頁籤 (全部 / 韓國棉被 / 美業微工具) -->
+          <div id="majorCategoryTabsRow" class="flex gap-4 overflow-x-auto no-scrollbar border-b pb-1 text-xs font-bold" style="border-color: var(--theme-border);"></div>
+          
+          <!-- 第二層：該大分類底下的次分類橢圓膠囊鈕 (四季被 / 春夏薄被 / 雙面絨冬被 / 床寢配件) -->
+          <div id="categoryFilterBar" class="flex gap-2 overflow-x-auto no-scrollbar pt-0.5"></div>
         </div>
 
         <!-- 全部分類商品網格 (手機 2 欄、電腦 4 欄，分類標籤在左上方) -->
@@ -632,19 +637,31 @@
               : "w-7 h-7 rounded-full object-cover border border-border-base";
           }
 
-          // 右上角自訂按鈕
+          // 右上角多功能質感按鈕渲染 (支援 LINE / 官網地球 / IG / FB)
           if (s.header_nav_btn) {
             let nb = s.header_nav_btn;
             const btn = document.getElementById('headerCustomNavBtn');
             btn.href = nb.link || 'https://line.me/R/ti/p/@480kqjoj';
-            const icon = document.getElementById('headerNavIcon');
-            const text = document.getElementById('headerNavText');
-            text.innerText = nb.title || '官方客服';
-            if (nb.display_mode === 'icon_only') { text.classList.add('hidden'); icon.classList.remove('hidden'); }
-            else if (nb.display_mode === 'text_only') { icon.classList.add('hidden'); text.classList.remove('hidden'); }
-            else { icon.classList.remove('hidden'); text.classList.remove('hidden'); }
-          }
 
+            const iconMap = {
+              chat: `<svg class="w-3.5 h-3.5 text-emerald-700" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.03 2 11c0 2.87 1.51 5.41 3.86 7.02-.17.62-.64 2.27-.73 2.62-.12.43.16.42.33.31.14-.09 1.95-1.32 2.74-1.85.58.16 1.18.25 1.8.25 5.52 0 10-4.03 10-9s-4.48-9-10-9z"/></svg>`,
+              globe: `<svg class="w-3.5 h-3.5 text-sky-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0m-9-9c2.5 3.5 3 6.5 3 9s-.5 5.5-3 9m0-18c-2.5 3.5-3 6.5-3 9s.5 5.5 3 9m-9-9h18"/></svg>`,
+              instagram: `<svg class="w-3.5 h-3.5 text-pink-700" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>`,
+              facebook: `<svg class="w-3.5 h-3.5 text-blue-700" fill="currentColor" viewBox="0 0 24 24"><path d="M9 8H6v4h3v12h5V12h3.642L18 8h-4V6.333C14 5.374 14.456 5 15.658 5H18V0h-3.808C10.596 0 9 1.583 9 4.615V8z"/></svg>`
+            };
+
+            let selectedIconSvg = iconMap[nb.icon_type || 'chat'] || iconMap.chat;
+            let titleText = nb.title || '官方客服';
+
+            if (nb.display_mode === 'icon_only') {
+              btn.innerHTML = selectedIconSvg;
+            } else if (nb.display_mode === 'text_only') {
+              btn.innerHTML = `<span class="font-bold">${titleText}</span>`;
+            } else {
+              btn.innerHTML = `${selectedIconSvg}<span class="font-bold">${titleText}</span>`;
+            }
+          }
+          
           if (s.footer_line_id) {
             document.getElementById('footerLineLink').innerText = s.footer_line_id;
             document.getElementById('footerLineLink').href = `https://line.me/R/ti/p/${s.footer_line_id.replace('@','')}`;
@@ -810,62 +827,114 @@
       } catch(e){}
     }
 
-    // ⭐️ 核心修正：前台分類完全依據後台「可視化分類樹」順序呈現，徹底消除重複
-    // 前台分類完全依照後台「可視化分類樹」設置為主顯示
+    let currentMajorCategory = "全部";
+    let currentSubCategory = "全部";
+
+    // ⭐️ 核心：嚴格依據後台「可視化分類樹」順序呈現大分類與次分類
     function renderCategoryFilterBar() {
-      const bar = document.getElementById('categoryFilterBar');
+      const majorRow = document.getElementById('majorCategoryTabsRow');
+      const subRow = document.getElementById('categoryFilterBar');
       const detailBar = document.getElementById('detailCategoryPillsRow');
       const drawerList = document.getElementById('drawerCategoriesList');
 
-      let cats = ["全部"];
-
-      // 優先完全依據後台保存的 category_tree 順序提取次分類
-      if (categoryTree && Array.isArray(categoryTree) && categoryTree.length > 0) {
-        categoryTree.forEach(major => {
-          if (major.children && major.children.length > 0) {
-            major.children.forEach(sub => {
-              if (sub.name && sub.name.trim() !== "" && sub.name.trim() !== "全部") {
-                cats.push(sub.name.trim());
-              }
-            });
-          } else if (major.name && major.name.trim() !== "" && major.name.trim() !== "全部") {
-            cats.push(major.name.trim());
-          }
+      // 1. 取得大分類清單 (以 categoryTree 為主)
+      let majorList = ["全部"];
+      if (categoryTree && categoryTree.length > 0) {
+        categoryTree.forEach(m => {
+          if (m.name && !majorList.includes(m.name)) majorList.push(m.name);
         });
       } else {
-        // 備援：若後台未建樹狀結構，才由商品次分類反推
-        let rawCats = (allProducts || []).map(p => p.sub_category || p.major_category).filter(Boolean);
-        let uniq = [...new Set(rawCats.map(c => c.trim()).filter(c => c !== "" && c !== "全部"))];
-        cats = ["全部", ...uniq];
+        let majorsFromProd = [...new Set(allProducts.map(p => p.major_category).filter(Boolean))];
+        majorList = ["全部", ...majorsFromProd];
       }
 
-      // 消除所有可能重複項
-      cats = [...new Set(cats)];
-
-      // 1. 首頁分類滑動條
-      if (bar) {
-        bar.innerHTML = cats.map(c => `
-          <button type="button" onclick="filterByCategory('${c}', this)" class="cat-pill px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition ${c === currentCategoryFilter ? 'theme-btn-primary font-bold shadow-xs' : 'bg-white text-stone-600 border'}" style="border-color: var(--theme-border);">
-            ${c}
+      // 渲染大分類頁籤
+      if (majorRow) {
+        majorRow.innerHTML = majorList.map(m => `
+          <button type="button" onclick="selectMajorCategory('${m}')" class="whitespace-nowrap pb-1 transition ${m === currentMajorCategory ? 'theme-text-primary border-b-2 theme-border-primary font-bold' : 'text-stone-400 hover:text-stone-700 font-medium'}">
+            ${m}
           </button>
         `).join('');
       }
 
-      // 2. 商品頁跑馬燈下方橢圓形分類鈕
+      // 2. 取得次分類清單
+      let subList = ["全部"];
+      if (currentMajorCategory === "全部") {
+        if (categoryTree && categoryTree.length > 0) {
+          categoryTree.forEach(m => {
+            (m.children || []).forEach(s => { if (!subList.includes(s.name)) subList.push(s.name); });
+          });
+        } else {
+          let subs = [...new Set(allProducts.map(p => p.sub_category).filter(Boolean))];
+          subList = ["全部", ...subs];
+        }
+      } else {
+        let matchedMajor = categoryTree.find(m => m.name === currentMajorCategory);
+        if (matchedMajor && matchedMajor.children) {
+          matchedMajor.children.forEach(s => subList.push(s.name));
+        } else {
+          let subs = [...new Set(allProducts.filter(p => p.major_category === currentMajorCategory).map(p => p.sub_category).filter(Boolean))];
+          subList = ["全部", ...subs];
+        }
+      }
+
+      // 渲染次分類橢圓鈕
+      if (subRow) {
+        subRow.innerHTML = subList.map(s => `
+          <button type="button" onclick="selectSubCategory('${s}', this)" class="cat-pill px-3.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition ${s === currentSubCategory ? 'theme-btn-primary font-bold shadow-xs' : 'bg-white text-stone-600 border'}" style="border-color: var(--theme-border);">
+            ${s}
+          </button>
+        `).join('');
+      }
+
+      // 渲染商品頁橢圓分類切換鈕
       if (detailBar) {
-        detailBar.innerHTML = cats.map(c => `
-          <button type="button" onclick="switchCategoryFromDetail('${c}')" class="detail-cat-pill px-3.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition bg-white text-stone-700 border hover:border-stone-400" style="border-color: var(--theme-border);">
-            ${c}
+        detailBar.innerHTML = subList.map(s => `
+          <button type="button" onclick="switchCategoryFromDetail('${s}')" class="detail-cat-pill px-3.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition bg-white text-stone-700 border hover:border-stone-400" style="border-color: var(--theme-border);">
+            ${s}
           </button>
         `).join('');
       }
 
-      // 3. 側邊漢堡抽屜分類清單
+      // 側邊抽屜
       if (drawerList) {
-        drawerList.innerHTML = cats.map(c => `
-          <div onclick="filterByCategory('${c}'); toggleSideDrawer(false);" class="cursor-pointer py-1.5 text-stone-700 hover:opacity-75">${c}</div>
+        drawerList.innerHTML = majorList.filter(m => m !== '全部').map(m => `
+          <div onclick="selectMajorCategory('${m}'); toggleSideDrawer(false);" class="cursor-pointer py-1.5 font-bold text-stone-800 hover:opacity-75">
+            ${m}
+          </div>
         `).join('');
       }
+    }
+
+    function selectMajorCategory(m) {
+      currentMajorCategory = m;
+      currentSubCategory = "全部";
+      renderCategoryFilterBar();
+      applyProductFilters();
+    }
+
+    function selectSubCategory(s, btn) {
+      currentSubCategory = s;
+      document.querySelectorAll('.cat-pill').forEach(b => {
+        b.className = "cat-pill px-3.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition bg-white text-stone-600 border";
+        b.style.borderColor = "var(--theme-border)";
+      });
+      if (btn) btn.className = "cat-pill px-3.5 py-1 rounded-full text-xs font-bold whitespace-nowrap transition theme-btn-primary shadow-xs";
+      applyProductFilters();
+    }
+
+    function applyProductFilters() {
+      filteredProducts = allProducts.filter(p => {
+        let matchMajor = (currentMajorCategory === "全部") || (p.major_category === currentMajorCategory);
+        let matchSub = (currentSubCategory === "全部") || (p.sub_category === currentSubCategory);
+        return matchMajor && matchSub;
+      });
+
+      let title = "全部分類商品";
+      if (currentMajorCategory !== "全部") title = currentMajorCategory;
+      if (currentSubCategory !== "全部") title += ` ➔ ${currentSubCategory}`;
+      document.getElementById('catalogSectionTitle').innerText = title;
+      renderProductGrid();
     }
 
     // 商品頁分類鈕跳轉回首頁
@@ -954,13 +1023,20 @@
 
     function renderPopularGrid() {
       const grid = document.getElementById('popularProductGrid');
-      let populars = allProducts.filter(p => p.tag.includes('熱銷') || p.tag.includes('推薦') || p.is_hot);
-      if (populars.length === 0) populars = allProducts.slice(0, 8);
+      // 依據後台勾選 is_hot 篩選，並嚴格依據 hot_rank (1, 2, 3...) 排序
+      let populars = allProducts.filter(p => p.is_hot === true);
+      
+      populars.sort((a, b) => (a.hot_rank || 99) - (b.hot_rank || 99));
+
+      // 若後台尚未勾選任何推薦，自動以銷量/起標前 8 款備援
+      if (populars.length === 0) {
+        populars = allProducts.slice(0, 8);
+      }
 
       grid.innerHTML = populars.map((p, idx) => `
         <div class="bg-white p-3 rounded-2xl border shadow-xs flex flex-col justify-between group relative" style="border-color: var(--theme-border);">
           <div class="w-full aspect-square rounded-xl overflow-hidden relative cursor-pointer" onclick="openProductDetailPage('${p.sku}')" style="background-color: var(--theme-sand);">
-            <img src="${(p.images||'').split(/[\s,]+/)[0]}" class="w-full h-full object-cover">
+            <img src="${(p.images || '').split(/[\s,]+/)[0] || 'https://via.placeholder.com/300x300'}" class="w-full h-full object-cover">
             <span class="absolute top-2 left-2 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow" style="background-color: var(--theme-espresso);">
               TOP ${idx + 1}
             </span>
@@ -972,7 +1048,6 @@
         </div>
       `).join('');
     }
-
     // ==================== 5. 獨立商品全頁面 View ====================
     function openProductDetailPage(sku) {
       const p = allProducts.find(x => x.sku === sku);
