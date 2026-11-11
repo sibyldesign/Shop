@@ -76,13 +76,15 @@
           <h1 class="text-xs font-bold text-taupe-charcoal truncate" id="adminHeaderStoreName">Sibyl Select 總管中心</h1>
         </div>
       </div>
+      <!-- 頂部按鈕群 -->
       <div class="flex items-center gap-1.5 shrink-0">
+        <button type="button" onclick="refreshAdminDataOnly()" class="px-2.5 py-1 text-[11px] font-bold text-taupe-dark hover:text-white bg-taupe-light hover:bg-taupe-main rounded-lg border border-taupe-border transition flex items-center gap-1 shadow-2xs">
+          <span>重新整理</span>
+        </button>
         <button onclick="openChangePasswordModal()" class="px-2.5 py-1 text-[11px] font-bold text-stone-600 hover:text-taupe-main bg-taupe-canvas rounded-lg border border-taupe-border transition flex items-center gap-1">
-          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
           <span>密碼</span>
         </button>
         <a href="index.html" target="_blank" class="px-2.5 py-1 text-[11px] font-bold text-taupe-main bg-taupe-light rounded-lg border border-taupe-border hover:bg-taupe-sand transition flex items-center gap-1">
-          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
           <span>前台</span>
         </a>
         <button onclick="handleAdminLogout()" class="px-2 py-1 text-[11px] font-bold text-stone-400 hover:text-rose-600 bg-stone-50 rounded-lg border border-stone-200 transition">
@@ -300,12 +302,10 @@
         </table>
       </div>
 
-      <div class="flex justify-between items-center text-xs text-stone-500 pt-2 font-medium">
-        <span id="invPaginationText">第 1 頁，共 1 頁</span>
-        <div class="flex gap-1.5">
-          <button onclick="changeInvPage(-1)" class="px-3 py-1 bg-stone-100 hover:bg-stone-200 rounded border">上一頁</button>
-          <button onclick="changeInvPage(1)" class="px-3 py-1 bg-stone-100 hover:bg-stone-200 rounded border">下一頁</button>
-        </div>
+      <!-- 商品清單底部數字符號分頁列 -->
+      <div class="flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-stone-500 pt-3 font-medium border-t border-taupe-border">
+        <span id="invPaginationText">第 1 頁，共 1 頁 (總計 0 款商品)</span>
+        <div class="flex items-center gap-1.5" id="invPaginationButtonsRow"></div>
       </div>
     </section>
 
@@ -641,6 +641,38 @@
         <p class="text-[10px] text-stone-400">系統上架商品時將自動同步寫入此試算表中的【商品清單】工作表。</p>
       </div>
 
+      <!-- 前台右上角快捷導航按鈕設定 (官網 / 客服 / IG / FB) -->
+      <div class="pt-3 border-t border-taupe-border space-y-3">
+        <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase border-b border-taupe-border pb-2">前台右上角快捷導航按鈕設定</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-taupe-canvas p-3.5 rounded-xl border border-taupe-border text-xs">
+          <div>
+            <label class="font-bold text-stone-600 block mb-1">顯示模式</label>
+            <select id="settingNavBtnMode" class="w-full p-2 border border-taupe-border rounded-lg bg-white outline-none">
+              <option value="both">純文字按鈕 ＋ 質感圖示</option>
+              <option value="text_only">僅顯示純文字按鈕</option>
+              <option value="icon_only">僅顯示質感圖示</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-bold text-stone-600 block mb-1">質感圖示樣式</label>
+            <select id="settingNavBtnIcon" class="w-full p-2 border border-taupe-border rounded-lg bg-white outline-none">
+              <option value="chat">訊息對話圖 (LINE/客服)</option>
+              <option value="globe">地球網絡圖 (官方網站/部落格)</option>
+              <option value="instagram">Instagram 質感相機 (社群專頁)</option>
+              <option value="facebook">Facebook 社交圖標 (粉絲專頁)</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-bold text-stone-600 block mb-1">自訂按鈕文字</label>
+            <input type="text" id="settingNavBtnTitle" value="官方客服" placeholder="例如：官方客服 / 品牌官網 / 追蹤 IG" class="w-full p-2 border border-taupe-border rounded-lg bg-white outline-none">
+          </div>
+          <div>
+            <label class="font-bold text-stone-600 block mb-1">點擊跳轉網址</label>
+            <input type="text" id="settingNavBtnLink" value="https://line.me/R/ti/p/@480kqjoj" placeholder="https://..." class="w-full p-2 border border-taupe-border rounded-lg bg-white outline-none font-mono">
+          </div>
+        </div>
+      </div>
+
       <!-- 品牌 Logo 設定 -->
       <div class="pt-3 border-t border-taupe-border space-y-3">
         <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase border-b border-taupe-border pb-2">前台品牌 Logo 設定</h2>
@@ -919,7 +951,7 @@
       } catch(e){}
 
       if (input === realPin || input === "198722" || input === "alyn9999") {
-        sessionStorage.setItem("sibyl_admin_auth", "true");
+        localStorage.setItem("sibyl_admin_auth", "true"); // 👈 永久記憶，刷新不登出
         document.getElementById("adminAuthOverlay").style.display = "none";
         initDashboard();
       } else {
@@ -927,6 +959,30 @@
       }
     }
 
+    function handleAdminLogout() {
+      localStorage.removeItem("sibyl_admin_auth");
+      window.location.reload();
+    }
+
+    window.onload = () => {
+      if (localStorage.getItem("sibyl_admin_auth") === "true") {
+        document.getElementById("adminAuthOverlay").style.display = "none";
+        initDashboard();
+      }
+    };
+
+    // 免刷新瀏覽器的即時更新資料函式
+    async function refreshAdminDataOnly() {
+      showToast("正在同步最新雲端資料...");
+      await Promise.all([
+        loadStoreSettings(),
+        loadOrdersData(),
+        loadInventoryData(),
+        loadBannersData(),
+        loadCouponsData()
+      ]);
+      showToast("雲端資料已同步更新完畢！");
+    }
     function openChangePasswordModal() {
       showCustomPrompt("請輸入新的後台管理密碼：", "", async (newPwd) => {
         if (!newPwd || newPwd.trim().length < 4) return showToast("密碼不能少於 4 個字元！");
@@ -939,18 +995,6 @@
         else showToast("密碼更新失敗，請檢查網路連線。");
       });
     }
-
-    function handleAdminLogout() {
-      sessionStorage.removeItem("sibyl_admin_auth");
-      window.location.reload();
-    }
-
-    window.onload = () => {
-      if (sessionStorage.getItem("sibyl_admin_auth") === "true") {
-        document.getElementById("adminAuthOverlay").style.display = "none";
-        initDashboard();
-      }
-    };
 
     function switchTab(id) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
@@ -1512,6 +1556,32 @@
         pagText.innerText = `第 ${invPage} 頁，共 ${totalPages} 頁 (總計 ${filteredProducts.length} 款商品)`;
       }
 
+      // 渲染 [上一頁] [1] [2] [3]... [下一頁]
+      const btnRow = document.getElementById('invPaginationButtonsRow');
+      if (btnRow) {
+        let btnsHtml = `
+          <button type="button" onclick="changeInvPage(-1)" ${invPage === 1 ? 'disabled class="px-2.5 py-1 bg-stone-50 text-stone-300 rounded border border-stone-200 cursor-not-allowed"' : 'class="px-2.5 py-1 bg-white hover:bg-stone-100 text-stone-700 rounded border border-taupe-border"'}>
+            上一頁
+          </button>
+        `;
+
+        for (let p = 1; p <= totalPages; p++) {
+          let isActive = (p === invPage);
+          btnsHtml += `
+            <button type="button" onclick="goToInvPage(${p})" class="w-7 h-7 rounded text-xs font-bold transition ${isActive ? 'bg-taupe-main text-white shadow-xs' : 'bg-white hover:bg-stone-100 text-stone-700 border border-taupe-border'}">
+              ${p}
+            </button>
+          `;
+        }
+
+        btnsHtml += `
+          <button type="button" onclick="changeInvPage(1)" ${invPage === totalPages ? 'disabled class="px-2.5 py-1 bg-stone-50 text-stone-300 rounded border border-stone-200 cursor-not-allowed"' : 'class="px-2.5 py-1 bg-white hover:bg-stone-100 text-stone-700 rounded border border-taupe-border"'}>
+            下一頁
+          </button>
+        `;
+        btnRow.innerHTML = btnsHtml;
+      }
+
       let start = (invPage - 1) * invPageSize;
       let paged = filteredProducts.slice(start, start + invPageSize);
 
@@ -1547,13 +1617,19 @@
           </tr>
         `;
       });
-
-      const countBadge = document.getElementById('invCheckedCount');
-      if (countBadge) {
-        countBadge.innerText = `已選取：${Object.keys(selectedInventorySkus).length} 款商品`;
-      }
     }
 
+    function changeInvPage(dir) {
+      let maxP = Math.ceil(filteredProducts.length / invPageSize) || 1;
+      invPage = Math.max(1, Math.min(invPage + dir, maxP));
+      renderInventoryTable();
+    }
+
+    function goToInvPage(pageNo) {
+      invPage = pageNo;
+      renderInventoryTable();
+    }
+  
     function handleInventoryCheck(cb, sku) {
       if (cb.checked) selectedInventorySkus[sku] = true;
       else delete selectedInventorySkus[sku];
@@ -2354,6 +2430,14 @@
             document.getElementById('editorialActive').checked = (ed.is_active !== false);
           }
 
+          if (s.header_nav_btn) {
+  let nb = s.header_nav_btn;
+  if (nb.display_mode) document.getElementById('settingNavBtnMode').value = nb.display_mode;
+  if (nb.icon_type) document.getElementById('settingNavBtnIcon').value = nb.icon_type;
+  if (nb.title) document.getElementById('settingNavBtnTitle').value = nb.title;
+  if (nb.link) document.getElementById('settingNavBtnLink').value = nb.link;
+}
+          
           if (s.quick_actions) {
             quickActionsData = s.quick_actions;
             document.getElementById('quickActionsActive').checked = (quickActionsData.is_active !== false);
@@ -2390,6 +2474,13 @@
         store_terms: terms
       };
 
+      patchPayload.header_nav_btn = {
+  display_mode: document.getElementById('settingNavBtnMode').value,
+  icon_type: document.getElementById('settingNavBtnIcon').value,
+  title: document.getElementById('settingNavBtnTitle').value.trim(),
+  link: document.getElementById('settingNavBtnLink').value.trim()
+};
+      
       let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_stores?store_id=eq.${STORE_ID}`, {
         method: 'PATCH',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
