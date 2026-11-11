@@ -445,10 +445,10 @@
           </button>
         </div>
 
-        <!-- 快速依分類整批選取列 -->
+        <!-- 快速依分類整批加入推薦列 -->
         <div class="p-3 bg-taupe-canvas rounded-xl border border-taupe-border flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           <div class="flex items-center gap-2 flex-1">
-            <span class="text-xs font-bold text-stone-600 shrink-0">依分類批次勾選：</span>
+            <span class="text-xs font-bold text-stone-600 shrink-0">依分類整批加入：</span>
             <select id="hotCategoryBatchSelect" class="flex-1 text-xs p-2 border border-taupe-border rounded-lg bg-white outline-none"></select>
             <button type="button" onclick="batchSelectHotByCategory(true)" class="px-3 py-2 bg-taupe-light hover:bg-taupe-sand text-taupe-charcoal text-xs font-bold rounded-lg border border-taupe-border transition shrink-0">
               整類加入推薦
@@ -891,12 +891,18 @@
       modal.classList.remove('hidden'); modal.classList.add('flex');
     }
 
+    // ⭐️ 核心修復：區分 Prompt (文字輸入) 與 Confirm (確定/取消)，不再傳回空字串
     function closeAestheticDialog(isConfirmed) {
       const modal = document.getElementById('aestheticDialogModal');
       modal.classList.add('hidden'); modal.classList.remove('flex');
       if (dialogCallback) {
-        if (isConfirmed) dialogCallback(document.getElementById('dialogTextInput').value);
-        else dialogCallback(null);
+        let isInputVisible = !document.getElementById('dialogInputContainer').classList.contains('hidden');
+        if (isConfirmed) {
+          // 若為輸入框傳回文字；若為確認框傳回布林值 true (保證 if(!ok) return 不會被阻斷)
+          dialogCallback(isInputVisible ? document.getElementById('dialogTextInput').value : true);
+        } else {
+          dialogCallback(isInputVisible ? null : false);
+        }
         dialogCallback = null;
       }
     }
@@ -1577,14 +1583,22 @@
 
           if (res.ok) {
             delete selectedInventorySkus[sku];
-            showToast(`商品 ${sku} 已成功刪除！`);
+            showToast(`商品 ${sku} 已從商城刪除！`);
+
+            // ⭐️ 同步通知 Google 試算表刪除對應的列
+            fetch(GAS_URL, {
+              method: 'POST',
+              mode: 'no-cors',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({ action: 'deleteProductFromSheet', sku: sku })
+            });
+
             await loadInventoryData();
           } else {
-            let err = await res.json().catch(() => ({}));
-            showToast("刪除失敗：" + (err.message || res.statusText));
+            showToast("刪除失敗");
           }
         } catch(e) {
-          showToast("刪除連線異常：" + e.message);
+          showToast("連線異常：" + e.message);
         }
       });
     }
@@ -1944,7 +1958,7 @@
       select.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
     }
 
-    // 一鍵將整個分類加入或移出人氣推薦
+    // 一鍵將整個分類加入或取消推薦
     function batchSelectHotByCategory(isAdd) {
       const selectedCat = document.getElementById('hotCategoryBatchSelect').value;
       if (!selectedCat) return;
@@ -1961,9 +1975,9 @@
         }
       });
       renderHotCandidateProducts();
-      showToast(`已${isAdd ? '勾選' : '取消'}【${selectedCat}】分類共 ${count} 款商品！記得點右上角儲存。`);
+      showToast(`已${isAdd ? '勾選' : '取消'}【${selectedCat}】共 ${count} 款商品！請點右上角儲存。`);
     }
-
+  
     function renderHotCandidateProducts() {
       const tbody = document.getElementById('hotCandidateTableBody');
       if (!tbody) return;
@@ -2008,18 +2022,34 @@
       if (p) p.hot_rank = parseInt(rankVal) || 99;
     }
 
+    // 儲存人氣推薦 (檢查 HTTP 狀態，確保寫入 Supabase)
     async function saveHotProductsSelection() {
       showToast("正在儲存人氣推薦榜單...");
-      let updates = globalProducts.map(p => {
-        return fetch(`${SUPABASE_URL}/rest/v1/shop_products?sku=eq.${encodeURIComponent(p.sku)}&store_id=eq.${STORE_ID}`, {
-          method: 'PATCH',
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ is_hot: (p.is_hot === true), hot_rank: (p.hot_rank || 99) })
+      try {
+        let updates = globalProducts.map(p => {
+          let safeSku = encodeURIComponent(p.sku);
+          return fetch(`${SUPABASE_URL}/rest/v1/shop_products?sku=eq.${safeSku}&store_id=eq.${STORE_ID}`, {
+            method: 'PATCH',
+            headers: { 
+              'apikey': SUPABASE_KEY, 
+              'Authorization': 'Bearer ' + SUPABASE_KEY, 
+              'Content-Type': 'application/json' 
+            },
+            body: JSON.stringify({ is_hot: (p.is_hot === true), hot_rank: (p.hot_rank || 99) })
+          });
         });
-      });
-      await Promise.all(updates);
-      showToast("人氣推薦榜單已成功同步至資料庫！");
-      await loadInventoryData();
+
+        let results = await Promise.all(updates);
+        let allOk = results.every(r => r.ok);
+        if (allOk) {
+          showToast("人氣推薦榜單已成功儲存至資料庫！");
+          await loadInventoryData();
+        } else {
+          showToast("部分商品儲存異常，請確認資料庫欄位 is_hot 是否已建立");
+        }
+      } catch(e) {
+        showToast("儲存失敗：" + e.message);
+      }
     }
 
     // 優惠活動管理：支援新增、編輯回填、啟用切換、刪除
