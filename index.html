@@ -1987,28 +1987,33 @@
           body: JSON.stringify(orderPayload)
         });
 
-        let gasResp = await fetch(GAS_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({
-            action: 'createPayuniTrade',
-            orderData: { 
-              storeId: STORE_ID, 
-              orderId: orderId, 
-              orderPin: randomPin,
-              grandTotal: grandTotal, 
-              items: cart, 
-              shippingFee: shippingFee, 
-              discountAmt: discountAmt,
-              customerName: name, 
-              customerPhone: phone, 
-              customerEmail: email,
-              carrierNum: carrierNum,
-              buyerUbn: buyerUbn,
-              buyerTitle: buyerTitle
-            }
-          })
-        });
+        // 1. 通知總部 GAS 寫入該店鋪試算表「訂單明細」並發送 Resend 確認信
+     fetch(GAS_URL, {
+       method: 'POST',
+       mode: 'no-cors',
+       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+       body: JSON.stringify({
+         action: 'processNewOrderNotify',
+         storeId: STORE_ID,
+         orderData: {
+           storeId: STORE_ID,
+           orderId: orderId,
+           orderPin: randomPin,
+           grandTotal: grandTotal,
+           itemTotal: subtotal,
+           shippingFee: shippingFee,
+           discountAmt: discountAmt,
+           items: cart,
+           customerName: name,
+           customerPhone: phone,
+           customerEmail: email,
+           deliveryAddress: address,
+           customerRemark: remark,
+           couponUsed: currentCouponCode || '無',
+           paymentStatus: '待付款'
+         }
+       })
+     });
         let payuniData = await gasResp.json();
 
         localStorage.removeItem('shop_cart');
