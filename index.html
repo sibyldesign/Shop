@@ -41,19 +41,25 @@
 </head>
 <body class="antialiased min-h-screen pb-24">
 
-  <!-- 頂部品牌導航 (漢堡選單 + LOGO + 自訂快捷按鈕) -->
+  <!-- 頂部品牌導航 (漢堡選單 + LOGO與店名靠左 + 右側自訂快捷按鈕) -->
   <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b px-4 py-3" style="border-color: var(--theme-border);">
-    <div class="max-w-5xl mx-auto flex justify-between items-center">
-      <button onclick="toggleSideDrawer(true)" class="p-1 hover:opacity-75 transition" title="選單">
-        <svg class="w-5 h-5 text-stone-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-      </button>
+    <div class="max-w-5xl mx-auto flex items-center justify-between gap-3">
+      <!-- 左側群組：漢堡選單 + 靠左對齊的 LOGO 與店名 -->
+      <div class="flex items-center gap-3 min-w-0">
+        <button onclick="toggleSideDrawer(true)" class="p-1 hover:opacity-75 transition shrink-0" title="選單">
+          <svg class="w-5 h-5 text-stone-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
 
-      <div class="flex items-center gap-2 cursor-pointer" onclick="closeProductDetailPage(); switchNavTab('home');">
-        <img id="storeLogoImg" src="" class="hidden object-contain" alt="Logo">
-        <h1 class="text-xs font-serif tracking-[0.25em] uppercase font-bold text-stone-900" id="headerStoreName">SIBYL SELECT</h1>
+        <div class="flex items-center gap-2 cursor-pointer select-none min-w-0" onclick="resetToStoreHome()">
+          <img id="storeLogoImg" src="" class="hidden object-contain shrink-0" alt="Logo">
+          <div id="headerStoreNameBox" class="flex flex-col justify-center leading-tight text-left truncate">
+            <span class="text-xs font-serif tracking-[0.2em] uppercase font-bold text-stone-900" id="headerStoreName">SIBYL SELECT</span>
+          </div>
+        </div>
       </div>
 
-      <div class="flex items-center gap-2" id="headerCustomActionBox">
+      <!-- 右側群組：快捷導航按鈕 -->
+      <div class="flex items-center gap-1.5 shrink-0" id="headerCustomActionBox">
         <a id="headerCustomNavBtn" href="https://line.me/R/ti/p/@480kqjoj" target="_blank" class="text-[11px] font-bold text-stone-700 hover:opacity-75 transition flex items-center gap-1.5 px-3 py-1 rounded-full border shadow-2xs" style="border-color: var(--theme-border); background-color: var(--theme-canvas);">
           <svg id="headerNavIcon" class="w-3.5 h-3.5 text-emerald-700" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.03 2 11c0 2.87 1.51 5.41 3.86 7.02-.17.62-.64 2.27-.73 2.62-.12.43.16.42.33.31.14-.09 1.95-1.32 2.74-1.85.58.16 1.18.25 1.8.25 5.52 0 10-4.03 10-9s-4.48-9-10-9z"/></svg>
           <span id="headerNavText">官方客服</span>
@@ -158,24 +164,25 @@
         <div id="detailCategoryPillsRow" class="flex gap-2"></div>
       </div>
 
-      <!-- 大圖展示區：電腦顯示 ◀ ▶ 按鈕，手機支援觸控快速左右滑動 -->
+      <!-- 大圖展示區：電腦與手機固定 1:1，背景高斯模糊 + 完整不裁切主圖，點擊直接放大 -->
       <div class="space-y-3">
-        <div id="detailMainImgWrapper" class="relative w-full rounded-3xl overflow-hidden bg-stone-100 border flex items-center justify-center cursor-zoom-in group select-none" style="border-color: var(--theme-border);">
-          <img id="detailMainImg" src="" class="w-full h-full object-cover object-center pointer-events-none" onclick="openLightbox()">
+        <div id="detailMainImgWrapper" onclick="openLightbox()" class="relative w-full max-w-md mx-auto aspect-square rounded-3xl overflow-hidden bg-stone-100 border flex items-center justify-center cursor-zoom-in group select-none" style="border-color: var(--theme-border);">
+          <!-- 底層高斯模糊滿版背景 -->
+          <img id="detailBlurBgImg" src="" class="absolute inset-0 w-full h-full object-cover blur-2xl scale-110 opacity-65 pointer-events-none">
+          <!-- 上層完整不裁切 1:1 主圖 -->
+          <img id="detailMainImg" src="" class="relative z-10 w-full h-full object-contain pointer-events-none">
           
-          <!-- 電腦版左右切換按鈕 -->
-          <button type="button" onclick="prevDetailImg(event)" class="hidden sm:flex absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/80 hover:bg-white text-stone-800 items-center justify-center shadow-md transition z-10">
+          <!-- 電腦版左右切換按鈕 (加上 event.stopPropagation 避免觸發放大) -->
+          <button type="button" onclick="prevDetailImg(event)" class="hidden sm:flex absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/85 hover:bg-white text-stone-800 items-center justify-center shadow-md transition z-20">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
           </button>
-          <button type="button" onclick="nextDetailImg(event)" class="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/80 hover:bg-white text-stone-800 items-center justify-center shadow-md transition z-10">
+          <button type="button" onclick="nextDetailImg(event)" class="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/85 hover:bg-white text-stone-800 items-center justify-center shadow-md transition z-20">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
           </button>
-
-          <span class="absolute bottom-3 right-3 bg-black/50 text-white text-[10px] px-2.5 py-1 rounded-full backdrop-blur-md font-medium pointer-events-none">點擊放大檢視</span>
         </div>
 
         <!-- 縮圖點選列 -->
-        <div id="detailThumbnailsRow" class="flex gap-2 overflow-x-auto no-scrollbar py-1"></div>
+        <div id="detailThumbnailsRow" class="flex gap-2 overflow-x-auto no-scrollbar py-1 max-w-md mx-auto"></div>
       </div>
 
       <!-- 標題、標籤、價格、分享與主題色愛心卡片 -->
@@ -402,7 +409,9 @@
         希貝兒設計所 | 統一編號 61347275
       </div>
       <div class="font-mono text-[10px] tracking-wider pt-1">
-        &copy; 2026 SIBYL.DESIGN All Rights Reserved.
+        <a href="https://www.heysibyl.com/" target="_blank" class="hover:underline hover:text-stone-700 transition">
+          &copy; 2026 SIBYL.DESIGN All Rights Reserved.
+        </a>
       </div>
     </footer>
 
@@ -564,17 +573,23 @@
     let bannerIndex = 0, bannerInterval = null;
 
     window.onload = async () => {
+      let urlParams = new URLSearchParams(window.location.search);
       await fetchStoreConfig();
       await fetchBanners();
       await fetchCampaigns();
       await fetchProducts();
+
+      let urlMajor = urlParams.get('major');
+      let urlCat = urlParams.get('cat');
+      if (urlMajor) selectMajorCategory(urlMajor);
+      if (urlCat) selectSubCategory(urlCat);
+
       updateBadgesUI();
       loadSavedProfile();
       setupScrollListener();
       setupTouchSwipe();
       setupDetailSwipe();
 
-      let urlParams = new URLSearchParams(window.location.search);
       let targetSku = urlParams.get('sku');
       if (targetSku && allProducts.length > 0) openProductDetailPage(targetSku);
     };
@@ -633,6 +648,8 @@
 
           if (s.banner_speed) bannerSpeedSeconds = parseInt(s.banner_speed);
 
+          if (s.shipping_rule) storeShippingRule = s.shipping_rule;
+          
           // ⭐️ 核心修正：將後台設定的階層樹存入全域變數
           if (s.category_tree && Array.isArray(s.category_tree) && s.category_tree.length > 0) {
             categoryTree = s.category_tree;
@@ -655,6 +672,20 @@
               : "w-7 h-7 rounded-full object-cover border border-border-base";
           }
 
+          // 智慧中英文斷行處理 (例: "SIBYL SELECT 希貝兒選物" -> 第一行英文，第二行中文)
+          const nameBox = document.getElementById('headerStoreNameBox');
+          let rawName = (s.store_name || "SIBYL SELECT").trim();
+          // 匹配開頭的英數字與空格符號，與後方的中文字分離
+          let match = rawName.match(/^([A-Za-z0-9\s\.\-&]+?)\s*([\u4e00-\u9fa5].*)$/);
+          if (match && nameBox) {
+            nameBox.innerHTML = `
+              <span class="text-[11px] sm:text-xs font-serif tracking-[0.2em] uppercase font-bold text-stone-900 block">${match[1].trim()}</span>
+              <span class="text-[11px] sm:text-xs font-bold tracking-widest text-stone-700 block mt-0.5">${match[2].trim()}</span>
+            `;
+          } else if (nameBox) {
+            nameBox.innerHTML = `<span class="text-xs font-serif tracking-[0.2em] uppercase font-bold text-stone-900">${rawName}</span>`;
+          }
+          
           // 右上角多功能質感按鈕渲染 (支援 LINE / 官網地球 / IG / FB)
           // 渲染右上角多按鈕群 (支援美感自適應膠囊排版)
           const actionBox = document.getElementById('headerCustomActionBox');
@@ -719,6 +750,15 @@
       { type: "text", tag: "免運出貨", title: "全館滿2件", desc: "宅配直接免運", link: "#cart" }
     ];
 
+    // 點擊頂部 Logo / 店名：回到該商店主頁並重置所有分類篩選
+    function resetToStoreHome() {
+      closeProductDetailPage();
+      switchNavTab('home');
+      switchHomeSubTab('feed', document.querySelector('.home-subtab-btn'));
+      selectMajorCategory('全部');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    
     function checkAndRenderQuickActions(qa) {
       const area = document.getElementById('quickActionArea');
       let items = (qa && qa.items && qa.items.length > 0) ? qa.items : DEFAULT_QUICK_ACTIONS;
@@ -782,8 +822,11 @@
       }
 
       slider.innerHTML = rawBanners.map(b => `
-        <div class="min-w-full h-full shrink-0 flex items-center justify-center bg-stone-100">
-          <img src="${b.img_url}" class="w-full h-full object-cover object-center pointer-events-none">
+        <div class="min-w-full h-full shrink-0 relative flex items-center justify-center overflow-hidden bg-stone-200">
+          <!-- 底層模糊滿版背景 -->
+          <img src="${b.img_url}" class="absolute inset-0 w-full h-full object-cover blur-xl scale-110 opacity-70 pointer-events-none">
+          <!-- 上層完整不裁切主圖 -->
+          <img src="${b.img_url}" class="relative z-10 max-w-full max-h-full object-contain pointer-events-none drop-shadow-sm">
         </div>
       `).join('');
 
@@ -935,6 +978,12 @@
       currentSubCategory = "全部";
       renderCategoryFilterBar();
       applyProductFilters();
+      let url = new URL(window.location);
+    if (currentMajorCategory !== "全部") url.searchParams.set('major', currentMajorCategory);
+    else url.searchParams.delete('major');
+    if (currentSubCategory !== "全部") url.searchParams.set('cat', currentSubCategory);
+    else url.searchParams.delete('cat');
+    window.history.replaceState({}, '', url);
     }
 
     function selectSubCategory(s, btn) {
@@ -1012,16 +1061,18 @@
 
         return `
           <div class="bg-white p-3 rounded-2xl border shadow-xs flex flex-col justify-between group hover:border-stone-400 transition relative" style="border-color: var(--theme-border);">
-            <div class="w-full ${ratioClass} rounded-xl overflow-hidden relative cursor-pointer" onclick="openProductDetailPage('${p.sku}')" style="background-color: var(--theme-sand);">
-              <img src="${firstImg}" class="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300">
+            <div class="w-full aspect-square rounded-xl overflow-hidden relative cursor-pointer bg-stone-100 flex items-center justify-center" onclick="openProductDetailPage('${p.sku}')" style="background-color: var(--theme-sand);">
+              <!-- 底層模糊滿版背景 -->
+              <img src="${firstImg}" class="absolute inset-0 w-full h-full object-cover blur-lg scale-110 opacity-60 pointer-events-none">
+              <!-- 上層完整不裁切主圖 -->
+              <img src="${firstImg}" class="relative z-10 w-full h-full object-contain group-hover:scale-102 transition-transform duration-300 pointer-events-none">
               
-              <span class="absolute top-2 left-2 bg-white/90 backdrop-blur-md text-[9.5px] font-bold px-2 py-0.5 rounded shadow-xs border" style="border-color: var(--theme-border); color: var(--theme-espresso);">
+              <span class="absolute top-2 left-2 z-20 bg-white/90 backdrop-blur-md text-[9.5px] font-bold px-2 py-0.5 rounded shadow-xs border" style="border-color: var(--theme-border); color: var(--theme-espresso);">
                 ${catLabel}
               </span>
 
-              ${p.tag ? `<span class="absolute top-7 left-2 text-[9px] font-bold px-1.5 py-0.2 rounded border shadow-xs" style="background-color: var(--theme-sand); color: var(--theme-primary); border-color: var(--theme-border);">${p.tag}</span>` : ''}
+              ${p.tag ? `<span class="absolute top-7 left-2 z-20 text-[9px] font-bold px-1.5 py-0.2 rounded border shadow-xs" style="background-color: var(--theme-sand); color: var(--theme-primary); border-color: var(--theme-border);">${p.tag}</span>` : ''}
             </div>
-
             <div class="pt-2.5 flex flex-col justify-between flex-1">
               <h3 onclick="openProductDetailPage('${p.sku}')" class="text-xs font-bold text-stone-800 line-clamp-1 cursor-pointer hover:opacity-75 transition">${p.name}</h3>
               
@@ -1107,12 +1158,10 @@
         }
       });
 
-      // 3. 圖框比例自適應
+      // 3. 電腦與手機統一固定 1:1 比例圖框
       const wrapper = document.getElementById('detailMainImgWrapper');
       if (wrapper) {
-        wrapper.className = (p.img_ratio === '4:6') 
-          ? "relative w-full aspect-[4/6] max-h-[480px] rounded-3xl overflow-hidden bg-stone-100 border flex items-center justify-center cursor-zoom-in group select-none"
-          : "relative w-full aspect-square max-h-[440px] rounded-3xl overflow-hidden bg-stone-100 border flex items-center justify-center cursor-zoom-in group select-none";
+        wrapper.className = "relative w-full max-w-md mx-auto aspect-square rounded-3xl overflow-hidden bg-stone-100 border flex items-center justify-center cursor-zoom-in group select-none";
         wrapper.style.borderColor = "var(--theme-border)";
       }
 
@@ -1247,20 +1296,34 @@
     }
 
     function setDetailMainImage(idx) {
+      if (!detailSelectedImgs || detailSelectedImgs.length === 0) return;
       detailImgIdx = idx;
-      document.getElementById('detailMainImg').src = detailSelectedImgs[idx];
+      let currentUrl = detailSelectedImgs[idx];
+      
+      const mainImg = document.getElementById('detailMainImg');
+      const blurBg = document.getElementById('detailBlurBgImg');
+      if (mainImg) mainImg.src = currentUrl;
+      if (blurBg) blurBg.src = currentUrl;
+
       const thumbs = document.getElementById('detailThumbnailsRow');
-      thumbs.innerHTML = detailSelectedImgs.map((url, i) => `
-        <div onclick="setDetailMainImage(${i})" class="w-14 h-14 rounded-xl overflow-hidden border-2 cursor-pointer shrink-0 transition ${i === idx ? 'theme-border-primary opacity-100' : 'border-transparent opacity-50'}">
-          <img src="${url}" class="w-full h-full object-cover">
-        </div>
-      `).join('');
+      if (thumbs) {
+        thumbs.innerHTML = detailSelectedImgs.map((url, i) => `
+          <div onclick="setDetailMainImage(${i})" class="w-14 h-14 rounded-xl overflow-hidden border-2 cursor-pointer shrink-0 transition relative bg-stone-100 ${i === idx ? 'theme-border-primary opacity-100' : 'border-transparent opacity-55'}">
+            <img src="${url}" class="w-full h-full object-cover">
+          </div>
+        `).join('');
+      }
     }
 
     function openLightbox() {
-      document.getElementById('lightboxImg').src = detailSelectedImgs[detailImgIdx];
-      document.getElementById('imageLightboxModal').classList.remove('hidden');
-      document.getElementById('imageLightboxModal').classList.add('flex');
+      if (!detailSelectedImgs || detailSelectedImgs.length === 0) return;
+      const modal = document.getElementById('imageLightboxModal');
+      const lbImg = document.getElementById('lightboxImg');
+      if (lbImg && modal) {
+        lbImg.src = detailSelectedImgs[detailImgIdx];
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
     }
     function closeLightbox() {
       document.getElementById('imageLightboxModal').classList.add('hidden');
@@ -1424,6 +1487,26 @@
       showToast("已加入購物車");
     }
 
+    function calculateCartShipping(subtotal) {
+      let rule = storeShippingRule || { mode: "category_qty", target_categories: ["四季被", "春夏薄被", "雙面絨冬被", "單面絨冬被"], min_qty: 2, min_amount: 0, fee: 100 };
+      let baseFee = Number(rule.fee) || 100;
+
+      if (rule.mode === 'amount') {
+        return subtotal >= (Number(rule.min_amount) || 2000) ? 0 : baseFee;
+      } else if (rule.mode === 'category_qty') {
+        // 僅計算後台勾選之分類商品件數 (未勾選之枕頭套/配件不計入)
+        let validQty = cart.reduce((sum, item) => {
+          let p = allProducts.find(x => x.sku === item.sku);
+          let cat = p ? (p.sub_category || p.major_category) : (item.category || '');
+          return (rule.target_categories || []).includes(cat) ? sum + item.qty : sum;
+        }, 0);
+        return validQty >= (Number(rule.min_qty) || 2) ? 0 : baseFee;
+      } else {
+        let totalQty = cart.reduce((sum, i) => sum + i.qty, 0);
+        return totalQty >= (Number(rule.min_qty) || 2) ? 0 : baseFee;
+      }
+    }
+
     function updateCartUI() {
       const list = document.getElementById('cartItemList');
       if (cart.length === 0) {
@@ -1451,18 +1534,24 @@
       `).join('');
 
       let subtotal = cart.reduce((s, i) => s + (i.price * i.qty), 0);
-      let totalQty = cart.reduce((s, i) => s + i.qty, 0);
-      let shippingFee = totalQty >= 2 ? 0 : 100;
+      let shippingFee = calculateCartShipping(subtotal);
       let discountAmt = Math.round(subtotal * currentDiscountRate);
       let grandTotal = subtotal - discountAmt + shippingFee;
 
       document.getElementById('cartSubtotal').innerText = subtotal;
       document.getElementById('cartDiscount').innerText = discountAmt;
       document.getElementById('discountRow').classList.toggle('hidden', discountAmt === 0);
-      document.getElementById('cartShippingText').innerText = shippingFee === 0 ? '免運 (滿 2 件優惠)' : 'NT$ 100';
+      
+      // 動態顯示免運條件說明
+      let rule = storeShippingRule;
+      let shipLabel = 'NT$ ' + (rule.fee || 100);
+      if (shippingFee === 0) {
+        shipLabel = rule.mode === 'amount' ? `免運 (滿 NT$${rule.min_amount} 優惠)` : `免運 (指定商品滿 ${rule.min_qty} 件優惠)`;
+      }
+      document.getElementById('cartShippingText').innerText = shipLabel;
       document.getElementById('cartGrandTotal').innerText = grandTotal;
     }
-
+    
     function changeCartQty(idx, amt) {
       cart[idx].qty += amt;
       if (cart[idx].qty < 1) cart[idx].qty = 1;
