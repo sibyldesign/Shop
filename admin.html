@@ -1633,6 +1633,100 @@
       });
     }
 
+  // 計算商品價格區間字串 (如 "NT$ 520 - 3,220" 或單一價格 "NT$ 1,280")
+    function getAdminPriceRangeText(p) {
+      let specs = [];
+      if (p.specs_data) {
+        if (typeof p.specs_data === 'string') {
+          try { specs = JSON.parse(p.specs_data); } catch(e) {}
+        } else if (Array.isArray(p.specs_data)) {
+          specs = p.specs_data;
+        }
+      }
+      let prices = specs.map(s => Number(s.price)).filter(n => !isNaN(n) && n > 0);
+      if (prices.length === 0 && Number(p.price) > 0) prices.push(Number(p.price));
+      if (prices.length === 0) return `NT$ ${p.price || 0}`;
+
+      let minP = Math.min(...prices);
+      let maxP = Math.max(...prices);
+      return minP === maxP ? `NT$ ${minP.toLocaleString()}` : `NT$ ${minP.toLocaleString()} - ${maxP.toLocaleString()}`;
+    }
+
+    function renderInventoryTable() {
+      const tbody = document.getElementById('inventoryTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = "";
+      
+      let totalPages = Math.ceil(filteredProducts.length / invPageSize) || 1;
+      const pagText = document.getElementById('invPaginationText');
+      if (pagText) {
+        pagText.innerText = `第 ${invPage} 頁，共 ${totalPages} 頁 (總計 ${filteredProducts.length} 款商品)`;
+      }
+
+      // 渲染 [上一頁] [1] [2] [3]... [下一頁]
+      const btnRow = document.getElementById('invPaginationButtonsRow');
+      if (btnRow) {
+        let btnsHtml = `
+          <button type="button" onclick="changeInvPage(-1)" ${invPage === 1 ? 'disabled class="px-2.5 py-1 bg-stone-50 text-stone-300 rounded border border-stone-200 cursor-not-allowed"' : 'class="px-2.5 py-1 bg-white hover:bg-stone-100 text-stone-700 rounded border border-taupe-border"'}>
+            上一頁
+          </button>
+        `;
+
+        for (let p = 1; p <= totalPages; p++) {
+          let isActive = (p === invPage);
+          btnsHtml += `
+            <button type="button" onclick="goToInvPage(${p})" class="w-7 h-7 rounded text-xs font-bold transition ${isActive ? 'bg-taupe-main text-white shadow-xs' : 'bg-white hover:bg-stone-100 text-stone-700 border border-taupe-border'}">
+              ${p}
+            </button>
+          `;
+        }
+
+        btnsHtml += `
+          <button type="button" onclick="changeInvPage(1)" ${invPage === totalPages ? 'disabled class="px-2.5 py-1 bg-stone-50 text-stone-300 rounded border border-stone-200 cursor-not-allowed"' : 'class="px-2.5 py-1 bg-white hover:bg-stone-100 text-stone-700 rounded border border-taupe-border"'}>
+            下一頁
+          </button>
+        `;
+        btnRow.innerHTML = btnsHtml;
+      }
+
+      let start = (invPage - 1) * invPageSize;
+      let paged = filteredProducts.slice(start, start + invPageSize);
+
+      if (paged.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-stone-400">目前尚無任何商品資料</td></tr>`;
+        return;
+      }
+
+      paged.forEach(p => {
+        let firstImg = p.images ? p.images.split(/[\s,]+/)[0] : 'https://via.placeholder.com/60';
+        let isChecked = selectedInventorySkus[p.sku] ? "checked" : "";
+        let isOnline = (p.status === '上架');
+
+        tbody.innerHTML += `
+          <tr class="hover:bg-taupe-canvas text-xs">
+            <td class="p-3 text-center">
+              <input type="checkbox" class="inv-chk accent-taupe-main" value="${p.sku}" ${isChecked} onchange="handleInventoryCheck(this, '${p.sku}')">
+            </td>
+            <td class="p-3"><img src="${firstImg}" class="w-10 h-10 object-cover rounded-lg border border-taupe-border"></td>
+            <td class="p-3 font-mono font-bold">${p.sku}</td>
+            <td class="p-3 font-medium">${p.name}</td>
+            <td class="p-3">${p.major_category || ''} / ${p.sub_category || ''}</td>
+            <td class="p-3 font-bold text-taupe-crimson font-mono whitespace-nowrap">${getAdminPriceRangeText(p)}</td>
+            <td class="p-3">
+              <button type="button" onclick="toggleSingleProductStatus('${p.sku}', '${isOnline ? '下架' : '上架'}')" class="px-2.5 py-1 rounded-full text-[10.5px] font-bold border transition ${isOnline ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100' : 'bg-stone-100 text-stone-500 border-stone-200 hover:bg-stone-200'}">
+                ${p.status || '上架'}
+              </button>
+            </td>
+            <td class="p-3 text-center whitespace-nowrap">
+              <button type="button" onclick="editProduct('${p.sku}')" class="text-taupe-main hover:underline font-bold mr-2">編輯</button>
+              <button type="button" onclick="duplicateProduct('${p.sku}')" class="text-sky-700 hover:underline font-bold mr-2">複製</button>
+              <button type="button" onclick="deleteSingleProductPrompt('${p.sku}')" class="text-rose-600 hover:underline font-bold">刪除</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+  
   function duplicateProduct(sku) {
       editProduct(sku); // 先載入原商品資料
       document.getElementById('pSku').value = sku + "-COPY";
