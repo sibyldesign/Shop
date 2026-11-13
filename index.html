@@ -1087,6 +1087,87 @@
     }
 
     // 渲染商品網格 (支援卡片內直接左右滑動多圖 ＋ 低到高價格區間 ＋ 原價空白隱藏)
+    // 儲存每張商品卡片目前的圖片索引
+    let cardImgIndices = {};
+    let cardTouchStartX = 0;
+
+    function handleCardTouchStart(e) {
+      cardTouchStartX = e.touches[0].clientX;
+    }
+
+    function handleCardTouchEnd(e, sku, totalImgs) {
+      if (totalImgs <= 1) return;
+      let diff = e.changedTouches[0].clientX - cardTouchStartX;
+      if (Math.abs(diff) < 25) return; // 輕微點擊交給 onclick 開啟商品頁
+      e.stopPropagation(); // 阻止冒泡觸發開啟商品頁
+
+      let cur = cardImgIndices[sku] || 0;
+      if (diff < 0) cur = (cur + 1) % totalImgs; // 往左滑 -> 下一張
+      else cur = (cur - 1 + totalImgs) % totalImgs; // 往右滑 -> 上一張
+
+      cardImgIndices[sku] = cur;
+      updateCardImageUI(sku, cur);
+    }
+
+    function updateCardImageUI(sku, idx) {
+      const p = allProducts.find(x => x.sku === sku);
+      if (!p) return;
+      let imgList = (p.images || '').split(/[\s,]+/).filter(Boolean);
+      let targetUrl = imgList[idx] || imgList[0];
+
+      const safeId = sku.replace(/[^a-zA-Z0-9]/g, '_');
+      const mainImg = document.getElementById(`card-main-${safeId}`);
+      const blurImg = document.getElementById(`card-blur-${safeId}`);
+      if (mainImg) mainImg.src = targetUrl;
+      if (blurImg) blurImg.src = targetUrl;
+
+      // 更新小圓點狀態
+      imgList.forEach((_, i) => {
+        const dot = document.getElementById(`card-dot-${safeId}-${i}`);
+        if (dot) dot.className = `w-1.5 h-1.5 rounded-full transition-all ${i === idx ? 'bg-white w-3' : 'bg-white/50'}`;
+      });
+    }
+
+    // 智慧購物車按鈕：單一規格直接加入，多種規格則直接進入商品頁挑選
+    function handleCardCartClick(sku, e) {
+      if (e) e.stopPropagation();
+      const p = allProducts.find(x => x.sku === sku);
+      if (!p) return;
+
+      let specs = [];
+      if (p.specs_data) {
+        if (typeof p.specs_data === 'string') {
+          try { specs = JSON.parse(p.specs_data); } catch(err) {}
+        } else if (Array.isArray(p.specs_data)) {
+          specs = p.specs_data;
+        }
+      }
+
+      // 若有多種規格 (超過 1 項)，直接進入該商品頁面供顧客選擇款式與尺寸
+      if (specs.length > 1) {
+        openProductDetailPage(sku);
+        showToast("此商品有多種款式/尺寸，請選擇後加入購物車");
+        return;
+      }
+
+      // 單一規格直接加入購物車
+      let firstImg = (p.images || '').split(/[\s,]+/)[0] || '';
+      let specLabel = (specs[0] && specs[0].spec) ? specs[0].spec.replace('款式:', '').trim() : '單一規格';
+      let price = (specs[0] && specs[0].price) ? Number(specs[0].price) : Number(p.price);
+
+      let existing = cart.find(i => i.sku === sku);
+      if (existing) existing.qty += 1;
+      else cart.push({
+        sku: p.sku, prodName: p.name, color: specLabel, size: '標準',
+        price: price, qty: 1, image: firstImg, category: p.sub_category || p.major_category
+      });
+
+      localStorage.setItem('shop_cart', JSON.stringify(cart));
+      updateBadgesUI();
+      showToast("已加入購物車！");
+    }
+
+    // 渲染商品網格 (一滑即換張、不卡模糊背景、智慧購物車導向)
     function renderProductGrid() {
       const grid = document.getElementById('productGrid');
       document.getElementById('catalogCountBadge').innerText = `${filteredProducts.length} 件商品`;
@@ -1103,29 +1184,28 @@
         let catLabel = p.sub_category || p.major_category || '選品';
         let priceRangeText = getProductPriceRangeText(p);
         let showOldPrice = (!p.hide_old_price && p.old_price && Number(p.old_price) > 0);
+        let safeId = p.sku.replace(/[^a-zA-Z0-9]/g, '_');
 
-        // 產生支援水平滑動的多圖軌道
-        let slidesHtml = imgList.map(imgUrl => `
-          <div class="min-w-full h-full snap-center shrink-0 relative flex items-center justify-center overflow-hidden">
-            <img src="${imgUrl}" class="absolute inset-0 w-full h-full object-cover blur-lg scale-110 opacity-60 pointer-events-none">
-            <img src="${imgUrl}" class="relative z-10 w-full h-full object-contain pointer-events-none">
-          </div>
-        `).join('');
-
-        // 多圖指示小圓點
         let dotsHtml = imgList.length > 1 ? `
-          <div class="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 flex gap-1 px-1.5 py-0.5 rounded-full bg-black/25 backdrop-blur-2xs pointer-events-none">
-            ${imgList.map((_, i) => `<span class="w-1 h-1 rounded-full ${i === 0 ? 'bg-white' : 'bg-white/50'}"></span>`).join('')}
+          <div class="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 px-2 py-1 rounded-full bg-black/25 backdrop-blur-2xs pointer-events-none">
+            ${imgList.map((_, i) => `<span id="card-dot-${safeId}-${i}" class="w-1.5 h-1.5 rounded-full transition-all ${i === 0 ? 'bg-white w-3' : 'bg-white/50'}"></span>`).join('')}
           </div>
         ` : '';
 
         return `
           <div class="bg-white p-3 rounded-2xl border shadow-xs flex flex-col justify-between group hover:border-stone-400 transition relative" style="border-color: var(--theme-border);">
-            <!-- 支援直接在小窗內左右滑動看圖，點擊才進入商品詳細頁 -->
-            <div class="w-full aspect-square rounded-xl overflow-hidden relative cursor-pointer bg-stone-100" onclick="openProductDetailPage('${p.sku}')" style="background-color: var(--theme-sand);">
-              <div class="w-full h-full flex overflow-x-auto snap-x snap-mandatory no-scrollbar">
-                ${slidesHtml}
-              </div>
+            <!-- 觸控即切換下一張，點擊開啟商品頁 -->
+            <div class="w-full aspect-square rounded-xl overflow-hidden relative cursor-pointer bg-stone-100 flex items-center justify-center select-none"
+                 ontouchstart="handleCardTouchStart(event)"
+                 ontouchend="handleCardTouchEnd(event, '${p.sku}', ${imgList.length})"
+                 onclick="openProductDetailPage('${p.sku}')"
+                 style="background-color: var(--theme-sand);">
+              
+              <!-- 鎖定不溢出的模糊底圖 -->
+              <img id="card-blur-${safeId}" src="${imgList[0]}" class="absolute inset-0 w-full h-full object-cover blur-lg opacity-60 pointer-events-none">
+              <!-- 完整呈現的主圖 -->
+              <img id="card-main-${safeId}" src="${imgList[0]}" class="relative z-10 w-full h-full object-contain pointer-events-none transition-opacity duration-200">
+              
               ${dotsHtml}
 
               <span class="absolute top-2 left-2 z-20 bg-white/90 backdrop-blur-md text-[9.5px] font-bold px-2 py-0.5 rounded shadow-xs border pointer-events-none" style="border-color: var(--theme-border); color: var(--theme-espresso);">
@@ -1143,12 +1223,11 @@
                 <span class="text-xs font-bold theme-text-primary">${priceRangeText}</span>
               </div>
 
-              <!-- 收藏愛心與快速選規加入購物車 -->
               <div class="flex justify-between items-center pt-2 mt-1 border-t" style="border-color: var(--theme-border);">
                 <button onclick="toggleFavorite('${p.sku}', event)" class="p-1 transition" title="收藏">
                   <svg class="w-4 h-4 ${isFav ? 'theme-fill-primary' : 'text-stone-300'}" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
                 </button>
-                <button onclick="openQuickSpecModal('${p.sku}', event)" class="p-1 text-stone-700 hover:opacity-75 transition" title="選擇規格加入購物車">
+                <button onclick="handleCardCartClick('${p.sku}', event)" class="p-1 text-stone-700 hover:opacity-75 transition" title="加入購物車">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
                 </button>
               </div>
@@ -2051,10 +2130,9 @@
         });
         if (!dbRes.ok) throw new Error("訂單寫入資料庫失敗");
 
-        // 步驟 B：背景通知總部 GAS 寫入該店鋪試算表「訂單明細」並發送 Resend 確認信
-        fetch(GAS_URL, {
+        // 步驟 B：確實等待總部 GAS 寫入試算表「訂單明細」並發送 Resend 確認信
+        await fetch(GAS_URL, {
           method: 'POST',
-          mode: 'no-cors',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({
             action: 'processNewOrderNotify',
@@ -2077,7 +2155,7 @@
               paymentStatus: '待付款'
             }
           })
-        });
+        }).catch(err => console.warn("Notify warning:", err));
 
         // 步驟 C：向總部 GAS 請求 PayUni 交易加密封包
         let gasResp = await fetch(GAS_URL, {
@@ -2110,7 +2188,6 @@
 
         localStorage.removeItem('shop_cart');
 
-        // 步驟 D：跳轉 PayUni 收銀台或顯示建單成功
         if (payuniData && payuniData.success && payuniData.gatewayUrl) {
           let form = document.createElement("form");
           form.method = "POST";
@@ -2123,16 +2200,14 @@
           };
           for (let k in fields) {
             let h = document.createElement("input"); 
-            h.type = "hidden"; 
-            h.name = k; 
-            h.value = fields[k]; 
+            h.type = "hidden"; h.name = k; h.value = fields[k]; 
             form.appendChild(h);
           }
           document.body.appendChild(form);
           form.submit();
         } else {
-          showToast(`訂單已成功成立！單號：${orderId} (查單PIN: ${randomPin})`);
-          setTimeout(() => window.location.reload(), 1800);
+          showToast(`訂單已成立！單號：${orderId} (查單PIN: ${randomPin})`);
+          setTimeout(() => window.location.reload(), 2000);
         }
       } catch(e) {
         showToast("結帳發生異常：" + e.message);
