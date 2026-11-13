@@ -654,12 +654,23 @@
         <div id="headerNavButtonsContainer" class="space-y-2.5"></div>
       </div>
 
-      <!-- 品牌 Logo 設定 -->
+      <!-- 品牌 Logo 與店名顯示設定 -->
       <div class="pt-3 border-t border-taupe-border space-y-3">
-        <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase border-b border-taupe-border pb-2">前台品牌 Logo 設定</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="flex justify-between items-center border-b border-taupe-border pb-2">
+          <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase">前台品牌 Logo 與商店名稱設定</h2>
+          <label class="flex items-center gap-1.5 text-xs font-bold text-taupe-charcoal cursor-pointer">
+            <input type="checkbox" id="settingShowMobileName" checked class="accent-taupe-main">
+            <span>手機版顯示文字店名 (關閉則手機僅顯示 Logo，防按鈕遮擋)</span>
+          </label>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label class="text-xs font-bold text-stone-500 block mb-1">Logo 圖片網址 (可直傳 Supabase)</label>
+            <label class="text-xs font-bold text-stone-500 block mb-1">商店顯示名稱 (中英文自動換行)</label>
+            <input type="text" id="settingStoreName" value="SIBYL SELECT 希貝兒選物" placeholder="例如：SIBYL SELECT 希貝兒選物" class="w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-stone-500 block mb-1">Logo 圖片網址 (可直傳雲端相簿)</label>
             <div class="flex gap-2">
               <input type="text" id="settingLogoUrl" class="w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none">
               <button type="button" onclick="document.getElementById('logoFileInput').click()" class="bg-taupe-light hover:bg-taupe-sand text-taupe-dark text-xs font-bold px-3 py-2 rounded-xl border border-taupe-border shrink-0 transition">
@@ -2635,6 +2646,8 @@
           document.getElementById('termRefund').value = t.refund || DEFAULT_TERMS.refund;
           document.getElementById('termPrivacy').value = t.privacy || DEFAULT_TERMS.privacy;
           document.getElementById('termMember').value = t.member || DEFAULT_TERMS.member;
+          document.getElementById('settingStoreName').value = s.store_name || "SIBYL SELECT 希貝兒選物";
+        document.getElementById('settingShowMobileName').checked = (s.show_mobile_store_name !== false);
 
           if (s.editorial_content) {
             let ed = s.editorial_content;
@@ -2705,17 +2718,19 @@
       };
 
       let patchPayload = {
-        theme_color: selectedThemeColor,
-        logo_url: logoUrl,
-        logo_shape: logoShape,
-        footer_line_id: footerLine,
-        footer_company_info: footerCompany,
-        spreadsheet_id: ssId,
-        marquee_announcement: marquee,
-        store_terms: terms,
-        header_nav_buttons: headerNavButtonsList,
-        shipping_rule: shippingRulePayload
-      };
+      store_name: document.getElementById('settingStoreName').value.trim() || "SIBYL SELECT 希貝兒選物",
+      show_mobile_store_name: document.getElementById('settingShowMobileName').checked,
+      theme_color: selectedThemeColor,
+      logo_url: logoUrl,
+      logo_shape: logoShape,
+      footer_line_id: footerLine,
+      footer_company_info: footerCompany,
+      spreadsheet_id: ssId,
+      marquee_announcement: marquee,
+      store_terms: terms,
+      header_nav_buttons: headerNavButtonsList,
+      shipping_rule: shippingRulePayload
+    };
 
       try {
         let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_stores?store_id=eq.${STORE_ID}`, {
