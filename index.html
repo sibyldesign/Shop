@@ -92,10 +92,10 @@
       <!-- 子分頁 1：最新動態 (Feed) -->
       <div id="home-sub-feed" class="space-y-5">
         
-        <!-- 橫式輪播圖 (支援觸控滑動、點擊白點換圖) -->
+        <!-- 橫式輪播圖 (游標改為標準選取手指，支援點擊白點換圖與手機左右滑動) -->
         <div class="relative w-full aspect-[2.1/1] sm:aspect-[2.4/1] rounded-2xl overflow-hidden shadow-xs bg-stone-100 select-none">
-          <div id="bannerSlider" class="w-full h-full flex transition-transform duration-500 ease-out cursor-grab active:cursor-grabbing"></div>
-          <div id="bannerDots" class="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20"></div>
+          <div id="bannerSlider" class="w-full h-full flex transition-transform duration-500 ease-out cursor-pointer"></div>
+          <div id="bannerDots" class="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 z-20 p-1.5 rounded-full bg-black/20 backdrop-blur-xs"></div>
         </div>
 
         <!-- 首頁輪播下方・相簿部落格圖文專區 -->
@@ -565,6 +565,7 @@
     let favorites = JSON.parse(localStorage.getItem('shop_favs') || '[]');
     let storeTerms = {};
     let bannerSpeedSeconds = 4;
+    let storeShippingRule = { mode: "category_qty", target_categories: ["四季被", "春夏薄被", "雙面絨冬被", "單面絨冬被"], min_qty: 2, min_amount: 0, fee: 100 };
 
     let currentDetailProduct = null;
     let detailSelectedImgs = [], detailImgIdx = 0;
@@ -635,6 +636,7 @@
     }
 
     // 1. 取得全域設定
+    // 1. 取得全域設定 (已修復 headerStoreName 報錯並支援手機版隱藏店名防遮擋)
     async function fetchStoreConfig() {
       try {
         let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_stores?store_id=eq.${STORE_ID}`, {
@@ -643,14 +645,13 @@
         let data = await res.json();
         if (data && data[0]) {
           let s = data[0];
-          document.getElementById('headerStoreName').innerText = s.store_name || "SIBYL SELECT";
-          document.getElementById('marqueeText').innerText = s.marquee_announcement || "全館單筆滿 2 件享免運優惠。";
+          document.title = (s.store_name || "Sibyl Select") + " | 官方旗艦商城";
+          
+          const marqueeEl = document.getElementById('marqueeText');
+          if (marqueeEl) marqueeEl.innerText = s.marquee_announcement || "全館單筆滿 2 件享免運優惠。";
 
           if (s.banner_speed) bannerSpeedSeconds = parseInt(s.banner_speed);
-
           if (s.shipping_rule) storeShippingRule = s.shipping_rule;
-          
-          // ⭐️ 核心修正：將後台設定的階層樹存入全域變數
           if (s.category_tree && Array.isArray(s.category_tree) && s.category_tree.length > 0) {
             categoryTree = s.category_tree;
           }
@@ -665,33 +666,40 @@
 
           if (s.logo_url) {
             const logoEl = document.getElementById('storeLogoImg');
-            logoEl.src = s.logo_url;
-            logoEl.classList.remove('hidden');
-            logoEl.className = (s.logo_shape === 'rectangle') 
-              ? "h-7 max-w-[120px] object-contain" 
-              : "w-7 h-7 rounded-full object-cover border border-border-base";
+            if (logoEl) {
+              logoEl.src = s.logo_url;
+              logoEl.classList.remove('hidden');
+              logoEl.className = (s.logo_shape === 'rectangle') 
+                ? "h-7 max-w-[110px] object-contain shrink-0" 
+                : "w-7 h-7 rounded-full object-cover border shrink-0";
+            }
           }
 
-          // 智慧中英文斷行處理 (例: "SIBYL SELECT 希貝兒選物" -> 第一行英文，第二行中文)
+          // 智慧中英文斷行處理 ＋ 手機版顯示控制 (關閉時僅在電腦版 sm:flex 顯示)
           const nameBox = document.getElementById('headerStoreNameBox');
-          let rawName = (s.store_name || "SIBYL SELECT").trim();
-          // 匹配開頭的英數字與空格符號，與後方的中文字分離
-          let match = rawName.match(/^([A-Za-z0-9\s\.\-&]+?)\s*([\u4e00-\u9fa5].*)$/);
-          if (match && nameBox) {
-            nameBox.innerHTML = `
-              <span class="text-[11px] sm:text-xs font-serif tracking-[0.2em] uppercase font-bold text-stone-900 block">${match[1].trim()}</span>
-              <span class="text-[11px] sm:text-xs font-bold tracking-widest text-stone-700 block mt-0.5">${match[2].trim()}</span>
-            `;
-          } else if (nameBox) {
-            nameBox.innerHTML = `<span class="text-xs font-serif tracking-[0.2em] uppercase font-bold text-stone-900">${rawName}</span>`;
+          if (nameBox) {
+            let showOnMobile = (s.show_mobile_store_name !== false);
+            nameBox.className = showOnMobile 
+              ? "flex flex-col justify-center leading-tight text-left truncate" 
+              : "hidden sm:flex flex-col justify-center leading-tight text-left truncate";
+
+            let rawName = (s.store_name || "SIBYL SELECT").trim();
+            let match = rawName.match(/^([A-Za-z0-9\s\.\-&]+?)\s*([\u4e00-\u9fa5].*)$/);
+            if (match) {
+              nameBox.innerHTML = `
+                <span class="text-[11px] sm:text-xs font-serif tracking-[0.2em] uppercase font-bold text-stone-900 block truncate">${match[1].trim()}</span>
+                <span class="text-[11px] sm:text-xs font-bold tracking-widest text-stone-700 block mt-0.5 truncate">${match[2].trim()}</span>
+              `;
+            } else {
+              nameBox.innerHTML = `<span class="text-xs font-serif tracking-[0.2em] uppercase font-bold text-stone-900 truncate">${rawName}</span>`;
+            }
           }
           
-          // 右上角多功能質感按鈕渲染 (支援 LINE / 官網地球 / IG / FB)
-          // 渲染右上角多按鈕群 (支援美感自適應膠囊排版)
+          // 渲染右上角多按鈕群
           const actionBox = document.getElementById('headerCustomActionBox');
           let btnList = s.header_nav_buttons || (s.header_nav_btn ? [s.header_nav_btn] : []);
           
-          if (btnList.length > 0) {
+          if (actionBox && btnList.length > 0) {
             const iconMap = {
               chat: `<svg class="w-3.5 h-3.5 text-emerald-700" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.03 2 11c0 2.87 1.51 5.41 3.86 7.02-.17.62-.64 2.27-.73 2.62-.12.43.16.42.33.31.14-.09 1.95-1.32 2.74-1.85.58.16 1.18.25 1.8.25 5.52 0 10-4.03 10-9s-4.48-9-10-9z"/></svg>`,
               globe: `<svg class="w-3.5 h-3.5 text-sky-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0m-9-9c2.5 3.5 3 6.5 3 9s-.5 5.5-3 9m0-18c-2.5 3.5-3 6.5-3 9s.5 5.5 3 9m-9-9h18"/></svg>`,
@@ -710,7 +718,7 @@
                 content = `${iconSvg}<span>${btn.title}</span>`;
               }
               return `
-                <a href="${btn.link || '#'}" target="_blank" class="text-[11px] font-bold text-stone-700 hover:opacity-75 transition flex items-center gap-1.5 px-3 py-1 rounded-full border shadow-2xs bg-white" style="border-color: var(--theme-border);">
+                <a href="${btn.link || '#'}" target="_blank" class="text-[11px] font-bold text-stone-700 hover:opacity-75 transition flex items-center gap-1.5 px-2.5 py-1 rounded-full border shadow-2xs bg-white" style="border-color: var(--theme-border);">
                   ${content}
                 </a>
               `;
@@ -718,11 +726,15 @@
           }
           
           if (s.footer_line_id) {
-            document.getElementById('footerLineLink').innerText = s.footer_line_id;
-            document.getElementById('footerLineLink').href = `https://line.me/R/ti/p/${s.footer_line_id.replace('@','')}`;
+            const fLine = document.getElementById('footerLineLink');
+            if (fLine) {
+              fLine.innerText = s.footer_line_id;
+              fLine.href = `https://line.me/R/ti/p/${s.footer_line_id.replace('@','')}`;
+            }
           }
           if (s.footer_company_info) {
-            document.getElementById('footerCompanyText').innerText = s.footer_company_info;
+            const fComp = document.getElementById('footerCompanyText');
+            if (fComp) fComp.innerText = s.footer_company_info;
           }
 
           if (s.store_terms) storeTerms = s.store_terms;
@@ -741,7 +753,9 @@
 
           checkAndRenderQuickActions(s.quick_actions);
         }
-      } catch(e){}
+      } catch(e) {
+        console.error("Store config load error:", e);
+      }
     }
 
     const DEFAULT_QUICK_ACTIONS = [
@@ -993,9 +1007,18 @@
         b.style.borderColor = "var(--theme-border)";
       });
       if (btn) btn.className = "cat-pill px-3.5 py-1 rounded-full text-xs font-bold whitespace-nowrap transition theme-btn-primary shadow-xs";
+      
+      // 同步更新網址參數，方便複製連結放到活動專區直達
+      let url = new URL(window.location);
+      if (currentMajorCategory !== "全部") url.searchParams.set('major', currentMajorCategory);
+      else url.searchParams.delete('major');
+      if (currentSubCategory !== "全部") url.searchParams.set('cat', currentSubCategory);
+      else url.searchParams.delete('cat');
+      window.history.replaceState({}, '', url);
+
       applyProductFilters();
     }
-
+    
     function applyProductFilters() {
       filteredProducts = allProducts.filter(p => {
         let matchMajor = (currentMajorCategory === "全部") || (p.major_category === currentMajorCategory);
@@ -1043,7 +1066,27 @@
       renderProductGrid();
     }
 
-    // 渲染商品網格 (手機 2 欄，電腦 4 欄，分類標籤在左上方)
+    // 計算商品價格區間字串 (如 "NT$ 520 - 3,220" 或單一價格 "NT$ 1,280")
+    function getProductPriceRangeText(p) {
+      let specs = [];
+      if (p.specs_data) {
+        if (typeof p.specs_data === 'string') {
+          try { specs = JSON.parse(p.specs_data); } catch(e) {}
+        } else if (Array.isArray(p.specs_data)) {
+          specs = p.specs_data;
+        }
+      }
+      let prices = specs.map(s => Number(s.price)).filter(n => !isNaN(n) && n > 0);
+      if (prices.length === 0 && Number(p.price) > 0) prices.push(Number(p.price));
+      if (prices.length === 0) return `NT$ ${p.price || 0}`;
+
+      let minP = Math.min(...prices);
+      let maxP = Math.max(...prices);
+      if (minP === maxP) return `NT$ ${minP.toLocaleString()}`;
+      return `NT$ ${minP.toLocaleString()} - ${maxP.toLocaleString()}`;
+    }
+
+    // 渲染商品網格 (支援卡片內直接左右滑動多圖 ＋ 低到高價格區間 ＋ 原價空白隱藏)
     function renderProductGrid() {
       const grid = document.getElementById('productGrid');
       document.getElementById('catalogCountBadge').innerText = `${filteredProducts.length} 件商品`;
@@ -1054,39 +1097,58 @@
       }
 
       grid.innerHTML = filteredProducts.map(p => {
-        let firstImg = (p.images || '').split(/[\s,]+/)[0] || 'https://via.placeholder.com/300x300';
+        let imgList = (p.images || '').split(/[\s,]+/).filter(Boolean);
+        if (imgList.length === 0) imgList = ['https://via.placeholder.com/300x300'];
         let isFav = favorites.includes(p.sku);
         let catLabel = p.sub_category || p.major_category || '選品';
-        let ratioClass = (p.img_ratio === '4:6') ? 'aspect-[4/6]' : 'aspect-square';
+        let priceRangeText = getProductPriceRangeText(p);
+        let showOldPrice = (!p.hide_old_price && p.old_price && Number(p.old_price) > 0);
+
+        // 產生支援水平滑動的多圖軌道
+        let slidesHtml = imgList.map(imgUrl => `
+          <div class="min-w-full h-full snap-center shrink-0 relative flex items-center justify-center overflow-hidden">
+            <img src="${imgUrl}" class="absolute inset-0 w-full h-full object-cover blur-lg scale-110 opacity-60 pointer-events-none">
+            <img src="${imgUrl}" class="relative z-10 w-full h-full object-contain pointer-events-none">
+          </div>
+        `).join('');
+
+        // 多圖指示小圓點
+        let dotsHtml = imgList.length > 1 ? `
+          <div class="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 flex gap-1 px-1.5 py-0.5 rounded-full bg-black/25 backdrop-blur-2xs pointer-events-none">
+            ${imgList.map((_, i) => `<span class="w-1 h-1 rounded-full ${i === 0 ? 'bg-white' : 'bg-white/50'}"></span>`).join('')}
+          </div>
+        ` : '';
 
         return `
           <div class="bg-white p-3 rounded-2xl border shadow-xs flex flex-col justify-between group hover:border-stone-400 transition relative" style="border-color: var(--theme-border);">
-            <div class="w-full aspect-square rounded-xl overflow-hidden relative cursor-pointer bg-stone-100 flex items-center justify-center" onclick="openProductDetailPage('${p.sku}')" style="background-color: var(--theme-sand);">
-              <!-- 底層模糊滿版背景 -->
-              <img src="${firstImg}" class="absolute inset-0 w-full h-full object-cover blur-lg scale-110 opacity-60 pointer-events-none">
-              <!-- 上層完整不裁切主圖 -->
-              <img src="${firstImg}" class="relative z-10 w-full h-full object-contain group-hover:scale-102 transition-transform duration-300 pointer-events-none">
-              
-              <span class="absolute top-2 left-2 z-20 bg-white/90 backdrop-blur-md text-[9.5px] font-bold px-2 py-0.5 rounded shadow-xs border" style="border-color: var(--theme-border); color: var(--theme-espresso);">
+            <!-- 支援直接在小窗內左右滑動看圖，點擊才進入商品詳細頁 -->
+            <div class="w-full aspect-square rounded-xl overflow-hidden relative cursor-pointer bg-stone-100" onclick="openProductDetailPage('${p.sku}')" style="background-color: var(--theme-sand);">
+              <div class="w-full h-full flex overflow-x-auto snap-x snap-mandatory no-scrollbar">
+                ${slidesHtml}
+              </div>
+              ${dotsHtml}
+
+              <span class="absolute top-2 left-2 z-20 bg-white/90 backdrop-blur-md text-[9.5px] font-bold px-2 py-0.5 rounded shadow-xs border pointer-events-none" style="border-color: var(--theme-border); color: var(--theme-espresso);">
                 ${catLabel}
               </span>
 
-              ${p.tag ? `<span class="absolute top-7 left-2 z-20 text-[9px] font-bold px-1.5 py-0.2 rounded border shadow-xs" style="background-color: var(--theme-sand); color: var(--theme-primary); border-color: var(--theme-border);">${p.tag}</span>` : ''}
+              ${p.tag ? `<span class="absolute top-7 left-2 z-20 text-[9px] font-bold px-1.5 py-0.2 rounded border shadow-xs pointer-events-none" style="background-color: var(--theme-sand); color: var(--theme-primary); border-color: var(--theme-border);">${p.tag}</span>` : ''}
             </div>
+
             <div class="pt-2.5 flex flex-col justify-between flex-1">
               <h3 onclick="openProductDetailPage('${p.sku}')" class="text-xs font-bold text-stone-800 line-clamp-1 cursor-pointer hover:opacity-75 transition">${p.name}</h3>
               
-              <div class="flex items-baseline gap-1 mt-1 font-mono">
-                ${(!p.hide_old_price && p.old_price) ? `<span class="text-[10px] text-stone-400 line-through">NT$${p.old_price}</span>` : ''}
-                <span class="text-xs font-bold theme-text-primary">NT$ ${p.price}</span>
+              <div class="flex flex-wrap items-baseline gap-1 mt-1 font-mono">
+                ${showOldPrice ? `<span class="text-[10px] text-stone-400 line-through">NT$${Number(p.old_price).toLocaleString()}</span>` : ''}
+                <span class="text-xs font-bold theme-text-primary">${priceRangeText}</span>
               </div>
 
-              <!-- 收藏愛心與購物車 -->
+              <!-- 收藏愛心與快速選規加入購物車 -->
               <div class="flex justify-between items-center pt-2 mt-1 border-t" style="border-color: var(--theme-border);">
                 <button onclick="toggleFavorite('${p.sku}', event)" class="p-1 transition" title="收藏">
                   <svg class="w-4 h-4 ${isFav ? 'theme-fill-primary' : 'text-stone-300'}" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
                 </button>
-                <button onclick="quickAddToCart('${p.sku}')" class="p-1 text-stone-700 hover:opacity-75 transition" title="加入購物車">
+                <button onclick="openQuickSpecModal('${p.sku}', event)" class="p-1 text-stone-700 hover:opacity-75 transition" title="選擇規格加入購物車">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
                 </button>
               </div>
@@ -1095,7 +1157,7 @@
         `;
       }).join('');
     }
-
+    
     function renderPopularGrid() {
       const grid = document.getElementById('popularProductGrid');
       // 依據後台勾選 is_hot 篩選，並嚴格依據 hot_rank (1, 2, 3...) 排序
@@ -1900,6 +1962,7 @@
     }
 
     // 12. 結帳送單 (整合 PayUni 刷卡與發票開立)
+    // 12. 結帳送單 (整合總部寄信、寫入試算表與 PayUni 刷卡發票開立)
     async function submitOrderToCheckout() {
       let name = document.getElementById('orderCustName').value.trim();
       let phone = document.getElementById('orderCustPhone').value.trim();
@@ -1937,11 +2000,10 @@
       }
       localStorage.setItem('sibyl_user_profile', JSON.stringify(savedProfile));
 
-      let totalQty = cart.reduce((sum, i) => sum + i.qty, 0);
       let grandTotal = Number(document.getElementById('cartGrandTotal').innerText);
       let subtotal = Number(document.getElementById('cartSubtotal').innerText);
       let discountAmt = Number(document.getElementById('cartDiscount').innerText);
-      let shippingFee = totalQty >= 2 ? 0 : 100;
+      let shippingFee = (typeof calculateCartShipping === 'function') ? calculateCartShipping(subtotal) : (cart.reduce((sum, i) => sum + i.qty, 0) >= 2 ? 0 : 100);
 
       let now = new Date();
       let datePart = String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
@@ -1977,7 +2039,8 @@
       };
 
       try {
-        await fetch(`${SUPABASE_URL}/rest/v1/shop_orders`, {
+        // 步驟 A：寫入資料庫訂單表
+        let dbRes = await fetch(`${SUPABASE_URL}/rest/v1/shop_orders`, {
           method: 'POST',
           headers: { 
             'apikey': SUPABASE_KEY, 
@@ -1986,39 +2049,69 @@
           },
           body: JSON.stringify(orderPayload)
         });
+        if (!dbRes.ok) throw new Error("訂單寫入資料庫失敗");
 
-        // 1. 通知總部 GAS 寫入該店鋪試算表「訂單明細」並發送 Resend 確認信
-     fetch(GAS_URL, {
-       method: 'POST',
-       mode: 'no-cors',
-       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-       body: JSON.stringify({
-         action: 'processNewOrderNotify',
-         storeId: STORE_ID,
-         orderData: {
-           storeId: STORE_ID,
-           orderId: orderId,
-           orderPin: randomPin,
-           grandTotal: grandTotal,
-           itemTotal: subtotal,
-           shippingFee: shippingFee,
-           discountAmt: discountAmt,
-           items: cart,
-           customerName: name,
-           customerPhone: phone,
-           customerEmail: email,
-           deliveryAddress: address,
-           customerRemark: remark,
-           couponUsed: currentCouponCode || '無',
-           paymentStatus: '待付款'
-         }
-       })
-     });
-        let payuniData = await gasResp.json();
+        // 步驟 B：背景通知總部 GAS 寫入該店鋪試算表「訂單明細」並發送 Resend 確認信
+        fetch(GAS_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'processNewOrderNotify',
+            storeId: STORE_ID,
+            orderData: {
+              storeId: STORE_ID,
+              orderId: orderId,
+              orderPin: randomPin,
+              grandTotal: grandTotal,
+              itemTotal: subtotal,
+              shippingFee: shippingFee,
+              discountAmt: discountAmt,
+              items: cart,
+              customerName: name,
+              customerPhone: phone,
+              customerEmail: email,
+              deliveryAddress: address,
+              customerRemark: remark,
+              couponUsed: currentCouponCode || '無',
+              paymentStatus: '待付款'
+            }
+          })
+        });
+
+        // 步驟 C：向總部 GAS 請求 PayUni 交易加密封包
+        let gasResp = await fetch(GAS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'createPayuniTrade',
+            storeId: STORE_ID,
+            orderData: { 
+              storeId: STORE_ID, 
+              orderId: orderId, 
+              orderPin: randomPin,
+              grandTotal: grandTotal, 
+              items: cart, 
+              shippingFee: shippingFee, 
+              discountAmt: discountAmt,
+              customerName: name, 
+              customerPhone: phone, 
+              customerEmail: email,
+              carrierNum: carrierNum,
+              buyerUbn: buyerUbn,
+              buyerTitle: buyerTitle
+            }
+          })
+        });
+
+        let rawText = await gasResp.text();
+        let payuniData = {};
+        try { payuniData = JSON.parse(rawText); } catch (err) {}
 
         localStorage.removeItem('shop_cart');
 
-        if (payuniData.success && payuniData.gatewayUrl) {
+        // 步驟 D：跳轉 PayUni 收銀台或顯示建單成功
+        if (payuniData && payuniData.success && payuniData.gatewayUrl) {
           let form = document.createElement("form");
           form.method = "POST";
           form.action = payuniData.gatewayUrl;
@@ -2038,11 +2131,11 @@
           document.body.appendChild(form);
           form.submit();
         } else {
-          showToast(`訂單已建立，單號：${orderId} (PIN: ${randomPin})`);
-          setTimeout(() => window.location.reload(), 1500);
+          showToast(`訂單已成功成立！單號：${orderId} (查單PIN: ${randomPin})`);
+          setTimeout(() => window.location.reload(), 1800);
         }
       } catch(e) {
-        showToast("結帳發生異常，請洽客服");
+        showToast("結帳發生異常：" + e.message);
         btn.disabled = false; 
         btn.innerText = "前往 PayUni 安全付款";
       }
@@ -2079,6 +2172,94 @@
       if (detailSelectedImgs.length <= 1) return;
       detailImgIdx = (detailImgIdx + 1) % detailSelectedImgs.length;
       setDetailMainImage(detailImgIdx);
+    }
+
+    let qsProduct = null, qsColor = "", qsSize = "", qsQty = 1;
+
+    function openQuickSpecModal(sku, e) {
+      if (e) e.stopPropagation();
+      const p = allProducts.find(x => x.sku === sku);
+      if (!p) return;
+      qsProduct = p;
+      qsQty = 1;
+
+      let imgs = (p.images || '').split(/[\s,]+/).filter(Boolean);
+      document.getElementById('qsProdImg').src = imgs[0] || 'https://via.placeholder.com/100';
+      document.getElementById('qsProdName').innerText = p.name;
+      document.getElementById('qsQtyVal').innerText = 1;
+
+      let specs = typeof p.specs_data === 'string' ? JSON.parse(p.specs_data || '[]') : (p.specs_data || []);
+      p.specs_data = specs;
+
+      let colors = specs.length > 0 ? [...new Set(specs.map(s => (s.spec || '').split('/')[0].replace('款式:', '').trim()).filter(Boolean))] : ['單一款式'];
+      let sizes = specs.length > 0 ? [...new Set(specs.map(s => (s.spec || '').split('/')[1] ? (s.spec || '').split('/')[1].trim() : '標準規格').filter(Boolean))] : ['標準規格'];
+
+      qsColor = colors[0];
+      qsSize = sizes[0];
+
+      document.getElementById('qsColorOptions').innerHTML = colors.map(c => `
+        <button type="button" onclick="selectQsColor('${c}', this)" class="qs-c-btn px-3 py-1 rounded-lg border text-xs font-bold ${c === qsColor ? 'theme-btn-primary' : 'bg-white text-stone-700'}" style="border-color: var(--theme-border);">${c}</button>
+      `).join('');
+
+      document.getElementById('qsSizeOptions').innerHTML = sizes.map(s => `
+        <button type="button" onclick="selectQsSize('${s}', this)" class="qs-s-btn px-3 py-1 rounded-lg border text-xs font-bold ${s === qsSize ? 'theme-btn-primary' : 'bg-white text-stone-700'}" style="border-color: var(--theme-border);">${s}</button>
+      `).join('');
+
+      syncQsPrice();
+      const modal = document.getElementById('quickSpecModal');
+      modal.classList.remove('hidden'); modal.classList.add('flex');
+    }
+
+    function selectQsColor(c, btn) {
+      qsColor = c;
+      document.querySelectorAll('.qs-c-btn').forEach(b => b.className = "qs-c-btn px-3 py-1 rounded-lg border text-xs font-bold bg-white text-stone-700");
+      btn.className = "qs-c-btn px-3 py-1 rounded-lg border text-xs font-bold theme-btn-primary";
+      syncQsPrice();
+    }
+
+    function selectQsSize(s, btn) {
+      qsSize = s;
+      document.querySelectorAll('.qs-s-btn').forEach(b => b.className = "qs-s-btn px-3 py-1 rounded-lg border text-xs font-bold bg-white text-stone-700");
+      btn.className = "qs-s-btn px-3 py-1 rounded-lg border text-xs font-bold theme-btn-primary";
+      syncQsPrice();
+    }
+
+    function syncQsPrice() {
+      if (!qsProduct) return;
+      let key = `款式:${qsColor} / ${qsSize}`;
+      let m = (qsProduct.specs_data || []).find(v => v.spec === key);
+      let price = (m && m.price) ? Number(m.price) : qsProduct.price;
+      document.getElementById('qsProdPrice').innerText = `NT$ ${price.toLocaleString()}`;
+    }
+
+    function changeQsQty(d) {
+      qsQty = Math.max(1, qsQty + d);
+      document.getElementById('qsQtyVal').innerText = qsQty;
+    }
+
+    function confirmAddFromQuickSpec() {
+      if (!qsProduct) return;
+      let key = `款式:${qsColor} / ${qsSize}`;
+      let m = (qsProduct.specs_data || []).find(v => v.spec === key);
+      let price = (m && m.price) ? Number(m.price) : qsProduct.price;
+      let imgs = (qsProduct.images || '').split(/[\s,]+/).filter(Boolean);
+
+      let existing = cart.find(i => i.sku === qsProduct.sku && i.color === qsColor && i.size === qsSize);
+      if (existing) existing.qty += qsQty;
+      else cart.push({
+        sku: qsProduct.sku, prodName: qsProduct.name, color: qsColor, size: qsSize,
+        price: price, qty: qsQty, image: imgs[0] || '', category: qsProduct.sub_category || qsProduct.major_category
+      });
+
+      localStorage.setItem('shop_cart', JSON.stringify(cart));
+      updateBadgesUI();
+      closeQuickSpecModal();
+      showToast("已將選取規格加入購物車！");
+    }
+
+    function closeQuickSpecModal() {
+      document.getElementById('quickSpecModal').classList.add('hidden');
+      document.getElementById('quickSpecModal').classList.remove('flex');
     }
   </script>
 </body>
