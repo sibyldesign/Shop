@@ -1541,6 +1541,9 @@
         document.getElementById('pSku').value = '';
         document.getElementById('pName').value = '';
         document.getElementById('pDesc').value = '';
+        // 等待資料庫寫入成功後，立即同步寫入試算表總表
+        await pushProductChangeToMasterSheet(payload);
+        showToast("商品已成功儲存並雙向同步至試算表！");
         await loadInventoryData();
         switchTab('listTab');
       } catch(e) {
@@ -1841,10 +1844,13 @@
         });
 
         if (res.ok) {
-          showToast(`商品 ${sku} 已切換為【${nextStatus}】`);
+          let targetProd = globalProducts.find(x => x.sku === sku);
+          if (targetProd) {
+            targetProd.status = nextStatus;
+            await pushProductChangeToMasterSheet(targetProd); // 👈 切換上下架也即時更新試算表！
+          }
+          showToast(`商品 ${sku} 已切換為【${nextStatus}】並同步試算表`);
           await loadInventoryData();
-        } else {
-          showToast("狀態切換失敗");
         }
       } catch(e) {
         showToast("切換連線異常：" + e.message);
@@ -2759,6 +2765,27 @@
       t.innerText = msg;
       t.style.opacity = '1';
       setTimeout(() => { t.style.opacity = '0'; }, 3000);
+    }
+
+  // 統一發送商品變更至總部 GAS，即時寫入該店鋪試算表「線上商城_上架管理總表」
+    async function pushProductChangeToMasterSheet(productObj) {
+      try {
+        let resp = await fetch(GAS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'syncProductToSheet',
+            storeId: STORE_ID,
+            product: productObj
+          })
+        });
+        let resJson = await resp.json().catch(() => ({}));
+        if (!resJson.success) {
+          console.warn("試算表同步回傳警告:", resJson);
+        }
+      } catch (e) {
+        console.warn("試算表同步網路異常:", e);
+      }
     }
   </script>
 </body>
