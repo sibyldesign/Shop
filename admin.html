@@ -720,6 +720,33 @@
         </div>
       </div>
 
+      <!-- 物流運費與自訂免運門檻規則設定 -->
+      <div class="pt-3 border-t border-taupe-border space-y-3">
+        <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase border-b border-taupe-border pb-2">物流運費與自訂免運門檻設定</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-taupe-canvas p-3.5 rounded-xl border border-taupe-border text-xs">
+          <div>
+            <label class="font-bold text-stone-600 block mb-1">免運計算模式</label>
+            <select id="settingShipMode" onchange="toggleShippingRuleUI()" class="w-full p-2 border border-taupe-border rounded-lg bg-white outline-none">
+              <option value="category_qty">指定分類商品滿件免運 (排除配件)</option>
+              <option value="all_qty">全館不限分類滿件免運</option>
+              <option value="amount">全館消費滿指定金額免運</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-bold text-stone-600 block mb-1" id="settingShipThresholdLabel">免運門檻 (件數或金額)</label>
+            <input type="number" id="settingShipThreshold" value="2" class="w-full p-2 border border-taupe-border rounded-lg bg-white font-mono outline-none">
+          </div>
+          <div>
+            <label class="font-bold text-stone-600 block mb-1">未達門檻基本運費 (NTD)</label>
+            <input type="number" id="settingShipFee" value="100" class="w-full p-2 border border-taupe-border rounded-lg bg-white font-mono outline-none">
+          </div>
+        </div>
+        <div id="settingShipCategoriesBox" class="bg-white p-3 rounded-xl border border-taupe-border space-y-1.5">
+          <label class="text-xs font-bold text-stone-600 block">勾選計入「滿件免運」的商品分類 (未勾選之配件如枕頭套不計入件數)：</label>
+          <div id="shipRuleCategoriesContainer" class="flex flex-wrap gap-2"></div>
+        </div>
+      </div>
+      
       <!-- 跑馬燈內容 -->
       <div class="pt-3 border-t border-taupe-border">
         <label class="text-xs font-bold text-stone-600 block mb-1">首頁跑馬燈公告內容 (自動水平置中滾動)</label>
@@ -1596,8 +1623,9 @@
                 ${p.status || '上架'}
               </button>
             </td>
-            <td class="p-3 text-center whitespace-nowrap">
-              <button type="button" onclick="editProduct('${p.sku}')" class="text-taupe-main hover:underline font-bold mr-3">編輯</button>
+           <td class="p-3 text-center whitespace-nowrap">
+              <button type="button" onclick="editProduct('${p.sku}')" class="text-taupe-main hover:underline font-bold mr-2">編輯</button>
+              <button type="button" onclick="duplicateProduct('${p.sku}')" class="text-sky-700 hover:underline font-bold mr-2">複製</button>
               <button type="button" onclick="deleteSingleProductPrompt('${p.sku}')" class="text-rose-600 hover:underline font-bold">刪除</button>
             </td>
           </tr>
@@ -1605,7 +1633,15 @@
       });
     }
 
-    function changeInvPage(dir) {
+  function duplicateProduct(sku) {
+      editProduct(sku); // 先載入原商品資料
+      document.getElementById('pSku').value = sku + "-COPY";
+      document.getElementById('pName').value = document.getElementById('pName').value + " (複製)";
+      document.getElementById('formActionTitle').innerText = "複製並建立新商品 (請修改專屬貨號)";
+      showToast("已複製商品資料，請修改貨號後按確認上架！");
+    }  
+  
+  function changeInvPage(dir) {
       let maxP = Math.ceil(filteredProducts.length / invPageSize) || 1;
       invPage = Math.max(1, Math.min(invPage + dir, maxP));
       renderInventoryTable();
@@ -1743,14 +1779,13 @@
       document.getElementById('pStatus').value = p.status || '上架';
       document.getElementById('pImgRatio').value = p.img_ratio || '1:1';
       document.getElementById('pShowArrivalCheck').checked = (p.show_arrival_date !== false);
+      document.getElementById('pHideOldPriceCheck').checked = (p.hide_old_price === true);
       document.getElementById('pMajorSelect').value = p.major_category || '韓國棉被';
       syncSubCategoriesDropdown();
       document.getElementById('pSubSelect').value = p.sub_category || '四季被';
       document.getElementById('pTag').value = p.tag || '';
       document.getElementById('pArrivalDate').value = p.arrival_date || '';
       document.getElementById('pDesc').value = p.description || '';
-      document.getElementById('pShowArrivalCheck').checked = (p.show_arrival_date !== false);
-      document.getElementById('pHideOldPriceCheck').checked = (p.hide_old_price === true); // 👈 編輯時自動打勾
 
       currentUploadedImages = p.images ? p.images.split(/[\s,]+/).filter(Boolean) : [];
       renderProductThumbnails();
@@ -1759,6 +1794,10 @@
       tbody.innerHTML = "";
 
       let specs = p.specs_data || [];
+      if (typeof specs === 'string') {
+        try { specs = JSON.parse(specs); } catch(e) { specs = []; }
+      }
+
       if (specs.length > 0) {
         specs.forEach(sp => {
           let displayName = sp.spec.replace("款式:", "").replace(" / 標準", "").trim();
@@ -1768,8 +1807,10 @@
               <td class="p-2"><input type="number" class="m-old w-full p-1 border border-taupe-border rounded text-xs" value="${sp.oldPrice || 0}"></td>
               <td class="p-2"><input type="number" class="m-price w-full p-1 border border-taupe-border rounded text-xs font-bold text-taupe-crimson" value="${sp.price || 0}"></td>
               <td class="p-2"><input type="number" class="m-stock w-full p-1 border border-taupe-border rounded text-xs" value="${sp.stock || 99}"></td>
-              <td class="p-2 text-center">
-                <button type="button" onclick="this.closest('tr').remove()" class="text-rose-600 hover:text-rose-800 font-bold px-1.5 py-0.5">✕ 刪除</button>
+              <td class="p-2 text-center whitespace-nowrap">
+                <button type="button" onclick="moveMatrixRow(this, -1)" class="text-stone-500 hover:text-taupe-main font-bold px-1" title="上移">▲</button>
+                <button type="button" onclick="moveMatrixRow(this, 1)" class="text-stone-500 hover:text-taupe-main font-bold px-1" title="下移">▼</button>
+                <button type="button" onclick="this.closest('tr').remove()" class="text-rose-600 hover:text-rose-800 font-bold px-1.5" title="刪除">✕</button>
               </td>
             </tr>
           `;
@@ -1792,7 +1833,17 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    function searchInventory() {
+  function moveMatrixRow(btn, dir) {
+      const row = btn.closest('tr');
+      const tbody = row.parentNode;
+      if (dir === -1 && row.previousElementSibling) {
+        tbody.insertBefore(row, row.previousElementSibling);
+      } else if (dir === 1 && row.nextElementSibling) {
+        tbody.insertBefore(row.nextElementSibling, row);
+      }
+    }  
+  
+  function searchInventory() {
       let kw = document.getElementById('invSearch').value.trim().toLowerCase();
       filteredProducts = globalProducts.filter(p => p.sku.toLowerCase().includes(kw) || p.name.toLowerCase().includes(kw));
       invPage = 1;
@@ -2436,7 +2487,27 @@
       renderHeaderNavButtonsRows();
     }
 
-    async function loadStoreSettings() {
+  function renderShippingRuleCategories(selectedList) {
+      const container = document.getElementById('shipRuleCategoriesContainer');
+      if (!container) return;
+      let cats = [];
+      visualCategoryTree.forEach(m => (m.children || []).forEach(s => cats.push(s.name)));
+      if (cats.length === 0) cats = ["四季被", "春夏薄被", "雙面絨冬被", "單面絨冬被", "床寢配件"];
+      container.innerHTML = cats.map(c => `
+        <label class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-taupe-border bg-taupe-canvas text-xs font-bold cursor-pointer">
+          <input type="checkbox" value="${c}" class="ship-cat-chk accent-taupe-main" ${(selectedList || []).includes(c) ? 'checked' : ''}>
+          <span>${c}</span>
+        </label>
+      `).join('');
+    }
+
+    function toggleShippingRuleUI() {
+      let mode = document.getElementById('settingShipMode').value;
+      document.getElementById('settingShipCategoriesBox').classList.toggle('hidden', mode !== 'category_qty');
+      document.getElementById('settingShipThresholdLabel').innerText = (mode === 'amount') ? '免運消費門檻金額 (NTD)' : '免運門檻件數 (滿幾件)';
+    }  
+  
+  async function loadStoreSettings() {
       try {
         let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_stores?store_id=eq.${STORE_ID}`, {
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
@@ -2461,7 +2532,6 @@
 
           document.getElementById('settingLogoUrl').value = s.logo_url || '';
           if (s.logo_shape) document.getElementById('settingLogoShape').value = s.logo_shape;
-
           if (s.footer_line_id) document.getElementById('settingFooterLine').value = s.footer_line_id;
           if (s.footer_company_info) document.getElementById('settingFooterCompany').value = s.footer_company_info;
 
@@ -2499,6 +2569,14 @@
             document.getElementById('quickActionsActive').checked = (quickActionsData.is_active !== false);
             renderQuickActionsRows();
           }
+
+          // 正確在取得 s 之後載入免運條件設定
+          let sr = s.shipping_rule || { mode: "category_qty", target_categories: ["四季被", "春夏薄被", "雙面絨冬被", "單面絨冬被"], min_qty: 2, min_amount: 0, fee: 100 };
+          document.getElementById('settingShipMode').value = sr.mode || 'category_qty';
+          document.getElementById('settingShipThreshold').value = (sr.mode === 'amount') ? (sr.min_amount || 2000) : (sr.min_qty || 2);
+          document.getElementById('settingShipFee').value = sr.fee !== undefined ? sr.fee : 100;
+          toggleShippingRuleUI();
+          renderShippingRuleCategories(sr.target_categories);
         }
       } catch(e){}
     }
@@ -2519,7 +2597,19 @@
         member: document.getElementById('termMember').value.trim()
       };
 
-      // 打包儲存包含右上角快捷按鈕群 (headerNavButtonsList) 的完整設定
+      let shipMode = document.getElementById('settingShipMode').value;
+      let shipVal = Number(document.getElementById('settingShipThreshold').value) || 2;
+      let shipCats = [];
+      document.querySelectorAll('.ship-cat-chk:checked').forEach(el => shipCats.push(el.value));
+
+      let shippingRulePayload = {
+        mode: shipMode,
+        target_categories: shipCats,
+        min_qty: shipMode !== 'amount' ? shipVal : 0,
+        min_amount: shipMode === 'amount' ? shipVal : 0,
+        fee: Number(document.getElementById('settingShipFee').value) || 100
+      };
+
       let patchPayload = {
         theme_color: selectedThemeColor,
         logo_url: logoUrl,
@@ -2529,7 +2619,8 @@
         spreadsheet_id: ssId,
         marquee_announcement: marquee,
         store_terms: terms,
-        header_nav_buttons: headerNavButtonsList
+        header_nav_buttons: headerNavButtonsList,
+        shipping_rule: shippingRulePayload
       };
 
       try {
@@ -2544,7 +2635,7 @@
         });
 
         if (res.ok) {
-          showToast("全域外觀、按鈕與合約條款已成功儲存！");
+          showToast("全域外觀、按鈕、免運條件與條款已成功儲存！");
         } else {
           let errText = await res.text();
           showToast("儲存失敗：" + errText);
