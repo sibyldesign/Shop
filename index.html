@@ -2267,34 +2267,40 @@
         localStorage.removeItem('shop_cart');
 
         // ⭐️ 嚴格檢查：必須確保 gatewayUrl 存在且為 PayUni 的網址，絕不對自己發送 POST
-        if (payuniData && payuniData.success && payuniData.gatewayUrl && payuniData.gatewayUrl.startsWith("http")) {
+        // ⭐️ 終極防呆：若總部 GAS 回傳的 gatewayUrl 異常，強制指向 PayUni 正式 API 閘道，絕不打回自己網域導致 405
+        let targetGateway = (payuniData && payuniData.gatewayUrl) ? payuniData.gatewayUrl : "https://api.payuni.com.tw/api/upp";
+
+        if (payuniData && payuniData.success) {
           let form = document.createElement("form");
           form.method = "POST";
-          form.action = payuniData.gatewayUrl;
+          form.action = targetGateway;
           form.style.display = "none";
           
           let fields = { 
-            "MerID": payuniData.MerID, 
-            "Version": payuniData.Version, 
+            "MerID": payuniData.MerID || "U072882813", 
+            "Version": payuniData.Version || "1.0", 
             "EncryptInfo": payuniData.EncryptInfo, 
             "HashInfo": payuniData.HashInfo 
           };
           
           for (let k in fields) {
             let h = document.createElement("input"); 
-            h.type = "hidden"; h.name = k; h.value = fields[k] || ""; 
+            h.type = "hidden"; 
+            h.name = k; 
+            h.value = fields[k] || ""; 
             form.appendChild(h);
           }
           
           document.body.appendChild(form);
           form.submit();
         } else {
-          // 防呆保護：若金流閘道網址取得失敗，轉為安全提示而非直接 405 崩潰
-          console.error("PayUni gatewayUrl missing:", payuniData);
-          showToast("訂單已成立！單號：" + orderId + " (系統已發送確認信，金流連線請洽客服)");
-          setTimeout(() => window.location.reload(), 3000);
+          console.error("Payuni Error Response:", payuniData);
+          showToast("金流授權失敗：" + (payuniData.error || "未知錯誤"));
+          if (btn) {
+            btn.disabled = false;
+            btn.innerText = "前往 PayUni 安全付款";
+          }
         }
-
         // 清空購物車
         localStorage.removeItem('shop_cart');
         cart = [];
