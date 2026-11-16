@@ -2723,12 +2723,16 @@
             product: productObj
           })
         });
-        let resJson = await resp.json().catch(() => ({}));
+        let rawText = await resp.text();
+        let resJson = {};
+        try { resJson = JSON.parse(rawText); } catch(err) {}
+        
         if (!resJson.success) {
-          console.warn("試算表同步回傳警告:", resJson);
+          console.error("試算表同步失敗:", rawText);
+          showToast("注意：雲端商品已更新，但試算表同步未回應");
         }
       } catch (e) {
-        console.warn("試算表同步網路異常:", e);
+        console.error("試算表同步網路異常:", e);
       }
     }
   </script>
