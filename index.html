@@ -296,15 +296,18 @@
               <option value="b2c_phone">個人雲端發票 (手機條碼載具)</option>
               <option value="b2b_tax">公司三聯式發票 (統一編號)</option>
             </select>
-            <div id="invoicePhoneBlock" class="hidden">
-              <input type="text" id="orderCarrierNum" placeholder="請輸入手機載具 (如 /ABC1234)" class="w-full p-2 border border-store-border rounded-lg text-xs outline-none bg-white font-mono" style="border-color: var(--theme-border);">
+            
+            <!-- ⭐️ 必須確保這兩個 ID 存在，JS 才不會報 Cannot read properties of null -->
+            <div id="invoicePhoneBlock" class="hidden pt-1">
+              <input type="text" id="orderCarrierNum" placeholder="請輸入手機載具 (如 /ABC1234)" class="w-full p-2 border rounded-lg text-xs outline-none bg-white font-mono" style="border-color: var(--theme-border);">
             </div>
-            <div id="invoiceTaxBlock" class="hidden space-y-1.5">
-              <input type="text" id="orderBuyerUbn" maxlength="8" placeholder="公司統一編號 (8 碼)" class="w-full p-2 border border-store-border rounded-lg text-xs font-mono outline-none bg-white" style="border-color: var(--theme-border);">
+            
+            <div id="invoiceTaxBlock" class="hidden space-y-1.5 pt-1">
+              <input type="text" id="orderBuyerUbn" maxlength="8" placeholder="公司統一編號 (8 碼)" class="w-full p-2 border rounded-lg text-xs font-mono outline-none bg-white" style="border-color: var(--theme-border);">
               <input type="text" id="orderBuyerTitle" placeholder="買受人公司抬頭" class="w-full p-2 border rounded-lg text-xs outline-none bg-white" style="border-color: var(--theme-border);">
             </div>
           </div>
-
+          
           <div class="flex items-center justify-between p-2 bg-white rounded-xl border" style="border-color: var(--theme-border);">
             <span class="text-[11px] text-stone-500 font-medium">記住我的收件資訊 (僅存於本地手機)</span>
             <input type="checkbox" id="saveProfileCheck" checked class="w-4 h-4" style="accent-color: var(--theme-primary);">
@@ -1611,9 +1614,20 @@
     function renderWishlistView() {
       const container = document.getElementById('wishlistItemsContainer');
       const badge = document.getElementById('wishlistCountText');
+      
+      // 確保只抓取全部分類中確實存在的商品
       let favList = allProducts.filter(p => favorites.includes(p.sku));
-      badge.innerText = `${favList.length} 件收藏`;
+      
+      // 如果過濾後發現商品實際不存在，自動從 favorites 移除並清理 localStorage
+      if (favList.length !== favorites.length) {
+        favorites = favList.map(p => p.sku);
+        localStorage.setItem('shop_favs', JSON.stringify(favorites));
+        updateBadgesUI();
+      }
 
+      if (badge) badge.innerText = `${favList.length} 件收藏`;
+
+      if (!container) return;
       if (favList.length === 0) {
         container.innerHTML = `<div class="text-center py-12 text-xs text-stone-400">目前尚無收藏商品</div>`;
         return;
@@ -1634,7 +1648,7 @@
             <button onclick="handleCardCartClick('${p.sku}', event)" class="p-2 rounded-xl transition" style="background-color: var(--theme-sand); color: var(--theme-espresso);" title="加入購物車">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
             </button>
-            <button onclick="toggleFavorite('${p.sku}')" class="p-2 transition text-stone-400 hover:text-rose-600 font-bold" title="移除收藏">
+            <button onclick="toggleFavorite('${p.sku}', event)" class="p-2 transition text-stone-400 hover:text-rose-600 font-bold" title="移除收藏">
               ✕
             </button>
           </div>
@@ -1950,9 +1964,22 @@
       const favBadge = document.getElementById('navWishlistBadge');
       const cartBadge = document.getElementById('navCartBadge');
       
-      // 嚴格確保 favorites 是陣列且過濾無效值
-      let favList = Array.isArray(favorites) ? favorites.filter(Boolean) : [];
-      let favCount = favList.length;
+      // ⭐️ 嚴格過濾掉空值、null、undefined 或空白字串
+      let favList = [];
+      try {
+        let rawFavs = JSON.parse(localStorage.getItem('shop_favs') || '[]');
+        if (Array.isArray(rawFavs)) {
+          favList = rawFavs.filter(sku => sku && typeof sku === 'string' && sku.trim() !== '');
+        }
+      } catch (e) {
+        favList = [];
+      }
+      
+      // 同步修正全域變數，確保資料乾淨
+      favorites = favList;
+      localStorage.setItem('shop_favs', JSON.stringify(favorites));
+
+      let favCount = favorites.length;
       if (favBadge) {
         favBadge.innerText = favCount;
         favBadge.classList.toggle('hidden', favCount === 0);
