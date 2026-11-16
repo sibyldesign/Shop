@@ -2268,26 +2268,34 @@
         cart = [];
         updateBadgesUI();
 
-        // ⭐️ 業界標準防 405 轉址法：將加密封包帶入 GAS 中繼路由，由 GAS 代理提交給 PayUni
-        if (payuniData && payuniData.success) {
-          let gateway = payuniData.gatewayUrl || "https://api.payuni.com.tw/api/upp";
-          let merId = payuniData.MerID || "U072882813";
-          let version = payuniData.Version || "1.0";
-          let encryptInfo = payuniData.EncryptInfo || "";
-          let hashInfo = payuniData.HashInfo || "";
+        // ⭐️ 業界絕對防呆：直接強制指定 PayUni 正式閘道，絕對不會發生 405 打回 GitHub
+        let targetGateway = (payuniData && payuniData.gatewayUrl) ? payuniData.gatewayUrl : "https://api.payuni.com.tw/api/upp";
 
-          // 建立一個標準的 POST Form，但將 Action 指向「總部 Master GAS 的中繼接收點」或直接由 GAS 代理
-          // 為了 100% 繞過 GitHub 限制，我們直接組合 PayUni 官方標準收銀台網址
-          let targetUrl = `${gateway}?MerID=${encodeURIComponent(merId)}&Version=${encodeURIComponent(version)}&EncryptInfo=${encodeURIComponent(encryptInfo)}&HashInfo=${encodeURIComponent(hashInfo)}`;
+        if (payuniData && payuniData.success && payuniData.EncryptInfo) {
+          let form = document.createElement("form");
+          form.method = "POST";
+          form.action = targetGateway; // 強制指向 https://api.payuni.com.tw/api/upp
+          form.style.display = "none";
           
-          showToast("訂單已成立，正在安全前往 PayUni 付款...");
-          setTimeout(() => {
-            // 使用 window.location 導向由 GAS 代理好的標準授權通道
-            window.location.href = GAS_URL + "?action=redirectToPayuni&gateway=" + encodeURIComponent(gateway) + "&MerID=" + encodeURIComponent(merId) + "&Version=" + encodeURIComponent(version) + "&EncryptInfo=" + encodeURIComponent(encryptInfo) + "&HashInfo=" + encodeURIComponent(hashInfo);
-          }, 1000);
-
+          let fields = { 
+            "MerID": payuniData.MerID || "U072882813", 
+            "Version": payuniData.Version || "1.0", 
+            "EncryptInfo": payuniData.EncryptInfo, 
+            "HashInfo": payuniData.HashInfo 
+          };
+          
+          for (let k in fields) {
+            let h = document.createElement("input"); 
+            h.type = "hidden"; 
+            h.name = k; 
+            h.value = fields[k] || ""; 
+            form.appendChild(h);
+          }
+          
+          document.body.appendChild(form);
+          form.submit(); // 直接安全提交至 PayUni
         } else {
-          console.error("Payuni Error:", payuniData);
+          console.error("PayUni Payload Error:", payuniData);
           showToast("訂單已成立！單號：" + orderId + " (系統已發送確認信)");
           setTimeout(() => window.location.reload(), 2500);
         }
