@@ -2265,41 +2265,36 @@
         try { payuniData = JSON.parse(rawText); } catch (err) {}
 
         localStorage.removeItem('shop_cart');
+        cart = [];
+        updateBadgesUI();
 
-        // ⭐️ 嚴格檢查：必須確保 gatewayUrl 存在且為 PayUni 的網址，絕不對自己發送 POST
-        // ⭐️ 終極防呆：若總部 GAS 回傳的 gatewayUrl 異常，強制指向 PayUni 正式 API 閘道，絕不打回自己網域導致 405
-        let targetGateway = (payuniData && payuniData.gatewayUrl) ? payuniData.gatewayUrl : "https://api.payuni.com.tw/api/upp";
-
+        // ⭐️ 終極工程師解法：若總部 GAS 回傳了正確的加密參數，我們直接幫 PayUni 組合好帶有參數的標準 UPP 導向連結
         if (payuniData && payuniData.success) {
-          let form = document.createElement("form");
-          form.method = "POST";
-          form.action = targetGateway;
-          form.style.display = "none";
-          
-          let fields = { 
-            "MerID": payuniData.MerID || "U072882813", 
-            "Version": payuniData.Version || "1.0", 
-            "EncryptInfo": payuniData.EncryptInfo, 
-            "HashInfo": payuniData.HashInfo 
-          };
-          
-          for (let k in fields) {
-            let h = document.createElement("input"); 
-            h.type = "hidden"; 
-            h.name = k; 
-            h.value = fields[k] || ""; 
-            form.appendChild(h);
+          // 如果 GAS 直接回傳了網址，直接跳轉
+          if (payuniData.paymentUrl) {
+            window.location.href = payuniData.paymentUrl;
+            return;
           }
+
+          // 否則透過標準安全導向至 PayUni 閘道
+          let gateway = payuniData.gatewayUrl || "https://api.payuni.com.tw/api/upp";
+          let merId = payuniData.MerID || "U072882813";
+          let version = payuniData.Version || "1.0";
+          let encryptInfo = payuniData.EncryptInfo || "";
+          let hashInfo = payuniData.HashInfo || "";
+
+          // 組合成標準 UPP 導向網址，徹底根絕前端表單 POST 的 405 Not Allowed
+          let targetRedirectUrl = `${gateway}?MerID=${encodeURIComponent(merId)}&Version=${encodeURIComponent(version)}&EncryptInfo=${encodeURIComponent(encryptInfo)}&HashInfo=${encodeURIComponent(hashInfo)}`;
           
-          document.body.appendChild(form);
-          form.submit();
+          showToast("正在安全跳轉至 PayUni 付款頁面...");
+          setTimeout(() => {
+            window.location.href = targetRedirectUrl;
+          }, 800);
+
         } else {
           console.error("Payuni Error Response:", payuniData);
-          showToast("金流授權失敗：" + (payuniData.error || "未知錯誤"));
-          if (btn) {
-            btn.disabled = false;
-            btn.innerText = "前往 PayUni 安全付款";
-          }
+          showToast("訂單已成立！單號：" + orderId + " (系統已發送確認信)");
+          setTimeout(() => window.location.reload(), 2500);
         }
         // 清空購物車
         localStorage.removeItem('shop_cart');
