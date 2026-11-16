@@ -2247,7 +2247,7 @@
         if (payuniData && payuniData.success && payuniData.gatewayUrl) {
           let form = document.createElement("form");
           form.method = "POST";
-          form.action = payuniData.gatewayUrl;
+          form.action = payuniData.gatewayUrl; // 應為 https://api.payuni.com.tw/api/upp
           let fields = { 
             "MerID": payuniData.MerID, 
             "Version": payuniData.Version, 
@@ -2256,13 +2256,13 @@
           };
           for (let k in fields) {
             let h = document.createElement("input"); 
-            h.type = "hidden"; h.name = k; h.value = fields[k]; 
+            h.type = "hidden"; h.name = k; h.value = fields[k] || ""; 
             form.appendChild(h);
           }
           document.body.appendChild(form);
           form.submit();
         } else {
-          showToast(`訂單已成立！單號：${orderId} (查單PIN: ${randomPin})`);
+          showToast(`訂單已成立！單號：${orderId}`);
           setTimeout(() => window.location.reload(), 2000);
         }
       } catch(e) {
