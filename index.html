@@ -522,7 +522,7 @@
           </button>
         </div>
         <div class="text-[10px] text-stone-400 leading-tight">
-          💡 安全 PIN 碼已附於您首次下單時收到的 Email 訂單通知信中。
+          安全 PIN 碼已附於您首次下單時收到的 Email 訂單通知信中。
         </div>
       </div>
 
@@ -1631,7 +1631,7 @@
             </div>
           </div>
           <div class="flex items-center gap-2 shrink-0">
-            <button onclick="quickAddToCart('${p.sku}')" class="p-2 rounded-xl transition" style="background-color: var(--theme-sand); color: var(--theme-espresso);" title="加入購物車">
+            <button onclick="handleCardCartClick('${p.sku}', event)" class="p-2 rounded-xl transition" style="background-color: var(--theme-sand); color: var(--theme-espresso);" title="加入購物車">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
             </button>
             <button onclick="toggleFavorite('${p.sku}')" class="p-2 transition text-stone-400 hover:text-rose-600 font-bold" title="移除收藏">
@@ -1672,25 +1672,36 @@
     }
 
     function calculateCartShipping(subtotal) {
-      let rule = storeShippingRule || { mode: "category_qty", target_categories: ["四季被", "春夏薄被", "雙面絨冬被", "單面絨冬被"], min_qty: 2, min_amount: 0, fee: 100 };
-      let baseFee = Number(rule.fee) || 100;
+      let rule = storeShippingRule || { mode: "category_qty", target_categories: ["四季被", "春夏薄被", "雙面絨冬被", "單面絨冬被"], exclude_keywords: ["枕頭套", "枕套", "加購"], min_qty: 2, min_amount: 0, fee: 100 };
+      let baseFee = (rule.fee !== undefined) ? Number(rule.fee) : 100;
+      let excludeList = (rule.exclude_keywords || ["枕頭套", "枕套", "加購"]).map(k => k.trim().toLowerCase()).filter(Boolean);
+
+      // 檢查商品名稱、款式、尺寸是否包含排除關鍵字 (如枕頭套)
+      const isExcludedItem = (item) => {
+        if (excludeList.length === 0) return false;
+        let fullText = `${item.prodName || ''} ${item.color || ''} ${item.size || ''}`.toLowerCase();
+        return excludeList.some(kw => fullText.includes(kw));
+      };
 
       if (rule.mode === 'amount') {
         return subtotal >= (Number(rule.min_amount) || 2000) ? 0 : baseFee;
       } else if (rule.mode === 'category_qty') {
-        // 僅計算後台勾選之分類商品件數 (未勾選之枕頭套/配件不計入)
         let validQty = cart.reduce((sum, item) => {
+          if (isExcludedItem(item)) return sum; // 排除枕頭套選項
           let p = allProducts.find(x => x.sku === item.sku);
           let cat = p ? (p.sub_category || p.major_category) : (item.category || '');
           return (rule.target_categories || []).includes(cat) ? sum + item.qty : sum;
         }, 0);
         return validQty >= (Number(rule.min_qty) || 2) ? 0 : baseFee;
       } else {
-        let totalQty = cart.reduce((sum, i) => sum + i.qty, 0);
-        return totalQty >= (Number(rule.min_qty) || 2) ? 0 : baseFee;
+        let validQty = cart.reduce((sum, item) => {
+          if (isExcludedItem(item)) return sum;
+          return sum + item.qty;
+        }, 0);
+        return validQty >= (Number(rule.min_qty) || 2) ? 0 : baseFee;
       }
     }
-
+    
     function updateCartUI() {
       const list = document.getElementById('cartItemList');
       if (cart.length === 0) {
@@ -2143,10 +2154,10 @@
         customer_phone: phone, 
         customer_email: email,
         items: cart, 
-        item_total: subtotal, 
-        discount_amt: discountAmt, 
-        shipping_fee: shippingFee, 
-        grand_total: grandTotal,
+        item_total: Math.round(subtotal) || 0, 
+        discount_amt: Math.round(discountAmt) || 0, 
+        shipping_fee: Math.round(shippingFee) || 0, 
+        grand_total: Math.round(grandTotal) || 0,
         shipping_mode: '郵寄宅配', 
         delivery_address: address, 
         customer_remark: remark, 
@@ -2161,7 +2172,6 @@
       };
 
       try {
-        // 步驟 A：寫入資料庫訂單表
         let dbRes = await fetch(`${SUPABASE_URL}/rest/v1/shop_orders`, {
           method: 'POST',
           headers: { 
@@ -2171,7 +2181,10 @@
           },
           body: JSON.stringify(orderPayload)
         });
-        if (!dbRes.ok) throw new Error("訂單寫入資料庫失敗");
+        if (!dbRes.ok) {
+          let errDetail = await dbRes.json().catch(() => ({}));
+          throw new Error(errDetail.message || `資料庫寫入拒絕 (${dbRes.status})`);
+        }
 
         // 步驟 B：確實等待總部 GAS 寫入試算表「訂單明細」並發送 Resend 確認信
         await fetch(GAS_URL, {
