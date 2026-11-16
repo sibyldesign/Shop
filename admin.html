@@ -78,7 +78,8 @@
       </div>
       <div class="flex items-center gap-1.5 shrink-0">
         <button type="button" onclick="refreshAdminDataOnly()" class="px-2.5 py-1 text-[11px] font-bold text-taupe-dark hover:text-white bg-taupe-light hover:bg-taupe-main rounded-lg border border-taupe-border transition flex items-center gap-1 shadow-2xs">
-          <span>🔄 重新整理</span>
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          <span>重新整理</span>
         </button>
         <button onclick="openChangePasswordModal()" class="px-2.5 py-1 text-[11px] font-bold text-stone-600 hover:text-taupe-main bg-taupe-canvas rounded-lg border border-taupe-border transition flex items-center gap-1">
           <span>密碼</span>
@@ -752,6 +753,12 @@
             <input type="number" id="settingShipFee" value="100" class="w-full p-2 border border-taupe-border rounded-lg bg-white font-mono outline-none">
           </div>
         </div>
+        <div class="bg-white p-3 rounded-xl border border-taupe-border space-y-1.5">
+          <label class="text-xs font-bold text-stone-600 block">排除不計入免運件數的品名/規格關鍵字 (逗號隔開，多用戶通用)：</label>
+          <input type="text" id="settingShipExcludeKeywords" value="枕頭套, 枕套, 加購" placeholder="例如：枕頭套, 枕套, 襪子, 試用包" class="w-full text-xs p-2 border border-taupe-border rounded-lg bg-taupe-canvas outline-none">
+          <p class="text-[10px] text-stone-400">即使商品屬於免運分類，只要選購的規格或品名包含上述關鍵字（如枕頭套），該項目就不會計入免運件數。</p>
+        </div>
+        
         <div id="settingShipCategoriesBox" class="bg-white p-3 rounded-xl border border-taupe-border space-y-1.5">
           <label class="text-xs font-bold text-stone-600 block">勾選計入「滿件免運」的商品分類 (未勾選之配件如枕頭套不計入件數)：</label>
           <div id="shipRuleCategoriesContainer" class="flex flex-wrap gap-2"></div>
@@ -1296,15 +1303,14 @@
         let isChecked = selectedOrderIds[o.order_id] ? "checked" : "";
         let itemsHtml = (o.items || []).map(i => `<div class="leading-tight mb-1"><b>[${i.sku || '商品'}] ${i.prodName}</b> <span class="text-stone-500">(${i.color}/${i.size}) × ${i.qty}</span></div>`).join('');
         
-        // 自動判斷金流已付款 / 未付款視覺徽章
         let payStr = o.payment_status || '待付款';
         let isPaid = payStr.includes('已付款');
         let payBadgeHtml = isPaid
-          ? `<span class="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">✅ ${payStr}</span>`
-          : `<span class="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">⏳ ${payStr}</span>`;
+          ? `<span class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>${payStr}</span>`
+          : `<span class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>${payStr}</span>`;
 
         tbody.innerHTML += `
-          <tr class="hover:bg-taupe-canvas text-xs ${isPaid ? 'bg-emerald-50/20' : ''}">
+          <tr class="hover:bg-taupe-canvas text-xs ${isPaid ? 'bg-emerald-50/15' : ''}">
             <td class="p-3 text-center"><input type="checkbox" class="order-chk" value="${o.order_id}" ${isChecked} onchange="handleOrderCheck(this, '${o.order_id}')"></td>
             <td class="p-3 text-stone-400 leading-tight">${new Date(o.created_at).toLocaleDateString()}</td>
             <td class="p-3 font-mono font-bold text-taupe-charcoal">
@@ -1538,21 +1544,14 @@
           throw new Error("Supabase 寫入失敗：" + (errJson.message || res.statusText));
         }
 
-        fetch(GAS_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: 'syncProductToSheet', product: payload })
-        });
+        // 等待資料庫寫入成功後，立即同步寫入試算表總表
+        await pushProductChangeToMasterSheet(payload);
 
-        showToast("商品已成功儲存並同步！");
         currentUploadedImages = [];
         renderProductThumbnails();
         document.getElementById('pSku').value = '';
         document.getElementById('pName').value = '';
         document.getElementById('pDesc').value = '';
-        // 等待資料庫寫入成功後，立即同步寫入試算表總表
-        await pushProductChangeToMasterSheet(payload);
         showToast("商品已成功儲存並雙向同步至試算表！");
         await loadInventoryData();
         switchTab('listTab');
@@ -1580,81 +1579,6 @@
       } catch(e) {
         showToast("商品資料讀取失敗，請檢查網路連線");
       }
-    }
-
-    function renderInventoryTable() {
-      const tbody = document.getElementById('inventoryTableBody');
-      if (!tbody) return;
-      tbody.innerHTML = "";
-      
-      let totalPages = Math.ceil(filteredProducts.length / invPageSize) || 1;
-      const pagText = document.getElementById('invPaginationText');
-      if (pagText) {
-        pagText.innerText = `第 ${invPage} 頁，共 ${totalPages} 頁 (總計 ${filteredProducts.length} 款商品)`;
-      }
-
-      // 渲染 [上一頁] [1] [2] [3]... [下一頁]
-      const btnRow = document.getElementById('invPaginationButtonsRow');
-      if (btnRow) {
-        let btnsHtml = `
-          <button type="button" onclick="changeInvPage(-1)" ${invPage === 1 ? 'disabled class="px-2.5 py-1 bg-stone-50 text-stone-300 rounded border border-stone-200 cursor-not-allowed"' : 'class="px-2.5 py-1 bg-white hover:bg-stone-100 text-stone-700 rounded border border-taupe-border"'}>
-            上一頁
-          </button>
-        `;
-
-        for (let p = 1; p <= totalPages; p++) {
-          let isActive = (p === invPage);
-          btnsHtml += `
-            <button type="button" onclick="goToInvPage(${p})" class="w-7 h-7 rounded text-xs font-bold transition ${isActive ? 'bg-taupe-main text-white shadow-xs' : 'bg-white hover:bg-stone-100 text-stone-700 border border-taupe-border'}">
-              ${p}
-            </button>
-          `;
-        }
-
-        btnsHtml += `
-          <button type="button" onclick="changeInvPage(1)" ${invPage === totalPages ? 'disabled class="px-2.5 py-1 bg-stone-50 text-stone-300 rounded border border-stone-200 cursor-not-allowed"' : 'class="px-2.5 py-1 bg-white hover:bg-stone-100 text-stone-700 rounded border border-taupe-border"'}>
-            下一頁
-          </button>
-        `;
-        btnRow.innerHTML = btnsHtml;
-      }
-
-      let start = (invPage - 1) * invPageSize;
-      let paged = filteredProducts.slice(start, start + invPageSize);
-
-      if (paged.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-stone-400">目前尚無任何商品資料</td></tr>`;
-        return;
-      }
-
-      paged.forEach(p => {
-        let firstImg = p.images ? p.images.split(/[\s,]+/)[0] : 'https://via.placeholder.com/60';
-        let isChecked = selectedInventorySkus[p.sku] ? "checked" : "";
-        let isOnline = (p.status === '上架');
-
-        tbody.innerHTML += `
-          <tr class="hover:bg-taupe-canvas text-xs">
-            <td class="p-3 text-center">
-              <input type="checkbox" class="inv-chk accent-taupe-main" value="${p.sku}" ${isChecked} onchange="handleInventoryCheck(this, '${p.sku}')">
-            </td>
-            <td class="p-3"><img src="${firstImg}" class="w-10 h-10 object-cover rounded-lg border border-taupe-border"></td>
-            <td class="p-3 font-mono font-bold">${p.sku}</td>
-            <td class="p-3 font-medium">${p.name}</td>
-            <td class="p-3">${p.major_category || ''} / ${p.sub_category || ''}</td>
-            <td class="p-3 font-bold text-taupe-crimson font-mono">NT$ ${p.price}</td>
-            <td class="p-3">
-              <button type="button" onclick="toggleSingleProductStatus('${p.sku}', '${isOnline ? '下架' : '上架'}')" class="px-2.5 py-1 rounded-full text-[10.5px] font-bold border transition ${isOnline ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100' : 'bg-stone-100 text-stone-500 border-stone-200 hover:bg-stone-200'}">
-                ${p.status || '上架'}
-              </button>
-            </td>
-           <td class="p-3 text-center whitespace-nowrap">
-              <button type="button" onclick="editProduct('${p.sku}')" class="text-taupe-main hover:underline font-bold mr-2">編輯</button>
-              <button type="button" onclick="duplicateProduct('${p.sku}')" class="text-sky-700 hover:underline font-bold mr-2">複製</button>
-              <button type="button" onclick="deleteSingleProductPrompt('${p.sku}')" class="text-rose-600 hover:underline font-bold">刪除</button>
-            </td>
-          </tr>
-        `;
-      });
     }
 
   // 計算商品價格區間字串 (如 "NT$ 520 - 3,220" 或單一價格 "NT$ 1,280")
@@ -1803,9 +1727,8 @@
 
             fetch(GAS_URL, {
               method: 'POST',
-              mode: 'no-cors',
               headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-              body: JSON.stringify({ action: 'deleteProductFromSheet', sku: sku })
+              body: JSON.stringify({ action: 'deleteProductFromSheet', storeId: STORE_ID, sku: sku })
             });
 
             await loadInventoryData();
@@ -2663,7 +2586,7 @@
           document.getElementById('termPrivacy').value = t.privacy || DEFAULT_TERMS.privacy;
           document.getElementById('termMember').value = t.member || DEFAULT_TERMS.member;
           document.getElementById('settingStoreName').value = s.store_name || "SIBYL SELECT 希貝兒選物";
-        document.getElementById('settingShowMobileName').checked = (s.show_mobile_store_name !== false);
+          document.getElementById('settingShowMobileName').checked = (s.show_mobile_store_name !== false);
 
           if (s.editorial_content) {
             let ed = s.editorial_content;
@@ -2693,15 +2616,18 @@
             renderQuickActionsRows();
           }
 
-          // 正確在取得 s 之後載入免運條件設定
-          let sr = s.shipping_rule || { mode: "category_qty", target_categories: ["四季被", "春夏薄被", "雙面絨冬被", "單面絨冬被"], min_qty: 2, min_amount: 0, fee: 100 };
+          // 正確在宣告 sr 之後載入所有免運規則與排除關鍵字
+          let sr = s.shipping_rule || { mode: "category_qty", target_categories: ["四季被", "春夏薄被", "雙面絨冬被", "單面絨冬被"], exclude_keywords: ["枕頭套", "枕套", "加購"], min_qty: 2, min_amount: 0, fee: 100 };
           document.getElementById('settingShipMode').value = sr.mode || 'category_qty';
           document.getElementById('settingShipThreshold').value = (sr.mode === 'amount') ? (sr.min_amount || 2000) : (sr.min_qty || 2);
           document.getElementById('settingShipFee').value = sr.fee !== undefined ? sr.fee : 100;
+          document.getElementById('settingShipExcludeKeywords').value = (sr.exclude_keywords || ["枕頭套", "枕套", "加購"]).join(", ");
           toggleShippingRuleUI();
           renderShippingRuleCategories(sr.target_categories);
         }
-      } catch(e){}
+      } catch(e) {
+        console.error("Load settings error:", e);
+      }
     }
 
     async function saveGlobalSettings() {
@@ -2724,29 +2650,31 @@
       let shipVal = Number(document.getElementById('settingShipThreshold').value) || 2;
       let shipCats = [];
       document.querySelectorAll('.ship-cat-chk:checked').forEach(el => shipCats.push(el.value));
+      let excludeKws = document.getElementById('settingShipExcludeKeywords').value.split(',').map(s => s.trim()).filter(Boolean);
 
       let shippingRulePayload = {
         mode: shipMode,
         target_categories: shipCats,
+        exclude_keywords: excludeKws,
         min_qty: shipMode !== 'amount' ? shipVal : 0,
         min_amount: shipMode === 'amount' ? shipVal : 0,
         fee: Number(document.getElementById('settingShipFee').value) || 100
       };
 
       let patchPayload = {
-      store_name: document.getElementById('settingStoreName').value.trim() || "SIBYL SELECT 希貝兒選物",
-      show_mobile_store_name: document.getElementById('settingShowMobileName').checked,
-      theme_color: selectedThemeColor,
-      logo_url: logoUrl,
-      logo_shape: logoShape,
-      footer_line_id: footerLine,
-      footer_company_info: footerCompany,
-      spreadsheet_id: ssId,
-      marquee_announcement: marquee,
-      store_terms: terms,
-      header_nav_buttons: headerNavButtonsList,
-      shipping_rule: shippingRulePayload
-    };
+        store_name: document.getElementById('settingStoreName').value.trim() || "SIBYL SELECT 希貝兒選物",
+        show_mobile_store_name: document.getElementById('settingShowMobileName').checked,
+        theme_color: selectedThemeColor,
+        logo_url: logoUrl,
+        logo_shape: logoShape,
+        footer_line_id: footerLine,
+        footer_company_info: footerCompany,
+        spreadsheet_id: ssId,
+        marquee_announcement: marquee,
+        store_terms: terms,
+        header_nav_buttons: headerNavButtonsList,
+        shipping_rule: shippingRulePayload
+      };
 
       try {
         let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_stores?store_id=eq.${STORE_ID}`, {
