@@ -538,6 +538,45 @@
 
   <div id="toastBox" class="fixed bottom-24 left-1/2 -translate-x-1/2 z-[60] bg-stone-900/90 text-white text-xs px-4 py-2 rounded-full shadow-lg opacity-0 transition-opacity pointer-events-none"></div>
 
+  <!-- 商品小窗快速選取規格 Modal -->
+  <div id="quickSpecModal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-4 border" style="border-color: var(--theme-border);">
+      <div class="flex justify-between items-start gap-3 border-b pb-3" style="border-color: var(--theme-border);">
+        <div class="flex items-center gap-3">
+          <img id="qsProdImg" src="" class="w-12 h-12 rounded-xl object-cover border" style="border-color: var(--theme-border);">
+          <div>
+            <h3 id="qsProdName" class="text-xs font-bold text-stone-800 line-clamp-1"></h3>
+            <div id="qsProdPrice" class="text-sm font-bold font-mono theme-text-primary mt-0.5"></div>
+          </div>
+        </div>
+        <button onclick="closeQuickSpecModal()" class="text-stone-400 hover:text-stone-700">✕</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="font-bold text-stone-700 block mb-1.5">選擇款式規格</label>
+          <div id="qsColorOptions" class="flex flex-wrap gap-1.5"></div>
+        </div>
+        <div>
+          <label class="font-bold text-stone-700 block mb-1.5">選擇尺寸選項</label>
+          <div id="qsSizeOptions" class="flex flex-wrap gap-1.5"></div>
+        </div>
+        <div class="flex justify-between items-center p-2.5 rounded-xl border" style="background-color: var(--theme-canvas); border-color: var(--theme-border);">
+          <span class="font-bold text-stone-700">選購數量</span>
+          <div class="flex items-center gap-3 font-mono">
+            <button type="button" onclick="changeQsQty(-1)" class="w-6 h-6 bg-white rounded border font-bold">-</button>
+            <span id="qsQtyVal" class="font-bold">1</span>
+            <button type="button" onclick="changeQsQty(1)" class="w-6 h-6 bg-white rounded border font-bold">+</button>
+          </div>
+        </div>
+      </div>
+
+      <button onclick="confirmAddFromQuickSpec()" class="w-full theme-btn-primary py-3 rounded-xl font-bold text-xs shadow-xs">
+        確認加入購物車
+      </button>
+    </div>
+  </div>
+  
   <!-- 前台核心腳本 -->
   <script>
     const STORE_ID = "sibyl";
@@ -593,6 +632,13 @@
 
       let targetSku = urlParams.get('sku');
       if (targetSku && allProducts.length > 0) openProductDetailPage(targetSku);
+
+      // 從 PayUni 付款返回時自動提示交易完成
+      let payAction = urlParams.get('action');
+      let returnOrderId = urlParams.get('order_id');
+      if (payAction === 'pay_result' && returnOrderId) {
+        showToast(`訂單 ${returnOrderId} 交易程序已完成，可至會員專區查詢狀態！`);
+      }
     };
 
     function setupScrollListener() {
@@ -1534,15 +1580,11 @@
     }
 
     function confirmAddToCartFromDetail() {
+      if (!currentDetailProduct) return;
       let targetKey = `款式:${detailColor} / ${detailSize}`;
-      let matched = currentDetailProduct.specs_data ? currentDetailProduct.specs_data.find(v => v.spec === targetKey) : null;
-      let price = matched ? Number(matched.price) : currentDetailProduct.price;
-
-      let currentTotalQty = cart.reduce((sum, i) => sum + i.qty, 0);
-      if (currentTotalQty + detailQty > 2) {
-        showToast("裝箱物流限制：每筆訂單最多結帳 2 件棉被，若需更多請分開下單。");
-        return;
-      }
+      let specs = Array.isArray(currentDetailProduct.specs_data) ? currentDetailProduct.specs_data : [];
+      let matched = specs.find(v => v && v.spec === targetKey);
+      let price = (matched && matched.price) ? Number(matched.price) : Number(currentDetailProduct.price);
 
       let existing = cart.find(i => i.sku === currentDetailProduct.sku && i.color === detailColor && i.size === detailSize);
       if (existing) {
@@ -1555,7 +1597,8 @@
           size: detailSize,
           price: price,
           qty: detailQty,
-          image: detailSelectedImgs[0]
+          image: detailSelectedImgs[0] || '',
+          category: currentDetailProduct.sub_category || currentDetailProduct.major_category
         });
       }
 
@@ -1563,7 +1606,7 @@
       updateBadgesUI();
       showToast("已成功加入購物清單！");
     }
-
+    
     // ==================== 6. 我的收藏 View (含商品縮圖與 ✕ 按鈕) ====================
     function renderWishlistView() {
       const container = document.getElementById('wishlistItemsContainer');
