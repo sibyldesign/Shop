@@ -1296,11 +1296,21 @@
         let isChecked = selectedOrderIds[o.order_id] ? "checked" : "";
         let itemsHtml = (o.items || []).map(i => `<div class="leading-tight mb-1"><b>[${i.sku || '商品'}] ${i.prodName}</b> <span class="text-stone-500">(${i.color}/${i.size}) × ${i.qty}</span></div>`).join('');
         
+        // 自動判斷金流已付款 / 未付款視覺徽章
+        let payStr = o.payment_status || '待付款';
+        let isPaid = payStr.includes('已付款');
+        let payBadgeHtml = isPaid
+          ? `<span class="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">✅ ${payStr}</span>`
+          : `<span class="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">⏳ ${payStr}</span>`;
+
         tbody.innerHTML += `
-          <tr class="hover:bg-taupe-canvas text-xs">
+          <tr class="hover:bg-taupe-canvas text-xs ${isPaid ? 'bg-emerald-50/20' : ''}">
             <td class="p-3 text-center"><input type="checkbox" class="order-chk" value="${o.order_id}" ${isChecked} onchange="handleOrderCheck(this, '${o.order_id}')"></td>
             <td class="p-3 text-stone-400 leading-tight">${new Date(o.created_at).toLocaleDateString()}</td>
-            <td class="p-3 font-mono font-bold text-taupe-charcoal">${o.order_id}</td>
+            <td class="p-3 font-mono font-bold text-taupe-charcoal">
+              <div>${o.order_id}</div>
+              ${payBadgeHtml}
+            </td>
             <td class="p-3 bg-taupe-canvas/60">${itemsHtml}</td>
             <td class="p-3 font-bold text-taupe-crimson text-sm font-mono">NT$ ${o.grand_total}</td>
             <td class="p-3"><b>${o.customer_name}</b><br><span class="text-stone-400 text-[11px]">${o.customer_phone}</span></td>
@@ -1322,7 +1332,7 @@
         `;
       });
     }
-
+  
     async function updateOrderStatus(orderId, nextStatus) {
       if (!nextStatus) return;
       await fetch(`${SUPABASE_URL}/rest/v1/shop_orders?order_id=eq.${orderId}`, {
