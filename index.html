@@ -2129,8 +2129,7 @@
     }
 
     // 12. 結帳送單 (整合 PayUni 刷卡與發票開立)
-    // 12. 結帳送單 (整合總部寄信、寫入試算表與 PayUni 刷卡發票開立)
-    // ==================== 12. 結帳送單 (嚴格除錯與金流連線) ====================
+    // ==================== 12. 結帳送單 (業界標準防 405 最終版) ====================
     async function submitOrderToCheckout() {
       let name = document.getElementById('orderCustName').value.trim();
       let phone = document.getElementById('orderCustPhone').value.trim();
@@ -2149,10 +2148,8 @@
       if (invType === 'b2c_phone' && !carrierNum.startsWith('/')) return showToast("手機載具需為 / 開頭");
       if (invType === 'b2b_tax' && buyerUbn.length !== 8) return showToast("公司統一編號需為 8 碼");
 
-      // 1. 自動隨機產生 4 位數防盜查單 PIN 碼 (1000 ~ 9999)
       let randomPin = Math.floor(1000 + Math.random() * 9000).toString();
 
-      // 2. 本機安全記憶收件人資訊與最新 PIN 碼
       let savedProfile = JSON.parse(localStorage.getItem('sibyl_user_profile') || '{}');
       if (document.getElementById('saveProfileCheck').checked) {
         savedProfile = { 
@@ -2164,7 +2161,6 @@
       }
       localStorage.setItem('sibyl_user_profile', JSON.stringify(savedProfile));
 
-      // ⭐️ 核心防呆：強制將所有金額四捨五入轉為純整數，絕不帶小數點
       let rawGrandTotal = Number(document.getElementById('cartGrandTotal').innerText) || 0;
       let rawSubtotal = Number(document.getElementById('cartSubtotal').innerText) || 0;
       let rawDiscount = Number(document.getElementById('cartDiscount').innerText) || 0;
@@ -2227,7 +2223,7 @@
           throw new Error("資料庫寫入失敗 (" + dbRes.status + ")：" + errText);
         }
 
-        // 步驟 B：通知總部 GAS 寫入試算表並發送 Resend 確認信 (背景非同步)
+        // 步驟 B：通知總部 GAS 寫入試算表並發送確認信 (背景非同步)
         fetch(GAS_URL, {
           method: 'POST',
           mode: 'no-cors',
@@ -2264,17 +2260,18 @@
         let payuniData = {};
         try { payuniData = JSON.parse(rawText); } catch (err) {}
 
+        // 清空購物車
         localStorage.removeItem('shop_cart');
         cart = [];
         updateBadgesUI();
 
-        // ⭐️ 業界絕對防呆：直接強制指定 PayUni 正式閘道，絕對不會發生 405 打回 GitHub
-        let targetGateway = (payuniData && payuniData.gatewayUrl) ? payuniData.gatewayUrl : "https://api.payuni.com.tw/api/upp";
+        // ⭐️ 絕對防呆：強制鎖定 PayUni 正式閘道網址，絕對不會打回 GitHub 造成 405
+        let targetGateway = "https://api.payuni.com.tw/api/upp";
 
         if (payuniData && payuniData.success && payuniData.EncryptInfo) {
           let form = document.createElement("form");
           form.method = "POST";
-          form.action = targetGateway; // 強制指向 https://api.payuni.com.tw/api/upp
+          form.action = targetGateway; // 強制指向 PayUni 官方正式閘道
           form.style.display = "none";
           
           let fields = { 
@@ -2293,38 +2290,12 @@
           }
           
           document.body.appendChild(form);
-          form.submit(); // 直接安全提交至 PayUni
+          form.submit(); // 安全提交至 PayUni
         } else {
           console.error("PayUni Payload Error:", payuniData);
           showToast("訂單已成立！單號：" + orderId + " (系統已發送確認信)");
           setTimeout(() => window.location.reload(), 2500);
         }
-        // 清空購物車
-        localStorage.removeItem('shop_cart');
-        cart = [];
-        updateBadgesUI();
-
-        // 步驟 D：動態建立 Form 表單 POST 提交至 PayUni 官方正式閘道
-        let form = document.createElement("form");
-        form.method = "POST";
-        form.action = payuniData.gatewayUrl;
-        form.style.display = "none";
-        
-        let fields = { 
-          "MerID": payuniData.MerID, 
-          "Version": payuniData.Version, 
-          "EncryptInfo": payuniData.EncryptInfo, 
-          "HashInfo": payuniData.HashInfo 
-        };
-        
-        for (let k in fields) {
-          let h = document.createElement("input"); 
-          h.type = "hidden"; h.name = k; h.value = fields[k] || ""; 
-          form.appendChild(h);
-        }
-        
-        document.body.appendChild(form);
-        form.submit();
 
       } catch(e) {
         console.error("Checkout error:", e);
