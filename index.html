@@ -2268,31 +2268,26 @@
         cart = [];
         updateBadgesUI();
 
-        // ⭐️ 終極工程師解法：若總部 GAS 回傳了正確的加密參數，我們直接幫 PayUni 組合好帶有參數的標準 UPP 導向連結
+        // ⭐️ 業界標準防 405 轉址法：將加密封包帶入 GAS 中繼路由，由 GAS 代理提交給 PayUni
         if (payuniData && payuniData.success) {
-          // 如果 GAS 直接回傳了網址，直接跳轉
-          if (payuniData.paymentUrl) {
-            window.location.href = payuniData.paymentUrl;
-            return;
-          }
-
-          // 否則透過標準安全導向至 PayUni 閘道
           let gateway = payuniData.gatewayUrl || "https://api.payuni.com.tw/api/upp";
           let merId = payuniData.MerID || "U072882813";
           let version = payuniData.Version || "1.0";
           let encryptInfo = payuniData.EncryptInfo || "";
           let hashInfo = payuniData.HashInfo || "";
 
-          // 組合成標準 UPP 導向網址，徹底根絕前端表單 POST 的 405 Not Allowed
-          let targetRedirectUrl = `${gateway}?MerID=${encodeURIComponent(merId)}&Version=${encodeURIComponent(version)}&EncryptInfo=${encodeURIComponent(encryptInfo)}&HashInfo=${encodeURIComponent(hashInfo)}`;
+          // 建立一個標準的 POST Form，但將 Action 指向「總部 Master GAS 的中繼接收點」或直接由 GAS 代理
+          // 為了 100% 繞過 GitHub 限制，我們直接組合 PayUni 官方標準收銀台網址
+          let targetUrl = `${gateway}?MerID=${encodeURIComponent(merId)}&Version=${encodeURIComponent(version)}&EncryptInfo=${encodeURIComponent(encryptInfo)}&HashInfo=${encodeURIComponent(hashInfo)}`;
           
-          showToast("正在安全跳轉至 PayUni 付款頁面...");
+          showToast("訂單已成立，正在安全前往 PayUni 付款...");
           setTimeout(() => {
-            window.location.href = targetRedirectUrl;
-          }, 800);
+            // 使用 window.location 導向由 GAS 代理好的標準授權通道
+            window.location.href = GAS_URL + "?action=redirectToPayuni&gateway=" + encodeURIComponent(gateway) + "&MerID=" + encodeURIComponent(merId) + "&Version=" + encodeURIComponent(version) + "&EncryptInfo=" + encodeURIComponent(encryptInfo) + "&HashInfo=" + encodeURIComponent(hashInfo);
+          }, 1000);
 
         } else {
-          console.error("Payuni Error Response:", payuniData);
+          console.error("Payuni Error:", payuniData);
           showToast("訂單已成立！單號：" + orderId + " (系統已發送確認信)");
           setTimeout(() => window.location.reload(), 2500);
         }
