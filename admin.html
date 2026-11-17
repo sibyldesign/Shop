@@ -1313,13 +1313,18 @@
           ? `<span class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>${payStr}</span>`
           : `<span class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>${payStr}</span>`;
 
+        // ⭐️ 正確位置：放在迴圈裡面讀取單筆訂單的 o.coupon_used
+        let couponBadge = (o.coupon_used && o.coupon_used !== '無') 
+          ? `<span class="inline-flex items-center mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-stone-100 text-stone-700 border border-stone-300 font-mono ml-1">折扣碼：${o.coupon_used}</span>` 
+          : '';
+
         tbody.innerHTML += `
           <tr class="hover:bg-taupe-canvas text-xs ${isPaid ? 'bg-emerald-50/15' : ''}">
             <td class="p-3 text-center"><input type="checkbox" class="order-chk" value="${o.order_id}" ${isChecked} onchange="handleOrderCheck(this, '${o.order_id}')"></td>
             <td class="p-3 text-stone-400 leading-tight">${new Date(o.created_at).toLocaleDateString()}</td>
             <td class="p-3 font-mono font-bold text-taupe-charcoal">
               <div>${o.order_id}</div>
-              ${payBadgeHtml}
+              <div class="flex flex-wrap items-center">${payBadgeHtml}${couponBadge}</div>
             </td>
             <td class="p-3 bg-taupe-canvas/60">${itemsHtml}</td>
             <td class="p-3 font-bold text-taupe-crimson text-sm font-mono">NT$ ${o.grand_total}</td>
@@ -2714,45 +2719,25 @@
   // 統一發送商品變更至總部 GAS，即時寫入該店鋪試算表「線上商城_上架管理總表」
     // 統一透過 Beacon 即時推送商品變更至總部 GAS，即時寫入試算表「線上商城_上架管理總表」
     // ⭐️ 業界無感傳輸技術：透過隱藏表單 + iframe 強制寫入試算表，100% 突破瀏覽器跨域阻擋
-    function pushProductChangeToMasterSheet(productObj) {
+    async function pushProductChangeToMasterSheet(productObj) {
       try {
-        let iframeName = "hidden_gas_sync_frame";
-        let iframe = document.getElementById(iframeName);
-        if (!iframe) {
-          iframe = document.createElement("iframe");
-          iframe.id = iframeName;
-          iframe.name = iframeName;
-          iframe.style.display = "none";
-          document.body.appendChild(iframe);
-        }
-
-        let form = document.createElement("form");
-        form.method = "POST";
-        form.action = GAS_URL;
-        form.target = iframeName; // 讓回應在背景隱藏視窗完成，不影響當前畫面
-        form.style.display = "none";
-
-        // 因為 GAS 的 doPost 預設讀取 postData.contents，我們用 text/plain 編碼送出 JSON
-        form.enctype = "text/plain";
-        let input = document.createElement("input");
-        input.type = "hidden";
-        // 利用 key + "=" + value 的特性，組合成合法的 JSON 字串
-        let payloadStr = JSON.stringify({
-          action: 'syncProductToSheet',
-          storeId: STORE_ID,
-          product: productObj
+        let resp = await fetch(GAS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'syncProductToSheet',
+            storeId: STORE_ID,
+            product: productObj
+          })
         });
-        // 巧妙技巧：將 JSON 拆成 key 與 value 讓 text/plain 完美還原
-        input.name = payloadStr.slice(0, payloadStr.indexOf(':'));
-        input.value = payloadStr.slice(payloadStr.indexOf(':') + 1);
-        
-        form.appendChild(input);
-        document.body.appendChild(form);
-        form.submit();
-        
-        setTimeout(() => form.remove(), 2000);
+        let res = await resp.json();
+        if (res && res.success) {
+          showToast("商品已同步更新至雲端試算表！");
+        } else {
+          console.warn("試算表同步回應異常:", res);
+        }
       } catch (e) {
-        console.warn("試算表背景同步異常:", e);
+        console.warn("試算表同步異常:", e);
       }
     }
   </script>
