@@ -2206,7 +2206,6 @@
       };
 
       try {
-        // 步驟 A：寫入 Supabase 資料庫訂單表
         let dbRes = await fetch(`${SUPABASE_URL}/rest/v1/shop_orders`, {
           method: 'POST',
           headers: { 
@@ -2223,7 +2222,6 @@
           throw new Error("資料庫寫入失敗 (" + dbRes.status + ")：" + errText);
         }
 
-        // 步驟 B：通知總部 GAS 寫入試算表並發送確認信 (背景非同步)
         fetch(GAS_URL, {
           method: 'POST',
           mode: 'no-cors',
@@ -2240,7 +2238,6 @@
           })
         }).catch(err => console.warn("Background notify warning:", err));
 
-        // 步驟 C：向總部 GAS 請求 PayUni 交易加密封包
         let gasResp = await fetch(GAS_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -2260,18 +2257,15 @@
         let payuniData = {};
         try { payuniData = JSON.parse(rawText); } catch (err) {}
 
-        // 清空購物車
         localStorage.removeItem('shop_cart');
         cart = [];
         updateBadgesUI();
 
-        // ⭐️ 業界標準：由客戶端瀏覽器直接 POST 至 PayUni 正式閘道（繞過 Google 雲端 IP 阻擋與 GitHub 405）
-        let targetGateway = "https://api.payuni.com.tw/api/upp";
-
         if (payuniData && payuniData.success && payuniData.EncryptInfo) {
+          // 建立一個標準的隱藏表單，由瀏覽器直接 POST 提交給 PayUni 官方正式閘道
           let form = document.createElement("form");
           form.method = "POST";
-          form.action = targetGateway; // 強制指向 PayUni 官方正式閘道
+          form.action = "https://api.payuni.com.tw/api/upp";
           form.style.display = "none";
           
           let fields = { 
@@ -2290,13 +2284,13 @@
           }
           
           document.body.appendChild(form);
-          form.submit(); // 直接由真實用戶瀏覽器 IP 安全提交至 PayUni
+          form.submit(); // 直接送出並跳轉至 PayUni 付款頁面
         } else {
           console.error("PayUni Payload Error:", payuniData);
           showToast("訂單已成立！單號：" + orderId + " (系統已發送確認信)");
           setTimeout(() => window.location.reload(), 2500);
         }
-        
+
       } catch(e) {
         console.error("Checkout error:", e);
         showToast("結帳發生異常：" + e.message);
