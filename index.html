@@ -626,6 +626,7 @@
     let currentDetailProduct = null;
     let detailSelectedImgs = [], detailImgIdx = 0;
     let detailColor = "", detailSize = "", detailQty = 1;
+    let bannerIndex = 0, bannerInterval = null;
 
     window.onload = async () => {
       let urlParams = new URLSearchParams(window.location.search);
@@ -634,10 +635,16 @@
       await fetchCampaigns();
       await fetchProducts();
 
+      let targetSku = urlParams.get('sku');
       let urlMajor = urlParams.get('major');
       let urlCat = urlParams.get('cat');
-      if (urlMajor) selectMajorCategory(urlMajor);
-      if (urlCat) selectSubCategory(urlCat);
+
+      if (targetSku && allProducts.length > 0) {
+        openProductDetailPage(targetSku, true);
+      } else {
+        if (urlMajor) selectMajorCategory(urlMajor, true);
+        if (urlCat) selectSubCategory(urlCat, null, true);
+      }
 
       updateBadgesUI();
       loadSavedProfile();
@@ -645,16 +652,27 @@
       setupTouchSwipe();
       setupDetailSwipe();
 
-      let targetSku = urlParams.get('sku');
-      if (targetSku && allProducts.length > 0) openProductDetailPage(targetSku);
-
-      // 從 PayUni 付款返回時自動提示交易完成
       let payAction = urlParams.get('action');
       let returnOrderId = urlParams.get('order_id');
       if (payAction === 'pay_result' && returnOrderId) {
         showToast(`訂單 ${returnOrderId} 交易程序已完成，可至會員專區查詢狀態！`);
       }
     };
+
+    // 支援手機手勢與瀏覽器「上一頁 / 下一頁」同步切換畫面
+    window.addEventListener('popstate', () => {
+      let p = new URLSearchParams(window.location.search);
+      let sku = p.get('sku');
+      if (sku) {
+        openProductDetailPage(sku, true);
+      } else {
+        closeProductDetailPage(true);
+        let maj = p.get('major') || '全部';
+        let cat = p.get('cat') || '全部';
+        selectMajorCategory(maj, true);
+        if (cat !== '全部') selectSubCategory(cat, null, true);
+      }
+    });
 
     function setupScrollListener() {
       const btn = document.getElementById('backToTopBtn');
@@ -959,22 +977,32 @@
         container.innerHTML = `<div class="text-center py-10 text-xs text-stone-400">目前暫無進行中的特惠活動</div>`;
         return;
       }
-      container.innerHTML = allCampaigns.map(c => `
-        <div class="bg-white rounded-3xl border p-5 space-y-2 shadow-xs" style="border-color: var(--theme-border);">
-          <div class="flex justify-between items-start">
-            <div>
-              <span class="text-[9.5px] font-bold px-2 py-0.5 rounded-full" style="background: var(--theme-sand); color: var(--theme-primary);">限時特惠</span>
-              <h3 class="font-bold text-sm text-stone-800 mt-1">${c.title}</h3>
-              <p class="text-xs text-stone-500 mt-0.5">${c.subtitle || '全館任選滿件/滿額結帳自動折抵'}</p>
+      container.innerHTML = allCampaigns.map(c => {
+        let condLabel = (c.condition_type === 'amount') ? `滿 NT$ ${c.condition_qty}` : `滿 ${c.condition_qty || 2} 件`;
+        let rewardLabel = "享免運優惠";
+        if (c.reward_type === 'amount_off') rewardLabel = `現折 NT$ ${c.reward_value}`;
+        if (c.reward_type === 'percent_off') rewardLabel = `享 ${c.reward_value} 折`;
+
+        return `
+          <div class="bg-white rounded-3xl border p-5 space-y-2 shadow-xs" style="border-color: var(--theme-border);">
+            <div class="flex justify-between items-start gap-2">
+              <div>
+                <span class="text-[9.5px] font-bold px-2 py-0.5 rounded-full" style="background: var(--theme-sand); color: var(--theme-primary);">限時特惠</span>
+                <h3 class="font-bold text-sm text-stone-800 mt-1">${c.title}</h3>
+                <p class="text-xs text-stone-500 mt-0.5">${c.subtitle || '結帳符合條件自動套用優惠'}</p>
+              </div>
+              <span class="text-xs font-mono font-bold theme-text-primary shrink-0">${condLabel} ${rewardLabel}</span>
             </div>
-            <span class="text-xs font-mono font-bold theme-text-primary">滿 ${c.condition_qty || 2} 件</span>
+            <div class="pt-2 border-t flex justify-between items-center text-xs" style="border-color: var(--theme-border);">
+              <span class="text-stone-400 text-[11px]">
+                適用：${c.target_mode === 'all' ? '全館商品' : (c.target_category || '指定專區')}
+                ${c.exclude_keywords ? ` (不含${c.exclude_keywords})` : ''}
+              </span>
+              <button onclick="switchHomeSubTab('feed'); filterByCategory('全部');" class="font-bold theme-text-primary hover:underline shrink-0">立即前往挑選 ➔</button>
+            </div>
           </div>
-          <div class="pt-2 border-t flex justify-between items-center text-xs" style="border-color: var(--theme-border);">
-            <span class="text-stone-400 text-[11px]">適用對象：${c.target_mode === 'all' ? '全館商品' : '指定專區：' + (c.target_category || '精選')}</span>
-            <button onclick="switchHomeSubTab('feed'); filterByCategory('全部');" class="font-bold theme-text-primary hover:underline">立即前往挑選 ➔</button>
-          </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
 
     // 4. 取得商品主檔
@@ -1070,20 +1098,27 @@
       }
     }
 
-    function selectMajorCategory(m) {
+    function syncCategoryUrl(skipPushState = false) {
+      if (skipPushState) return;
+      let url = new URL(window.location.origin + window.location.pathname);
+      if (currentMajorCategory && currentMajorCategory !== "全部") {
+        url.searchParams.set('major', currentMajorCategory);
+      }
+      if (currentSubCategory && currentSubCategory !== "全部") {
+        url.searchParams.set('cat', currentSubCategory);
+      }
+      window.history.pushState({}, '', url);
+    }
+
+    function selectMajorCategory(m, skipPushState = false) {
       currentMajorCategory = m;
       currentSubCategory = "全部";
       renderCategoryFilterBar();
       applyProductFilters();
-      let url = new URL(window.location);
-    if (currentMajorCategory !== "全部") url.searchParams.set('major', currentMajorCategory);
-    else url.searchParams.delete('major');
-    if (currentSubCategory !== "全部") url.searchParams.set('cat', currentSubCategory);
-    else url.searchParams.delete('cat');
-    window.history.replaceState({}, '', url);
+      syncCategoryUrl(skipPushState);
     }
 
-    function selectSubCategory(s, btn) {
+    function selectSubCategory(s, btn, skipPushState = false) {
       currentSubCategory = s;
       document.querySelectorAll('.cat-pill').forEach(b => {
         b.className = "cat-pill px-3.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition bg-white text-stone-600 border";
@@ -1091,15 +1126,13 @@
       });
       if (btn) btn.className = "cat-pill px-3.5 py-1 rounded-full text-xs font-bold whitespace-nowrap transition theme-btn-primary shadow-xs";
       
-      // 同步更新網址參數，方便複製連結放到活動專區直達
-      let url = new URL(window.location);
-      if (currentMajorCategory !== "全部") url.searchParams.set('major', currentMajorCategory);
-      else url.searchParams.delete('major');
-      if (currentSubCategory !== "全部") url.searchParams.set('cat', currentSubCategory);
-      else url.searchParams.delete('cat');
-      window.history.replaceState({}, '', url);
-
+      syncCategoryUrl(skipPushState);
       applyProductFilters();
+    }
+
+    function filterByCategory(cat, btn) {
+      currentSubCategory = cat;
+      selectSubCategory(cat, btn, false);
     }
     
     function applyProductFilters() {
@@ -1121,32 +1154,6 @@
       closeProductDetailPage();
       switchNavTab('home');
       filterByCategory(cat);
-    }
-
-    function filterByCategory(cat, btn) {
-      currentCategoryFilter = cat;
-      document.querySelectorAll('.cat-pill').forEach(b => {
-        b.className = "cat-pill px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition bg-white text-stone-600 border";
-        b.style.borderColor = "var(--theme-border)";
-      });
-      if (btn) {
-        btn.className = "cat-pill px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition theme-btn-primary shadow-xs";
-      } else {
-        document.querySelectorAll('.cat-pill').forEach(b => {
-          if (b.innerText.trim() === cat) {
-            b.className = "cat-pill px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition theme-btn-primary shadow-xs";
-          }
-        });
-      }
-
-      if (cat === "全部") {
-        filteredProducts = [...allProducts];
-        document.getElementById('catalogSectionTitle').innerText = "全部分類商品";
-      } else {
-        filteredProducts = allProducts.filter(p => (p.sub_category === cat || p.major_category === cat));
-        document.getElementById('catalogSectionTitle').innerText = `${cat} 系列商品`;
-      }
-      renderProductGrid();
     }
 
     // 計算商品價格區間字串 (如 "NT$ 520 - 3,220" 或單一價格 "NT$ 1,280")
@@ -1350,7 +1357,7 @@
     // ==================== 5. 獨立商品全頁面 View ====================
     // ==================== 5. 獨立商品全頁面 View (徹底修復資料空白 Bug) ====================
     // ==================== 5. 獨立商品全頁面 View (100% 防呆解析修復) ====================
-    function openProductDetailPage(sku) {
+    function openProductDetailPage(sku, skipPushState = false) {
       if (!sku) return;
       let decodedSku = decodeURIComponent(sku);
       const p = allProducts.find(x => x.sku === decodedSku || x.sku === sku);
@@ -1360,6 +1367,12 @@
       }
       currentDetailProduct = p;
       detailQty = 1;
+
+      if (!skipPushState) {
+        let url = new URL(window.location.origin + window.location.pathname);
+        url.searchParams.set('sku', p.sku);
+        window.history.pushState({ sku: p.sku }, '', url);
+      }
 
       // 切換頁面視圖
       document.querySelectorAll('.main-view').forEach(v => v.classList.add('hidden'));
@@ -1507,9 +1520,24 @@
       }
     }
     
-    function closeProductDetailPage() {
+    function closeProductDetailPage(skipPushState = false) {
       document.getElementById('view-product-detail').classList.add('hidden');
       document.getElementById('view-home').classList.remove('hidden');
+
+      if (!skipPushState) {
+        let url = new URL(window.location.origin + window.location.pathname);
+        if (currentMajorCategory && currentMajorCategory !== "全部") url.searchParams.set('major', currentMajorCategory);
+        if (currentSubCategory && currentSubCategory !== "全部") url.searchParams.set('cat', currentSubCategory);
+        window.history.pushState({}, '', url);
+      }
+    }
+
+    function shareCurrentProduct() {
+      if (!currentDetailProduct) return;
+      // ⭐️ 使用 encodeURIComponent 確保貨號中的 # 符號不會變成網頁錨點
+      let shareUrl = `${window.location.origin}${window.location.pathname}?sku=${encodeURIComponent(currentDetailProduct.sku)}`;
+      navigator.clipboard.writeText(shareUrl);
+      showToast(`已複製【${currentDetailProduct.name}】專屬分享網址！`);
     }
 
     function jumpToCategoryFromDetail() {
@@ -1552,12 +1580,6 @@
     function closeLightbox() {
       document.getElementById('imageLightboxModal').classList.add('hidden');
       document.getElementById('imageLightboxModal').classList.remove('flex');
-    }
-
-    function shareCurrentProduct() {
-      let url = `${window.location.origin}${window.location.pathname}?sku=${currentDetailProduct.sku}`;
-      navigator.clipboard.writeText(url);
-      showToast("專屬商品網址已複製至剪貼簿！");
     }
 
     function toggleFavoriteDetail() {
