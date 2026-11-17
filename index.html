@@ -2165,9 +2165,8 @@
       let orderId = `S${datePart}-${Math.floor(Math.random() * 900 + 100)}`;
 
       let btn = document.getElementById('btnSubmitOrder');
-      if (btn) { btn.innerText = "前往付款頁面中..."; btn.disabled = true; }
+      if (btn) { btn.innerText = "正在安全連線金流..."; btn.disabled = true; }
 
-      // ⭐️ 確保紀錄折扣碼 (若無則標示為「無」)
       let usedCoupon = currentCouponCode ? currentCouponCode.trim().toUpperCase() : "無";
 
       let dbPayload = {
@@ -2188,38 +2187,61 @@
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
           body: JSON.stringify(dbPayload)
         });
-        if (!dbRes.ok) throw new Error("訂單寫入資料庫失敗");
+        if (!dbRes.ok) throw new Error("資料庫寫入失敗");
 
-        // 2. 準備給總部 GAS 的完整訂單資料 (含折扣碼)
-        let gasOrderData = {
-          storeId: STORE_ID, orderId: orderId, orderPin: randomPin,
-          grandTotal: grandTotal, itemTotal: subtotal, shippingFee: shippingFee, discountAmt: discountAmt,
-          items: cart, customerName: name, customerPhone: phone, customerEmail: email,
-          deliveryAddress: address, customerRemark: remark, couponUsed: usedCoupon, paymentStatus: '待付款',
-          carrierNum: carrierNum, buyerUbn: buyerUbn, buyerTitle: buyerTitle
-        };
+        // 2. 透過 CORS-safe text/plain 請求 GAS 同步試算表 + 寄信 + 取得 PayUni 加密包
+        let gasResp = await fetch(GAS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'processNewOrderAndPayuni',
+            storeId: STORE_ID,
+            orderData: {
+              storeId: STORE_ID, orderId: orderId, orderPin: randomPin,
+              grandTotal: grandTotal, itemTotal: subtotal, shippingFee: shippingFee, discountAmt: discountAmt,
+              items: cart, customerName: name, customerPhone: phone, customerEmail: email,
+              deliveryAddress: address, customerRemark: remark, couponUsed: usedCoupon, paymentStatus: '待付款'
+            }
+          })
+        });
 
-        // 清空購物車
+        let rawText = await gasResp.text();
+        let payuniData = JSON.parse(rawText);
+
         localStorage.removeItem('shop_cart');
         cart = [];
         updateBadgesUI();
 
-        // ⭐️ 3. 透過原生 Form POST 直接打向總部 GAS 的 directCheckout，零 CORS 阻擋、100% 跳轉 PayUni！
-        let form = document.createElement("form");
-        form.method = "POST";
-        form.action = GAS_URL + "?action=directCheckout";
-        form.style.display = "none";
+        if (payuniData && payuniData.success && payuniData.EncryptInfo) {
+          // ⭐️ 核心關鍵：在自己的網頁最外層視窗 (_top) 建立標準表單直接 POST 給 PayUni！
+          let form = document.createElement("form");
+          form.method = "POST";
+          form.action = payuniData.gatewayUrl || "https://api.payuni.com.tw/api/upp";
+          form.target = "_top";
+          form.style.display = "none";
 
-        let input = document.createElement("input");
-        input.type = "hidden";
-        input.name = "orderPayload";
-        input.value = JSON.stringify(gasOrderData);
-        form.appendChild(input);
+          let fields = {
+            "MerID": payuniData.MerID,
+            "Version": payuniData.Version,
+            "EncryptInfo": payuniData.EncryptInfo,
+            "HashInfo": payuniData.HashInfo
+          };
 
-        document.body.appendChild(form);
-        form.submit();
+          for (let k in fields) {
+            let h = document.createElement("input");
+            h.type = "hidden";
+            h.name = k;
+            h.value = fields[k];
+            form.appendChild(h);
+          }
 
+          document.body.appendChild(form);
+          form.submit(); // 直接跳轉至 PayUni 刷卡頁面，100% 避開 iframe 拒絕連線與 405！
+        } else {
+          throw new Error(payuniData.error || "金流加密包產生異常");
+        }
       } catch (e) {
+        console.error("Checkout Error:", e);
         showToast("結帳發生異常：" + e.message);
         if (btn) { btn.disabled = false; btn.innerText = "前往 PayUni 安全付款"; }
       }
