@@ -281,14 +281,26 @@
           </div>
         </div>
 
-        <div class="space-y-2 pt-2 border-t" style="border-color: var(--theme-border);">
+        <div class="space-y-2.5 pt-2 border-t" style="border-color: var(--theme-border);">
           <input type="text" id="orderCustName" placeholder="收件人真實姓名" class="w-full p-2.5 rounded-xl border outline-none" style="border-color: var(--theme-border); background-color: var(--theme-canvas);">
           <input type="tel" id="orderCustPhone" placeholder="聯絡手機號碼" class="w-full p-2.5 rounded-xl border outline-none" style="border-color: var(--theme-border); background-color: var(--theme-canvas);">
           <input type="email" id="orderCustEmail" placeholder="電子信箱 (接收訂單通知與發票)" class="w-full p-2.5 rounded-xl border outline-none" style="border-color: var(--theme-border); background-color: var(--theme-canvas);">
           <input type="text" id="orderCustAddress" placeholder="完整收件地址" class="w-full p-2.5 rounded-xl border outline-none" style="border-color: var(--theme-border); background-color: var(--theme-canvas);">
           <input type="text" id="orderCustRemark" placeholder="備註說明 (選填)" class="w-full p-2.5 rounded-xl border outline-none" style="border-color: var(--theme-border); background-color: var(--theme-canvas);">
 
-          <!-- 電子發票選項 (PayUni 自動開立) -->
+          <!-- 1. 選擇運送方式 (動態由後台載入) -->
+          <div class="p-3 rounded-2xl border space-y-1.5" style="background-color: var(--theme-canvas); border-color: var(--theme-border);">
+            <label class="font-bold text-stone-800 block">選擇運送方式</label>
+            <select id="orderShippingMethod" onchange="updateCartUI()" class="w-full p-2 border rounded-lg text-xs bg-white outline-none" style="border-color: var(--theme-border);"></select>
+          </div>
+
+          <!-- 2. 選擇預計付款方式 (動態由後台載入，供統計分析) -->
+          <div class="p-3 rounded-2xl border space-y-1.5" style="background-color: var(--theme-canvas); border-color: var(--theme-border);">
+            <label class="font-bold text-stone-800 block">選擇付款方式 (跳轉至 PayUni 結帳)</label>
+            <select id="orderPaymentMethod" class="w-full p-2 border rounded-lg text-xs bg-white outline-none" style="border-color: var(--theme-border);"></select>
+          </div>
+
+          <!-- 3. 電子發票選項 -->
           <div class="p-3 rounded-2xl border space-y-2" style="background-color: var(--theme-sand); border-color: var(--theme-border);">
             <label class="font-bold text-stone-800 block">電子發票開立選項 (PayUni 自動開立)</label>
             <select id="orderInvoiceType" onchange="handleInvoiceTypeChange()" class="w-full p-2 border rounded-lg text-xs bg-white outline-none" style="border-color: var(--theme-border);">
@@ -296,12 +308,9 @@
               <option value="b2c_phone">個人雲端發票 (手機條碼載具)</option>
               <option value="b2b_tax">公司三聯式發票 (統一編號)</option>
             </select>
-            
-            <!-- ⭐️ 必須確保這兩個 ID 存在，JS 才不會報 Cannot read properties of null -->
             <div id="invoicePhoneBlock" class="hidden pt-1">
               <input type="text" id="orderCarrierNum" placeholder="請輸入手機載具 (如 /ABC1234)" class="w-full p-2 border rounded-lg text-xs outline-none bg-white font-mono" style="border-color: var(--theme-border);">
             </div>
-            
             <div id="invoiceTaxBlock" class="hidden space-y-1.5 pt-1">
               <input type="text" id="orderBuyerUbn" maxlength="8" placeholder="公司統一編號 (8 碼)" class="w-full p-2 border rounded-lg text-xs font-mono outline-none bg-white" style="border-color: var(--theme-border);">
               <input type="text" id="orderBuyerTitle" placeholder="買受人公司抬頭" class="w-full p-2 border rounded-lg text-xs outline-none bg-white" style="border-color: var(--theme-border);">
@@ -312,6 +321,11 @@
             <span class="text-[11px] text-stone-500 font-medium">記住我的收件資訊 (僅存於本地手機)</span>
             <input type="checkbox" id="saveProfileCheck" checked class="w-4 h-4" style="accent-color: var(--theme-primary);">
           </div>
+        </div>
+
+        <!-- 4. 自訂下單須知 (放置於付款按鈕上方) -->
+        <div id="checkoutNoticeBox" class="p-3.5 rounded-2xl border text-[11px] text-stone-600 leading-relaxed whitespace-pre-line" style="background-color: var(--theme-sand); border-color: var(--theme-border);">
+          提供信用卡付款、分期付款、ATM轉帳、7-ELEVEN超商代碼。本服務全面透過PAYUNi (統一金流) 官方加密平台進行交易。電子發票亦將自動開立並寄發至信箱。PayUni是統一企業集團旗下統一數網股份有限公司的第三方支付品牌。
         </div>
 
         <button onclick="submitOrderToCheckout()" id="btnSubmitOrder" class="w-full theme-btn-primary py-3.5 rounded-xl font-bold text-xs tracking-wider shadow-sm transition">
@@ -612,8 +626,6 @@
     let currentDetailProduct = null;
     let detailSelectedImgs = [], detailImgIdx = 0;
     let detailColor = "", detailSize = "", detailQty = 1;
-    let currentDiscountRate = 0, currentCouponCode = "";
-    let bannerIndex = 0, bannerInterval = null;
 
     window.onload = async () => {
       let urlParams = new URLSearchParams(window.location.search);
@@ -798,6 +810,28 @@
               document.getElementById('editorialImgContainer').classList.remove('hidden');
             }
             document.getElementById('editorialSection').classList.remove('hidden');
+          }
+
+          // 渲染運送方式下拉選單
+          window.storeShippingMethods = s.shipping_methods || [{ name: "郵寄宅配", fee: 100, free_threshold: 2000 }];
+          const shipSelect = document.getElementById('orderShippingMethod');
+          if (shipSelect) {
+            shipSelect.innerHTML = window.storeShippingMethods.map((m, idx) => 
+              `<option value="${idx}">${m.name} (運費 NT$ ${m.fee}${m.free_threshold > 0 ? '，滿 NT$' + m.free_threshold + ' 免運' : ''})</option>`
+            ).join('');
+          }
+
+          // 渲染付款方式下拉選單
+          let payMethods = s.payment_methods || ["信用卡一次付清", "信用卡分期付款", "ATM 虛擬帳號轉帳", "7-ELEVEN 超商代碼"];
+          const paySelect = document.getElementById('orderPaymentMethod');
+          if (paySelect) {
+            paySelect.innerHTML = payMethods.map(pm => `<option value="${pm}">${pm}</option>`).join('');
+          }
+
+          // 渲染自訂下單須知
+          const noticeBox = document.getElementById('checkoutNoticeBox');
+          if (noticeBox && s.checkout_notice) {
+            noticeBox.innerText = s.checkout_notice;
           }
 
           checkAndRenderQuickActions(s.quick_actions);
@@ -1685,35 +1719,41 @@
       showToast("已加入購物車");
     }
 
-    function calculateCartShipping(subtotal) {
-      let rule = storeShippingRule || { mode: "category_qty", target_categories: ["四季被", "春夏薄被", "雙面絨冬被", "單面絨冬被"], exclude_keywords: ["枕頭套", "枕套", "加購"], min_qty: 2, min_amount: 0, fee: 100 };
-      let baseFee = (rule.fee !== undefined) ? Number(rule.fee) : 100;
-      let excludeList = (rule.exclude_keywords || ["枕頭套", "枕套", "加購"]).map(k => k.trim().toLowerCase()).filter(Boolean);
+    function calculateCartShipping(subtotal, selectedShipObj) {
+      let baseFee = selectedShipObj ? Number(selectedShipObj.fee) : 100;
+      if (baseFee === 0) return 0;
 
-      // 檢查商品名稱、款式、尺寸是否包含排除關鍵字 (如枕頭套)
-      const isExcludedItem = (item) => {
-        if (excludeList.length === 0) return false;
-        let fullText = `${item.prodName || ''} ${item.color || ''} ${item.size || ''}`.toLowerCase();
-        return excludeList.some(kw => fullText.includes(kw));
-      };
+      // 檢查是否有任何一個啟用中的「免運活動」達標
+      for (let c of allCampaigns) {
+        if (!c.is_active || c.reward_type !== 'free_shipping') continue;
 
-      if (rule.mode === 'amount') {
-        return subtotal >= (Number(rule.min_amount) || 2000) ? 0 : baseFee;
-      } else if (rule.mode === 'category_qty') {
+        let targetCats = c.target_category ? c.target_category.split(',').map(s => s.trim()) : [];
+        let excludeList = c.exclude_keywords ? c.exclude_keywords.split(/[,，\s]+/).map(k => k.trim().toLowerCase()).filter(Boolean) : [];
+
+        // 計算符合該活動分類、且不包含排除關鍵字的有效件數
         let validQty = cart.reduce((sum, item) => {
-          if (isExcludedItem(item)) return sum; // 排除枕頭套選項
-          let p = allProducts.find(x => x.sku === item.sku);
-          let cat = p ? (p.sub_category || p.major_category) : (item.category || '');
-          return (rule.target_categories || []).includes(cat) ? sum + item.qty : sum;
+          let fullText = `${item.prodName || ''} ${item.color || ''} ${item.size || ''}`.toLowerCase();
+          if (excludeList.some(kw => fullText.includes(kw))) return sum; // 命中排除關鍵字，不計入
+
+          if (c.target_mode === 'all' || targetCats.length === 0) {
+            return sum + item.qty;
+          } else {
+            let p = allProducts.find(x => x.sku === item.sku);
+            let cat = p ? (p.sub_category || p.major_category) : (item.category || '');
+            return targetCats.includes(cat) ? sum + item.qty : sum;
+          }
         }, 0);
-        return validQty >= (Number(rule.min_qty) || 2) ? 0 : baseFee;
-      } else {
-        let validQty = cart.reduce((sum, item) => {
-          if (isExcludedItem(item)) return sum;
-          return sum + item.qty;
-        }, 0);
-        return validQty >= (Number(rule.min_qty) || 2) ? 0 : baseFee;
+
+        if (validQty >= (Number(c.condition_qty) || 2)) {
+          return 0; // 符合該活動條件，直接免運！
+        }
       }
+
+      // 若無活動達標，檢查該運送方式本身的滿額免運門檻
+      if (selectedShipObj && selectedShipObj.free_threshold > 0 && subtotal >= Number(selectedShipObj.free_threshold)) {
+        return 0;
+      }
+      return baseFee;
     }
     
     function updateCartUI() {
@@ -1743,21 +1783,53 @@
       `).join('');
 
       let subtotal = cart.reduce((s, i) => s + (i.price * i.qty), 0);
-      let shippingFee = calculateCartShipping(subtotal);
-      let discountAmt = Math.round(subtotal * currentDiscountRate);
-      let grandTotal = subtotal - discountAmt + shippingFee;
+      
+      // 取得目前下拉選單選取的運送方式物件
+      let shipIdx = document.getElementById('orderShippingMethod') ? Number(document.getElementById('orderShippingMethod').value) : 0;
+      let selectedShipObj = (window.storeShippingMethods && window.storeShippingMethods[shipIdx]) ? window.storeShippingMethods[shipIdx] : { name: "郵寄宅配", fee: 100, free_threshold: 2000 };
+      let shippingFee = calculateCartShipping(subtotal, selectedShipObj);
+
+      // 計算折扣碼折抵金額 (修正折 100 變 4000 Bug)
+      let couponDiscount = 0;
+      if (currentDiscountVal > 0) {
+        couponDiscount = (currentDiscountType === 'amount') 
+          ? Math.min(subtotal, currentDiscountVal) 
+          : Math.round(subtotal * currentDiscountVal);
+      }
+
+      // 計算行銷活動自動折抵 (支援業界常用：滿件/滿額折固定金額、打折)
+      let campaignDiscount = 0;
+      for (let c of allCampaigns) {
+        if (!c.is_active || c.reward_type === 'free_shipping') continue;
+        let targetCats = c.target_category ? c.target_category.split(',').map(s => s.trim()) : [];
+        let excludeList = c.exclude_keywords ? c.exclude_keywords.split(/[,，\s]+/).map(k => k.trim().toLowerCase()).filter(Boolean) : [];
+        
+        let validQty = 0, validAmount = 0;
+        cart.forEach(item => {
+          let fullText = `${item.prodName || ''} ${item.color || ''} ${item.size || ''}`.toLowerCase();
+          if (excludeList.some(kw => fullText.includes(kw))) return;
+          let p = allProducts.find(x => x.sku === item.sku);
+          let cat = p ? (p.sub_category || p.major_category) : (item.category || '');
+          if (c.target_mode === 'all' || targetCats.length === 0 || targetCats.includes(cat)) {
+            validQty += item.qty;
+            validAmount += (item.price * item.qty);
+          }
+        });
+
+        let condMet = (c.condition_type === 'amount') ? (validAmount >= Number(c.condition_qty)) : (validQty >= Number(c.condition_qty));
+        if (condMet && Number(c.reward_value) > 0) {
+          let dAmt = (c.reward_type === 'percent_off') ? Math.round(validAmount * (1 - Number(c.reward_value) / 100)) : Number(c.reward_value);
+          if (dAmt > campaignDiscount) campaignDiscount = dAmt;
+        }
+      }
+
+      let totalDiscount = Math.min(subtotal, couponDiscount + campaignDiscount);
+      let grandTotal = subtotal - totalDiscount + shippingFee;
 
       document.getElementById('cartSubtotal').innerText = subtotal;
-      document.getElementById('cartDiscount').innerText = discountAmt;
-      document.getElementById('discountRow').classList.toggle('hidden', discountAmt === 0);
-      
-      // 動態顯示免運條件說明
-      let rule = storeShippingRule;
-      let shipLabel = 'NT$ ' + (rule.fee || 100);
-      if (shippingFee === 0) {
-        shipLabel = rule.mode === 'amount' ? `免運 (滿 NT$${rule.min_amount} 優惠)` : `免運 (指定商品滿 ${rule.min_qty} 件優惠)`;
-      }
-      document.getElementById('cartShippingText').innerText = shipLabel;
+      document.getElementById('cartDiscount').innerText = totalDiscount;
+      document.getElementById('discountRow').classList.toggle('hidden', totalDiscount === 0);
+      document.getElementById('cartShippingText').innerText = shippingFee === 0 ? `免運 (${selectedShipObj.name})` : `NT$ ${shippingFee}`;
       document.getElementById('cartGrandTotal').innerText = grandTotal;
     }
     
@@ -1791,6 +1863,12 @@
       document.getElementById('invoiceTaxBlock').classList.toggle('hidden', v !== 'b2b_tax');
     }
 
+    // 1. 修改全域折扣變數，記錄折扣類型 ('amount' 固定金額 / 'percent' 打折) 與數值
+    let currentDiscountType = "amount"; 
+    let currentDiscountVal = 0; 
+    let currentCouponCode = "";
+
+    // 2. 更新套用折扣碼函式
     async function applyCoupon() {
       let code = document.getElementById('couponCodeInput').value.trim().toUpperCase();
       if (!code) return showToast("請輸入折扣碼");
@@ -1800,9 +1878,18 @@
         });
         let d = await res.json();
         if (d && d[0]) {
-          currentDiscountRate = Number(d[0].discount_val) || 0.05;
+          let val = Number(d[0].discount_val) || 0;
+          // 自動防呆判斷：若資料庫 type 為 amount 或數值 >= 1 (例如 100)，則視為固定金額折抵；若 < 1 (例如 0.1)，視為打折比例
+          if (d[0].discount_type === 'amount' || val >= 1) {
+            currentDiscountType = 'amount';
+            currentDiscountVal = val;
+            document.getElementById('couponNotice').innerText = `折扣代碼【${code}】套用成功 (折抵 NT$ ${val})`;
+          } else {
+            currentDiscountType = 'percent';
+            currentDiscountVal = val;
+            document.getElementById('couponNotice').innerText = `折扣代碼【${code}】套用成功 (享 ${(1 - val) * 10} 折優惠)`;
+          }
           currentCouponCode = code;
-          document.getElementById('couponNotice').innerText = `折扣代碼【${code}】套用成功`;
           document.getElementById('couponNotice').classList.remove('hidden');
           updateCartUI();
         } else {
@@ -2158,7 +2245,11 @@
       let grandTotal = Math.round(Number(document.getElementById('cartGrandTotal').innerText) || 0);
       let subtotal = Math.round(Number(document.getElementById('cartSubtotal').innerText) || 0);
       let discountAmt = Math.round(Number(document.getElementById('cartDiscount').innerText) || 0);
-      let shippingFee = (typeof calculateCartShipping === 'function') ? Math.round(calculateCartShipping(subtotal)) : 0;
+      let shipIdx = document.getElementById('orderShippingMethod') ? Number(document.getElementById('orderShippingMethod').value) : 0;
+      let selectedShipObj = (window.storeShippingMethods && window.storeShippingMethods[shipIdx]) ? window.storeShippingMethods[shipIdx] : { name: "郵寄宅配", fee: 100 };
+      let shippingFee = Math.round(calculateCartShipping(subtotal, selectedShipObj));
+      let selectedShipName = selectedShipObj.name;
+      let selectedPayMethod = document.getElementById('orderPaymentMethod') ? document.getElementById('orderPaymentMethod').value : "PayUni 線上支付";
 
       let now = new Date();
       let datePart = String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
@@ -2173,7 +2264,8 @@
         store_id: STORE_ID, order_id: orderId, order_pin: randomPin,
         customer_name: name, customer_phone: phone, customer_email: email,
         items: cart, item_total: subtotal, discount_amt: discountAmt, shipping_fee: shippingFee, grand_total: grandTotal,
-        shipping_mode: '郵寄宅配', delivery_address: address, customer_remark: remark,
+        shipping_mode: selectedShipName, payment_method: selectedPayMethod,
+        delivery_address: address, customer_remark: remark,
         order_status: '新訂單', payment_status: '待付款', coupon_used: usedCoupon,
         invoice_type: (invType === 'b2b_tax' ? 'b2b' : 'b2c'),
         carrier_type: (invType === 'b2c_phone' ? 'phone' : 'email'),
