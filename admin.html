@@ -2712,27 +2712,19 @@
     }
 
   // 統一發送商品變更至總部 GAS，即時寫入該店鋪試算表「線上商城_上架管理總表」
-    async function pushProductChangeToMasterSheet(productObj) {
+    // 統一透過 Beacon 即時推送商品變更至總部 GAS，即時寫入試算表「線上商城_上架管理總表」
+    function pushProductChangeToMasterSheet(productObj) {
       try {
-        let resp = await fetch(GAS_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({
-            action: 'syncProductToSheet',
-            storeId: STORE_ID,
-            product: productObj
-          })
-        });
-        let rawText = await resp.text();
-        let resJson = {};
-        try { resJson = JSON.parse(rawText); } catch(err) {}
+        let blob = new Blob([JSON.stringify({
+          action: 'syncProductToSheet',
+          storeId: STORE_ID,
+          product: productObj
+        })], { type: 'text/plain;charset=utf-8' });
         
-        if (!resJson.success) {
-          console.error("試算表同步失敗:", rawText);
-          showToast("注意：雲端商品已更新，但試算表同步未回應");
-        }
+        navigator.sendBeacon(GAS_URL, blob);
+        showToast("商品已同步更新至雲端試算表！");
       } catch (e) {
-        console.error("試算表同步網路異常:", e);
+        console.warn("試算表同步異常:", e);
       }
     }
   </script>
