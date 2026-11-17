@@ -2265,7 +2265,7 @@
         cart = [];
         updateBadgesUI();
 
-        // ⭐️ 絕對防呆：強制鎖定 PayUni 正式閘道網址，絕對不會打回 GitHub 造成 405
+        // ⭐️ 業界標準：由客戶端瀏覽器直接 POST 至 PayUni 正式閘道（繞過 Google 雲端 IP 阻擋與 GitHub 405）
         let targetGateway = "https://api.payuni.com.tw/api/upp";
 
         if (payuniData && payuniData.success && payuniData.EncryptInfo) {
@@ -2290,13 +2290,13 @@
           }
           
           document.body.appendChild(form);
-          form.submit(); // 安全提交至 PayUni
+          form.submit(); // 直接由真實用戶瀏覽器 IP 安全提交至 PayUni
         } else {
           console.error("PayUni Payload Error:", payuniData);
           showToast("訂單已成立！單號：" + orderId + " (系統已發送確認信)");
           setTimeout(() => window.location.reload(), 2500);
         }
-
+        
       } catch(e) {
         console.error("Checkout error:", e);
         showToast("結帳發生異常：" + e.message);
