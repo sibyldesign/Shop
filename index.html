@@ -2149,155 +2149,79 @@
       if (invType === 'b2b_tax' && buyerUbn.length !== 8) return showToast("公司統一編號需為 8 碼");
 
       let randomPin = Math.floor(1000 + Math.random() * 9000).toString();
-
       let savedProfile = JSON.parse(localStorage.getItem('sibyl_user_profile') || '{}');
-      if (document.getElementById('saveProfileCheck').checked) {
-        savedProfile = { 
-          name: name, phone: phone, email: email, address: address, 
-          carrierNum: carrierNum, latest_pin: randomPin 
-        };
-      } else {
-        savedProfile.latest_pin = randomPin;
-      }
+      savedProfile = document.getElementById('saveProfileCheck').checked 
+        ? { name, phone, email, address, carrierNum, latest_pin: randomPin } 
+        : { ...savedProfile, latest_pin: randomPin };
       localStorage.setItem('sibyl_user_profile', JSON.stringify(savedProfile));
 
-      let rawGrandTotal = Number(document.getElementById('cartGrandTotal').innerText) || 0;
-      let rawSubtotal = Number(document.getElementById('cartSubtotal').innerText) || 0;
-      let rawDiscount = Number(document.getElementById('cartDiscount').innerText) || 0;
-      
-      let grandTotal = Math.round(rawGrandTotal);
-      let subtotal = Math.round(rawSubtotal);
-      let discountAmt = Math.round(rawDiscount);
-      let shippingFee = (typeof calculateCartShipping === 'function') ? Math.round(calculateCartShipping(subtotal)) : (cart.reduce((sum, i) => sum + i.qty, 0) >= 2 ? 0 : 100);
+      let grandTotal = Math.round(Number(document.getElementById('cartGrandTotal').innerText) || 0);
+      let subtotal = Math.round(Number(document.getElementById('cartSubtotal').innerText) || 0);
+      let discountAmt = Math.round(Number(document.getElementById('cartDiscount').innerText) || 0);
+      let shippingFee = (typeof calculateCartShipping === 'function') ? Math.round(calculateCartShipping(subtotal)) : 0;
 
       let now = new Date();
       let datePart = String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
       let orderId = `S${datePart}-${Math.floor(Math.random() * 900 + 100)}`;
 
       let btn = document.getElementById('btnSubmitOrder');
-      if (btn) {
-        btn.innerText = "連線金流中..."; 
-        btn.disabled = true;
-      }
+      if (btn) { btn.innerText = "前往付款頁面中..."; btn.disabled = true; }
 
-      let orderPayload = {
-        store_id: STORE_ID, 
-        order_id: orderId, 
-        order_pin: randomPin,
-        customer_name: name, 
-        customer_phone: phone, 
-        customer_email: email,
-        items: cart, 
-        item_total: subtotal, 
-        discount_amt: discountAmt, 
-        shipping_fee: shippingFee, 
-        grand_total: grandTotal,
-        shipping_mode: '郵寄宅配', 
-        delivery_address: address, 
-        customer_remark: remark, 
-        order_status: '新訂單', 
-        payment_status: '待付款',
-        coupon_used: currentCouponCode || '無',
+      // ⭐️ 確保紀錄折扣碼 (若無則標示為「無」)
+      let usedCoupon = currentCouponCode ? currentCouponCode.trim().toUpperCase() : "無";
+
+      let dbPayload = {
+        store_id: STORE_ID, order_id: orderId, order_pin: randomPin,
+        customer_name: name, customer_phone: phone, customer_email: email,
+        items: cart, item_total: subtotal, discount_amt: discountAmt, shipping_fee: shippingFee, grand_total: grandTotal,
+        shipping_mode: '郵寄宅配', delivery_address: address, customer_remark: remark,
+        order_status: '新訂單', payment_status: '待付款', coupon_used: usedCoupon,
         invoice_type: (invType === 'b2b_tax' ? 'b2b' : 'b2c'),
         carrier_type: (invType === 'b2c_phone' ? 'phone' : 'email'),
-        carrier_num: carrierNum, 
-        buyer_ubn: buyerUbn, 
-        buyer_title: buyerTitle
+        carrier_num: carrierNum, buyer_ubn: buyerUbn, buyer_title: buyerTitle
       };
 
       try {
+        // 1. 寫入 Supabase 資料庫
         let dbRes = await fetch(`${SUPABASE_URL}/rest/v1/shop_orders`, {
           method: 'POST',
-          headers: { 
-            'apikey': SUPABASE_KEY, 
-            'Authorization': 'Bearer ' + SUPABASE_KEY, 
-            'Content-Type': 'application/json',
-            'Prefer': 'return=minimal'
-          },
-          body: JSON.stringify(orderPayload)
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+          body: JSON.stringify(dbPayload)
         });
+        if (!dbRes.ok) throw new Error("訂單寫入資料庫失敗");
 
-        if (!dbRes.ok) {
-          let errText = await dbRes.text();
-          throw new Error("資料庫寫入失敗 (" + dbRes.status + ")：" + errText);
-        }
+        // 2. 準備給總部 GAS 的完整訂單資料 (含折扣碼)
+        let gasOrderData = {
+          storeId: STORE_ID, orderId: orderId, orderPin: randomPin,
+          grandTotal: grandTotal, itemTotal: subtotal, shippingFee: shippingFee, discountAmt: discountAmt,
+          items: cart, customerName: name, customerPhone: phone, customerEmail: email,
+          deliveryAddress: address, customerRemark: remark, couponUsed: usedCoupon, paymentStatus: '待付款',
+          carrierNum: carrierNum, buyerUbn: buyerUbn, buyerTitle: buyerTitle
+        };
 
-        fetch(GAS_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({
-            action: 'processNewOrderNotify',
-            storeId: STORE_ID,
-            orderData: {
-              storeId: STORE_ID, orderId: orderId, orderPin: randomPin,
-              grandTotal: grandTotal, itemTotal: subtotal, shippingFee: shippingFee, discountAmt: discountAmt,
-              items: cart, customerName: name, customerPhone: phone, customerEmail: email,
-              deliveryAddress: address, customerRemark: remark, couponUsed: currentCouponCode || '無', paymentStatus: '待付款'
-            }
-          })
-        }).catch(err => console.warn("Background notify warning:", err));
-
-        let gasResp = await fetch(GAS_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({
-            action: 'createPayuniTrade',
-            storeId: STORE_ID,
-            orderData: { 
-              storeId: STORE_ID, orderId: orderId, orderPin: randomPin,
-              grandTotal: grandTotal, items: cart, shippingFee: shippingFee, discountAmt: discountAmt,
-              customerName: name, customerPhone: phone, customerEmail: email,
-              carrierNum: carrierNum, buyerUbn: buyerUbn, buyerTitle: buyerTitle
-            }
-          })
-        });
-
-        let rawText = await gasResp.text();
-        let payuniData = {};
-        try { payuniData = JSON.parse(rawText); } catch (err) {}
-
+        // 清空購物車
         localStorage.removeItem('shop_cart');
         cart = [];
         updateBadgesUI();
 
-        if (payuniData && payuniData.success && payuniData.EncryptInfo) {
-          // 建立一個標準的隱藏表單，由瀏覽器直接 POST 提交給 PayUni 官方正式閘道
-          let form = document.createElement("form");
-          form.method = "POST";
-          form.action = "https://api.payuni.com.tw/api/upp";
-          form.style.display = "none";
-          
-          let fields = { 
-            "MerID": payuniData.MerID || "U072882813", 
-            "Version": payuniData.Version || "1.0", 
-            "EncryptInfo": payuniData.EncryptInfo, 
-            "HashInfo": payuniData.HashInfo 
-          };
-          
-          for (let k in fields) {
-            let h = document.createElement("input"); 
-            h.type = "hidden"; 
-            h.name = k; 
-            h.value = fields[k] || ""; 
-            form.appendChild(h);
-          }
-          
-          document.body.appendChild(form);
-          form.submit(); // 直接送出並跳轉至 PayUni 付款頁面
-        } else {
-          console.error("PayUni Payload Error:", payuniData);
-          showToast("訂單已成立！單號：" + orderId + " (系統已發送確認信)");
-          setTimeout(() => window.location.reload(), 2500);
-        }
+        // ⭐️ 3. 透過原生 Form POST 直接打向總部 GAS 的 directCheckout，零 CORS 阻擋、100% 跳轉 PayUni！
+        let form = document.createElement("form");
+        form.method = "POST";
+        form.action = GAS_URL + "?action=directCheckout";
+        form.style.display = "none";
 
-      } catch(e) {
-        console.error("Checkout error:", e);
+        let input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "orderPayload";
+        input.value = JSON.stringify(gasOrderData);
+        form.appendChild(input);
+
+        document.body.appendChild(form);
+        form.submit();
+
+      } catch (e) {
         showToast("結帳發生異常：" + e.message);
-        if (btn) {
-          btn.disabled = false; 
-          btn.innerText = "前往 PayUni 安全付款";
-        }
+        if (btn) { btn.disabled = false; btn.innerText = "前往 PayUni 安全付款"; }
       }
     }
     
