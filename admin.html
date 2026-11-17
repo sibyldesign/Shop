@@ -122,17 +122,17 @@
 
       <div class="overflow-x-auto border border-taupe-border rounded-xl">
         <table class="w-full text-left text-xs bg-white">
-          <thead class="bg-taupe-light/50 border-b border-taupe-border text-taupe-dark font-bold">
+          <thead class="bg-taupe-light/50 border-b border-taupe-border text-taupe-dark font-bold whitespace-nowrap">
             <tr>
               <th class="p-3 w-10 text-center"><input type="checkbox" onchange="toggleAllOrders(this)"></th>
-              <th class="p-3 w-28">下單時間</th>
-              <th class="p-3 w-28">訂單編號</th>
-              <th class="p-3">訂購明細</th>
-              <th class="p-3 w-20">應付總額</th>
-              <th class="p-3 w-32">客戶資訊</th>
-              <th class="p-3 w-48">收件地址 / 買家備註</th>
-              <th class="p-3 w-36 text-taupe-main font-bold">對帳備註</th>
-              <th class="p-3 w-32 font-bold text-taupe-dark">訂單狀態流轉</th>
+              <th class="p-3 w-36">訂單編號 / 時間</th>
+              <th class="p-3 w-36">金流與發票狀態</th>
+              <th class="p-3 min-w-[220px]">訂購商品明細</th>
+              <th class="p-3 w-24 text-right">應付總額</th>
+              <th class="p-3 w-32">收件客戶</th>
+              <th class="p-3 min-w-[180px]">配送地址 / 備註</th>
+              <th class="p-3 w-32 text-taupe-main">內部對帳備註</th>
+              <th class="p-3 w-32 text-center">訂單狀態流轉</th>
             </tr>
           </thead>
           <tbody id="orderTableBody" class="divide-y divide-stone-100"></tbody>
@@ -436,10 +436,10 @@
       </div>
     </section>
 
-    <!-- 6. 人氣推薦自訂 ＆ 優惠活動管理分頁 -->
-    <section id="couponTab" class="tab-content bg-white border border-taupe-border rounded-2xl p-5 shadow-xs space-y-6 hidden">
+    <!-- 6. 人氣推薦自訂 ＆ 行銷優惠、物流與結帳設定分頁 -->
+    <section id="couponTab" class="tab-content bg-white border border-taupe-border rounded-2xl p-5 shadow-xs space-y-8 hidden">
       
-      <!-- 區塊 A：人氣推薦自訂專區 -->
+      <!-- ==================== 區塊 A：首頁人氣推薦榜單自訂 ==================== -->
       <div class="space-y-3">
         <div class="flex justify-between items-center border-b border-taupe-border pb-2">
           <div>
@@ -482,61 +482,74 @@
         </div>
       </div>
 
-      <!-- 區塊 B：分區優惠活動管理 -->
+      <!-- ==================== 區塊 B：行銷優惠活動管理 (支援多筆建立/編輯、分類多選與排除關鍵字) ==================== -->
       <div class="pt-5 border-t border-taupe-border space-y-4">
         <div class="flex justify-between items-center border-b border-taupe-border pb-2">
           <div>
             <h2 id="campaignFormHeaderTitle" class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase">建立 / 編輯行銷優惠活動</h2>
-            <p class="text-[10px] text-stone-400 mt-0.5">支援全館或自選多個分類專區，自動命中滿件折扣、折抵或免運</p>
+            <p class="text-[10px] text-stone-400 mt-0.5">支援同時啟用多個活動：滿件免運、滿件/滿額折現、滿件/滿額打折，並可排除特定品項關鍵字</p>
           </div>
-          <button id="btnCancelEditCampaign" onclick="resetCampaignForm()" class="text-xs text-stone-400 hover:text-stone-700 hidden font-bold">
-            取消編輯
+          <button id="btnCancelEditCampaign" onclick="resetCampaignForm()" class="text-xs text-rose-600 hover:underline hidden font-bold">
+            取消編輯模式
           </button>
         </div>
 
         <input type="hidden" id="editingCampaignId" value="">
 
-        <div class="bg-taupe-canvas p-4 rounded-xl border border-taupe-border space-y-3">
+        <div class="bg-taupe-canvas p-4 rounded-xl border border-taupe-border space-y-3 text-xs">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label class="text-xs font-bold text-stone-600 block mb-1">活動大標題 (必填)</label>
-              <input type="text" id="campTitle" placeholder="例如：【換季限定】指定鋪棉寢居結帳享 9 折" class="w-full text-xs p-2 border border-taupe-border rounded-lg bg-white outline-none">
+              <label class="font-bold text-stone-600 block mb-1">活動大標題 (必填)</label>
+              <input type="text" id="campTitle" placeholder="例如：【換季限定】韓國棉被任選 2 件享免運" class="w-full p-2 border border-taupe-border rounded-lg bg-white outline-none">
             </div>
             <div>
-              <label class="text-xs font-bold text-stone-600 block mb-1">活動副說明 (選填)</label>
-              <input type="text" id="campSubtitle" placeholder="例如：全館鋪棉系列任選滿 2 件自動折扣" class="w-full text-xs p-2 border border-taupe-border rounded-lg bg-white outline-none">
+              <label class="font-bold text-stone-600 block mb-1">活動副說明 (選填)</label>
+              <input type="text" id="campSubtitle" placeholder="例如：四季被、冬被任選滿 2 件自動免運 (不含枕頭套)" class="w-full p-2 border border-taupe-border rounded-lg bg-white outline-none">
             </div>
           </div>
 
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
-              <label class="text-xs font-bold text-stone-600 block mb-1">優惠類型</label>
-              <select id="campDiscountType" onchange="toggleCampaignParamFields()" class="w-full text-xs p-2 border border-taupe-border rounded-lg bg-white outline-none font-bold">
+              <label class="font-bold text-stone-600 block mb-1">優惠類型</label>
+              <select id="campDiscountType" onchange="toggleCampaignParamFields()" class="w-full p-2 border border-taupe-border rounded-lg bg-white outline-none font-bold">
+                <option value="free_shipping">指定門檻免運費</option>
                 <option value="percent">滿件打折 (例如 9 折輸入 0.9)</option>
                 <option value="fixed">滿件/滿額現折 (例如折 200 輸入 200)</option>
-                <option value="free_shipping">指定門檻免運費</option>
               </select>
             </div>
             <div>
-              <label class="text-xs font-bold text-stone-600 block mb-1">門檻件數 (滿幾件)</label>
-              <input type="number" id="campCondQty" value="2" class="w-full text-xs p-2 border border-taupe-border rounded-lg bg-white outline-none font-mono">
+              <label class="font-bold text-stone-600 block mb-1">門檻條件 (滿幾件/元)</label>
+              <div class="flex gap-1">
+                <select id="campCondType" class="p-2 border border-taupe-border rounded-lg bg-white outline-none">
+                  <option value="qty">滿件</option>
+                  <option value="amount">滿額</option>
+                </select>
+                <input type="number" id="campCondQty" value="2" class="w-full p-2 border border-taupe-border rounded-lg bg-white outline-none font-mono">
+              </div>
             </div>
-            <div id="campValCol">
-              <label class="text-xs font-bold text-stone-600 block mb-1" id="campValLabel">折抵數值 (0.9 代表 9折)</label>
-              <input type="number" step="0.01" id="campDiscountVal" value="0.9" class="w-full text-xs p-2 border border-taupe-border rounded-lg bg-white outline-none font-mono">
+            <div id="campValCol" class="hidden">
+              <label class="font-bold text-stone-600 block mb-1" id="campValLabel">折抵數值 (0.9 代表 9折)</label>
+              <input type="number" step="0.01" id="campDiscountVal" value="0" class="w-full p-2 border border-taupe-border rounded-lg bg-white outline-none font-mono">
             </div>
             <div>
-              <label class="text-xs font-bold text-stone-600 block mb-1">適用商品範圍</label>
-              <select id="campTargetMode" onchange="toggleCampaignCategorySelect()" class="w-full text-xs p-2 border border-taupe-border rounded-lg bg-white outline-none">
+              <label class="font-bold text-stone-600 block mb-1">適用商品範圍</label>
+              <select id="campTargetMode" onchange="toggleCampaignCategorySelect()" class="w-full p-2 border border-taupe-border rounded-lg bg-white outline-none">
                 <option value="all">全館所有商品通用</option>
                 <option value="category">限定指定分類專區</option>
               </select>
             </div>
           </div>
 
+          <!-- 指定分類勾選區 -->
           <div id="campCategorySelectBox" class="hidden space-y-1.5">
-            <label class="text-xs font-bold text-stone-600 block">勾選套用之商品分類 (支援多選)：</label>
-            <div id="campCategoryCheckboxContainer" class="flex flex-wrap gap-2 p-2 bg-white rounded-xl border border-taupe-border"></div>
+            <label class="font-bold text-stone-600 block">勾選套用之商品分類 (支援多選)：</label>
+            <div id="campCategoryCheckboxContainer" class="flex flex-wrap gap-2 p-2.5 bg-white rounded-xl border border-taupe-border"></div>
+          </div>
+
+          <!-- 新增：不可包含的品項關鍵字 -->
+          <div>
+            <label class="font-bold text-stone-600 block mb-1">不可包含的品項關鍵字 (商品名稱或規格包含這些字眼不計入活動，請用逗號分隔)</label>
+            <input type="text" id="campExcludeKeywords" placeholder="例如：枕頭套, 枕套, 加購, 體驗包" class="w-full p-2 border border-taupe-border rounded-lg bg-white outline-none">
           </div>
 
           <div class="flex justify-end pt-1">
@@ -553,8 +566,7 @@
                 <th class="p-3">活動名稱</th>
                 <th class="p-3">優惠形式</th>
                 <th class="p-3">門檻條件</th>
-                <th class="p-3">折抵優惠</th>
-                <th class="p-3">適用專區</th>
+                <th class="p-3">適用專區與排除字眼</th>
                 <th class="p-3 w-24 text-center">活動狀態</th>
                 <th class="p-3 w-28 text-center">操作</th>
               </tr>
@@ -564,21 +576,26 @@
         </div>
       </div>
 
-      <!-- 區塊 C：通用折扣碼管理 -->
+      <!-- ==================== 區塊 C：通用結帳折扣碼管理 (含 KOL 分潤代碼) ==================== -->
       <div class="pt-5 border-t border-taupe-border space-y-3">
-        <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase border-b border-taupe-border pb-2">結帳專屬折扣碼 (顧客手動輸入)</h2>
+        <div class="border-b border-taupe-border pb-2">
+          <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase">結帳專屬折扣碼 ＆ 團購分潤代碼管理</h2>
+          <p class="text-[10px] text-stone-400 mt-0.5">顧客於購物車輸入代碼自動折抵，系統將自動記錄代碼供後續統計分潤</p>
+        </div>
+
         <div class="bg-taupe-canvas p-3.5 rounded-xl border border-taupe-border space-y-3">
           <div class="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
-            <input type="text" id="newCouponCode" placeholder="折扣碼 (如 VIP95)" class="text-xs p-2 border border-taupe-border rounded-lg bg-white uppercase font-mono">
+            <input type="text" id="newCouponCode" placeholder="折扣碼 (如 KOL88)" class="text-xs p-2 border border-taupe-border rounded-lg bg-white uppercase font-mono">
             <select id="newCouponType" class="text-xs p-2 border border-taupe-border rounded-lg bg-white">
+              <option value="amount">固定現折 (如 100 代表折 100元)</option>
               <option value="percent">比例折抵 (如 0.05 代表 95 折)</option>
-              <option value="fixed">固定現折 (如 100 代表折 100元)</option>
             </select>
-            <input type="number" step="0.01" id="newCouponVal" placeholder="折抵數值 (0.05 或 100)" class="text-xs p-2 border border-taupe-border rounded-lg bg-white font-mono">
-            <input type="text" id="newCouponNote" placeholder="發行備註說明" class="text-xs p-2 border border-taupe-border rounded-lg bg-white">
+            <input type="number" step="0.01" id="newCouponVal" placeholder="折抵數值 (100 或 0.05)" class="text-xs p-2 border border-taupe-border rounded-lg bg-white font-mono">
+            <input type="text" id="newCouponNote" placeholder="備註 (如：小美團購專屬)" class="text-xs p-2 border border-taupe-border rounded-lg bg-white">
           </div>
           <button onclick="addNewCoupon()" class="bg-taupe-main hover:bg-taupe-hover text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-xs">新增折扣碼</button>
         </div>
+
         <div class="overflow-x-auto border border-taupe-border rounded-xl">
           <table class="w-full text-left text-xs bg-white">
             <thead class="bg-taupe-light/50 border-b border-taupe-border text-taupe-dark font-bold">
@@ -594,6 +611,43 @@
           </table>
         </div>
       </div>
+
+      <!-- ==================== 區塊 D：運送方式、付款偏好選項與結帳下單須知設定 ==================== -->
+      <div class="pt-5 border-t border-taupe-border space-y-4">
+        <div class="flex justify-between items-center border-b border-taupe-border pb-2">
+          <div>
+            <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase">運送方式、付款偏好與結帳下單須知設定</h2>
+            <p class="text-[10px] text-stone-400 mt-0.5">自訂前台購物車顯示的物流運費選項、顧客付款偏好統計選單，以及付款按鈕上方的說明文字</p>
+          </div>
+          <button type="button" onclick="saveCheckoutSettingsAdmin()" class="bg-taupe-main hover:bg-taupe-hover text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-xs">
+            儲存物流與結帳設定
+          </button>
+        </div>
+
+        <!-- 1. 自訂運送方式清單 -->
+        <div class="space-y-2 text-xs">
+          <div class="flex justify-between items-center">
+            <label class="font-bold text-stone-700">自訂運送方式與基本運費 (可建立多筆並與上方免運活動連動)</label>
+            <button type="button" onclick="addShippingMethodRow()" class="text-[11px] font-bold text-taupe-main hover:underline">+ 新增運送方式</button>
+          </div>
+          <div id="adminShippingMethodsList" class="space-y-2"></div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+          <!-- 2. 自訂付款偏好選項 -->
+          <div class="space-y-1.5">
+            <label class="font-bold text-stone-700 block">前台購物車付款偏好選項 (每行一項，供統計客戶常用方式)</label>
+            <textarea id="adminPaymentMethodsText" rows="4" class="w-full p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none leading-relaxed" placeholder="信用卡一次付清&#10;信用卡分期付款&#10;ATM 虛擬帳號轉帳&#10;7-ELEVEN 超商代碼"></textarea>
+          </div>
+
+          <!-- 3. 自訂結帳下單須知 -->
+          <div class="space-y-1.5">
+            <label class="font-bold text-stone-700 block">結帳下單須知 (顯示於前台「前往 PayUni 安全付款」按鈕上方)</label>
+            <textarea id="adminCheckoutNoticeText" rows="4" class="w-full p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none leading-relaxed"></textarea>
+          </div>
+        </div>
+      </div>
+
     </section>
 
     <!-- 7. 全域風格外觀與五大條款設定分頁 (已清理殘留斷裂標籤) -->
@@ -735,51 +789,12 @@
           </div>
         </div>
       </div>
-
-      <!-- 物流運費與自訂免運門檻規則設定 -->
-      <div class="pt-3 border-t border-taupe-border space-y-3">
-        <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase border-b border-taupe-border pb-2">物流運費與自訂免運門檻設定</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-taupe-canvas p-3.5 rounded-xl border border-taupe-border text-xs">
-          <div>
-            <label class="font-bold text-stone-600 block mb-1">免運計算模式</label>
-            <select id="settingShipMode" onchange="toggleShippingRuleUI()" class="w-full p-2 border border-taupe-border rounded-lg bg-white outline-none">
-              <option value="category_qty">指定分類商品滿件免運 (排除配件)</option>
-              <option value="all_qty">全館不限分類滿件免運</option>
-              <option value="amount">全館消費滿指定金額免運</option>
-            </select>
-          </div>
-          <div>
-            <label class="font-bold text-stone-600 block mb-1" id="settingShipThresholdLabel">免運門檻 (件數或金額)</label>
-            <input type="number" id="settingShipThreshold" value="2" class="w-full p-2 border border-taupe-border rounded-lg bg-white font-mono outline-none">
-          </div>
-          <div>
-            <label class="font-bold text-stone-600 block mb-1">未達門檻基本運費 (NTD)</label>
-            <input type="number" id="settingShipFee" value="100" class="w-full p-2 border border-taupe-border rounded-lg bg-white font-mono outline-none">
-          </div>
-        </div>
-        <div class="bg-white p-3 rounded-xl border border-taupe-border space-y-1.5">
-          <label class="text-xs font-bold text-stone-600 block">排除不計入免運件數的品名/規格關鍵字 (逗號隔開，多用戶通用)：</label>
-          <input type="text" id="settingShipExcludeKeywords" value="枕頭套, 枕套, 加購" placeholder="例如：枕頭套, 枕套, 襪子, 試用包" class="w-full text-xs p-2 border border-taupe-border rounded-lg bg-taupe-canvas outline-none">
-          <p class="text-[10px] text-stone-400">即使商品屬於免運分類，只要選購的規格或品名包含上述關鍵字（如枕頭套），該項目就不會計入免運件數。</p>
-        </div>
-        
-        <div id="settingShipCategoriesBox" class="bg-white p-3 rounded-xl border border-taupe-border space-y-1.5">
-          <label class="text-xs font-bold text-stone-600 block">勾選計入「滿件免運」的商品分類 (未勾選之配件如枕頭套不計入件數)：</label>
-          <div id="shipRuleCategoriesContainer" class="flex flex-wrap gap-2"></div>
-        </div>
+      <div class="pt-4 border-t border-taupe-border flex justify-end">
+        <button onclick="saveGlobalSettings()" class="bg-taupe-main hover:bg-taupe-hover text-white text-xs font-bold px-6 py-3 rounded-xl shadow-xs transition">
+          儲存全域外觀與條款設定
+        </button>
       </div>
-      
-      <!-- 跑馬燈內容 -->
-      <div class="pt-3 border-t border-taupe-border">
-        <label class="text-xs font-bold text-stone-600 block mb-1">首頁跑馬燈公告內容 (自動水平置中滾動)</label>
-        <textarea id="settingMarqueeText" rows="2" class="w-full text-xs p-3 border border-taupe-border rounded-xl bg-taupe-canvas outline-none focus:bg-white focus:border-taupe-main"></textarea>
-      </div>
-
-      <button onclick="saveGlobalSettings()" class="bg-taupe-main hover:bg-taupe-hover text-white text-xs font-bold px-6 py-3 rounded-xl shadow-xs transition">
-        儲存全域外觀與條款設定
-      </button>
     </section>
-
   </div>
 
   <!-- 底部固定導覽列 -->
@@ -1305,36 +1320,65 @@
 
       paged.forEach(o => {
         let isChecked = selectedOrderIds[o.order_id] ? "checked" : "";
-        let itemsHtml = (o.items || []).map(i => `<div class="leading-tight mb-1"><b>[${i.sku || '商品'}] ${i.prodName}</b> <span class="text-stone-500">(${i.color}/${i.size}) × ${i.qty}</span></div>`).join('');
+        let itemsHtml = (o.items || []).map(i => `
+          <div class="leading-snug py-0.5">
+            <span class="font-bold text-stone-800">[${i.sku || '商品'}] ${i.prodName}</span>
+            <span class="text-stone-500 text-[11px] block sm:inline">(${i.color}/${i.size}) × ${i.qty}</span>
+          </div>
+        `).join('');
         
         let payStr = o.payment_status || '待付款';
         let isPaid = payStr.includes('已付款');
         let payBadgeHtml = isPaid
-          ? `<span class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>${payStr}</span>`
-          : `<span class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>${payStr}</span>`;
+          ? `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 whitespace-nowrap">● ${payStr}</span>`
+          : `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200 whitespace-nowrap">○ ${payStr}</span>`;
 
-        // ⭐️ 正確位置：放在迴圈裡面讀取單筆訂單的 o.coupon_used
+        let invBadge = o.invoice_no 
+          ? `<span class="inline-block px-2 py-0.5 rounded text-[10.5px] font-bold bg-stone-100 text-stone-700 border border-stone-200 font-mono whitespace-nowrap">發票 ${o.invoice_no}</span>` 
+          : `<span class="inline-block px-2 py-0.5 rounded text-[10.5px] text-stone-400 bg-stone-50 border border-stone-200 whitespace-nowrap">發票待開立</span>`;
+
         let couponBadge = (o.coupon_used && o.coupon_used !== '無') 
-          ? `<span class="inline-flex items-center mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-stone-100 text-stone-700 border border-stone-300 font-mono ml-1">折扣碼：${o.coupon_used}</span>` 
+          ? `<span class="inline-block px-2 py-0.5 rounded text-[10.5px] font-bold bg-amber-50 text-amber-800 border border-amber-200 font-mono whitespace-nowrap">代碼：${o.coupon_used}</span>` 
           : '';
 
+        let dateStr = new Date(o.created_at).toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+
         tbody.innerHTML += `
-          <tr class="hover:bg-taupe-canvas text-xs ${isPaid ? 'bg-emerald-50/15' : ''}">
-            <td class="p-3 text-center"><input type="checkbox" class="order-chk" value="${o.order_id}" ${isChecked} onchange="handleOrderCheck(this, '${o.order_id}')"></td>
-            <td class="p-3 text-stone-400 leading-tight">${new Date(o.created_at).toLocaleDateString()}</td>
-            <td class="p-3 font-mono font-bold text-taupe-charcoal">
-              <div>${o.order_id}</div>
-              <div class="flex flex-wrap items-center">${payBadgeHtml}${couponBadge}</div>
+          <tr class="hover:bg-taupe-canvas/80 text-xs transition ${isPaid ? 'bg-emerald-50/15' : ''}">
+            <td class="p-3 text-center align-top pt-3.5">
+              <input type="checkbox" class="order-chk accent-taupe-main w-4 h-4" value="${o.order_id}" ${isChecked} onchange="handleOrderCheck(this, '${o.order_id}')">
             </td>
-            <td class="p-3 bg-taupe-canvas/60">${itemsHtml}</td>
-            <td class="p-3 font-bold text-taupe-crimson text-sm font-mono">NT$ ${o.grand_total}</td>
-            <td class="p-3"><b>${o.customer_name}</b><br><span class="text-stone-400 text-[11px]">${o.customer_phone}</span></td>
-            <td class="p-3 leading-snug"><div>${o.delivery_address}</div>${o.customer_remark ? `<div class="text-[11px] text-taupe-main font-bold mt-0.5">備註：${o.customer_remark}</div>` : ''}</td>
-            <td class="p-3"><input type="text" value="${o.boss_remark || ''}" onchange="updateBossRemark('${o.order_id}', this.value)" class="p-1 border border-taupe-border rounded w-full text-xs outline-none"></td>
-            <td class="p-3 whitespace-nowrap">
-              <span class="block font-bold text-taupe-main mb-1.5">${o.order_status}</span>
-              <select onchange="updateOrderStatus('${o.order_id}', this.value)" class="p-1 border border-taupe-border text-[11px] rounded bg-white outline-none">
-                <option value="">狀態變更...</option>
+            <td class="p-3 align-top whitespace-nowrap">
+              <div class="font-mono font-bold text-sm text-taupe-charcoal">${o.order_id}</div>
+              <div class="text-[11px] text-stone-400 font-mono mt-0.5">${dateStr}</div>
+              ${couponBadge ? `<div class="mt-1.5">${couponBadge}</div>` : ''}
+            </td>
+            <td class="p-3 align-top space-y-1.5 whitespace-nowrap">
+              <div>${payBadgeHtml}</div>
+              <div>${invBadge}</div>
+            </td>
+            <td class="p-3 align-top bg-taupe-canvas/40 border-x border-taupe-border/40">
+              ${itemsHtml}
+            </td>
+            <td class="p-3 align-top text-right whitespace-nowrap">
+              <div class="font-bold text-taupe-crimson text-sm font-mono">NT$ ${Number(o.grand_total).toLocaleString()}</div>
+              <div class="text-[10.5px] text-stone-400 mt-0.5">${o.shipping_mode || '郵寄宅配'}</div>
+            </td>
+            <td class="p-3 align-top whitespace-nowrap">
+              <div class="font-bold text-stone-800">${o.customer_name}</div>
+              <div class="text-stone-500 font-mono text-[11px] mt-0.5">${o.customer_phone}</div>
+            </td>
+            <td class="p-3 align-top leading-relaxed">
+              <div class="text-stone-700">${o.delivery_address}</div>
+              ${o.customer_remark ? `<div class="text-[11px] text-taupe-main font-bold mt-1 bg-taupe-light/60 px-2 py-0.5 rounded inline-block">客備註：${o.customer_remark}</div>` : ''}
+            </td>
+            <td class="p-3 align-top">
+              <input type="text" value="${o.boss_remark || ''}" placeholder="點擊輸入備註..." onchange="updateBossRemark('${o.order_id}', this.value)" class="p-1.5 border border-taupe-border rounded-lg w-full text-xs bg-white outline-none focus:border-taupe-main">
+            </td>
+            <td class="p-3 align-top text-center whitespace-nowrap">
+              <span class="inline-block px-2.5 py-0.5 rounded-md bg-taupe-light text-taupe-dark font-bold text-[11px] mb-1.5">${o.order_status}</span>
+              <select onchange="updateOrderStatus('${o.order_id}', this.value)" class="w-full p-1.5 border border-taupe-border text-[11px] rounded-lg bg-white outline-none cursor-pointer">
+                <option value="">變更狀態...</option>
                 <option value="新訂單">新訂單</option>
                 <option value="已確認訂單">已確認訂單</option>
                 <option value="等待到貨中">等待到貨中</option>
@@ -1588,6 +1632,31 @@
       } catch(e) {
         showToast("商品資料讀取失敗，請檢查網路連線");
       }
+      // ⭐️ 自動從現有商品庫存還原所有大分類與次分類，確保分類頁面永不空白
+        if (globalProducts && globalProducts.length > 0) {
+          let rebuilt = false;
+          globalProducts.forEach(p => {
+            let maj = (p.major_category || "").trim();
+            let sub = (p.sub_category || "").trim();
+            if (!maj) return;
+
+            let majorNode = visualCategoryTree.find(m => m.name === maj);
+            if (!majorNode) {
+              majorNode = { id: "m_" + Math.random().toString(36).substr(2, 6), name: maj, children: [] };
+              visualCategoryTree.push(majorNode);
+              rebuilt = true;
+            }
+            if (sub && !majorNode.children.some(s => s.name === sub)) {
+              majorNode.children.push({ id: "s_" + Math.random().toString(36).substr(2, 6), name: sub, children: [] });
+              rebuilt = true;
+            }
+          });
+          if (rebuilt) {
+            renderVisualCategoryTree();
+            populateCampaignCategoryCheckboxes();
+            populateHotCategorySelect();
+          }
+        }
     }
 
   // 計算商品價格區間字串 (如 "NT$ 520 - 3,220" 或單一價格 "NT$ 1,280")
@@ -2573,7 +2642,28 @@
           if (s.banner_speed) document.getElementById('bannerSpeedSelect').value = s.banner_speed;
           if (s.spreadsheet_id) document.getElementById('settingSpreadsheetId').value = s.spreadsheet_id;
 
-          if (s.category_tree && s.category_tree.length > 0) visualCategoryTree = s.category_tree;
+          if (s.category_tree && Array.isArray(s.category_tree) && s.category_tree.length > 0) {
+            visualCategoryTree = s.category_tree;
+          } else {
+            visualCategoryTree = [
+              {
+                id: "m_1",
+                name: "韓國棉被",
+                children: [
+                  { id: "s_101", name: "四季被", children: [] },
+                  { id: "s_102", name: "春夏薄被", children: [] },
+                  { id: "s_103", name: "雙面絨冬被", children: [] },
+                  { id: "s_104", name: "單面絨冬被", children: [] },
+                  { id: "s_105", name: "床寢配件", children: [] }
+                ]
+              },
+              {
+                id: "m_2",
+                name: "美業微工具",
+                children: []
+              }
+            ];
+          }
           renderVisualCategoryTree();
 
           if (s.theme_color) {
@@ -2626,14 +2716,8 @@
             renderQuickActionsRows();
           }
 
-          // 正確在宣告 sr 之後載入所有免運規則與排除關鍵字
-          let sr = s.shipping_rule || { mode: "category_qty", target_categories: ["四季被", "春夏薄被", "雙面絨冬被", "單面絨冬被"], exclude_keywords: ["枕頭套", "枕套", "加購"], min_qty: 2, min_amount: 0, fee: 100 };
-          document.getElementById('settingShipMode').value = sr.mode || 'category_qty';
-          document.getElementById('settingShipThreshold').value = (sr.mode === 'amount') ? (sr.min_amount || 2000) : (sr.min_qty || 2);
-          document.getElementById('settingShipFee').value = sr.fee !== undefined ? sr.fee : 100;
-          document.getElementById('settingShipExcludeKeywords').value = (sr.exclude_keywords || ["枕頭套", "枕套", "加購"]).join(", ");
-          toggleShippingRuleUI();
-          renderShippingRuleCategories(sr.target_categories);
+          // 初始化「活動」分頁的運送方式、付款偏好與下單須知
+          initCheckoutSettingsUI(s);
         }
       } catch(e) {
         console.error("Load settings error:", e);
@@ -2656,21 +2740,6 @@
         member: document.getElementById('termMember').value.trim()
       };
 
-      let shipMode = document.getElementById('settingShipMode').value;
-      let shipVal = Number(document.getElementById('settingShipThreshold').value) || 2;
-      let shipCats = [];
-      document.querySelectorAll('.ship-cat-chk:checked').forEach(el => shipCats.push(el.value));
-      let excludeKws = document.getElementById('settingShipExcludeKeywords').value.split(',').map(s => s.trim()).filter(Boolean);
-
-      let shippingRulePayload = {
-        mode: shipMode,
-        target_categories: shipCats,
-        exclude_keywords: excludeKws,
-        min_qty: shipMode !== 'amount' ? shipVal : 0,
-        min_amount: shipMode === 'amount' ? shipVal : 0,
-        fee: Number(document.getElementById('settingShipFee').value) || 100
-      };
-
       let patchPayload = {
         store_name: document.getElementById('settingStoreName').value.trim() || "SIBYL SELECT 希貝兒選物",
         show_mobile_store_name: document.getElementById('settingShowMobileName').checked,
@@ -2683,8 +2752,7 @@
         marquee_announcement: marquee,
         store_terms: terms,
         header_nav_buttons: headerNavButtonsList,
-        shipping_rule: shippingRulePayload,
-        admin_email: document.getElementById('settingAdminEmail').value.trim(),
+        admin_email: document.getElementById('settingAdminEmail').value.trim()
       };
 
       try {
@@ -2699,7 +2767,7 @@
         });
 
         if (res.ok) {
-          showToast("全域外觀、按鈕、免運條件與條款已成功儲存！");
+          showToast("全域外觀、按鈕與條款已成功儲存！");
         } else {
           let errText = await res.text();
           showToast("儲存失敗：" + errText);
@@ -2716,9 +2784,7 @@
       setTimeout(() => { t.style.opacity = '0'; }, 3000);
     }
 
-  // 統一發送商品變更至總部 GAS，即時寫入該店鋪試算表「線上商城_上架管理總表」
-    // 統一透過 Beacon 即時推送商品變更至總部 GAS，即時寫入試算表「線上商城_上架管理總表」
-    // ⭐️ 業界無感傳輸技術：透過隱藏表單 + iframe 強制寫入試算表，100% 突破瀏覽器跨域阻擋
+    // 統一發送商品變更至總部 GAS，即時寫入該店鋪試算表「線上商城_上架管理總表」
     async function pushProductChangeToMasterSheet(productObj) {
       try {
         let resp = await fetch(GAS_URL, {
@@ -2739,6 +2805,76 @@
       } catch (e) {
         console.warn("試算表同步異常:", e);
       }
+    }
+
+    // ==================== 運送、付款與下單須知管理邏輯 (含填0不提供免運說明) ====================
+    let adminShippingList = [];
+
+    function renderAdminShippingMethods() {
+      const container = document.getElementById('adminShippingMethodsList');
+      if (!container) return;
+      container.innerHTML = adminShippingList.map((m, idx) => `
+        <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 p-2.5 rounded-xl bg-taupe-canvas border border-taupe-border">
+          <input type="text" value="${m.name}" onchange="adminShippingList[${idx}].name = this.value" placeholder="物流名稱 (如: 郵寄宅配)" class="flex-1 p-2 border border-taupe-border rounded-lg bg-white outline-none">
+          <div class="flex items-center gap-1">
+            <span class="text-stone-500">基本運費 NT$</span>
+            <input type="number" value="${m.fee}" onchange="adminShippingList[${idx}].fee = Number(this.value)" class="w-20 p-2 border border-taupe-border rounded-lg bg-white font-mono outline-none">
+          </div>
+          <div class="flex items-center gap-1">
+            <span class="text-stone-500">滿額免運 NT$</span>
+            <input type="number" value="${m.free_threshold || 0}" onchange="adminShippingList[${idx}].free_threshold = Number(this.value)" placeholder="填0不免運" class="w-24 p-2 border border-taupe-border rounded-lg bg-white font-mono outline-none">
+          </div>
+          <button type="button" onclick="removeShippingMethodRow(${idx})" class="p-2 text-stone-400 hover:text-rose-600 font-bold">✕</button>
+        </div>
+      `).join('') + `<div class="text-[10.5px] text-stone-500 pl-1 pt-0.5">※ 說明：「滿額免運」欄位填寫 <b>0</b> 表示此物流方式不提供單獨滿額免運（仍可搭配上方設定的「滿件免運優惠活動」）。</div>`;
+    }
+
+    function addShippingMethodRow() {
+      adminShippingList.push({ name: "超商純取貨", fee: 60, free_threshold: 0 });
+      renderAdminShippingMethods();
+    }
+
+    function removeShippingMethodRow(idx) {
+      if (adminShippingList.length <= 1) return showToast("至少需保留一種運送方式");
+      adminShippingList.splice(idx, 1);
+      renderAdminShippingMethods();
+    }
+
+    function initCheckoutSettingsUI(storeData) {
+      adminShippingList = (storeData && storeData.shipping_methods && Array.isArray(storeData.shipping_methods) && storeData.shipping_methods.length > 0) 
+        ? storeData.shipping_methods 
+        : [{ name: "郵寄宅配", fee: 100, free_threshold: 0 }];
+      renderAdminShippingMethods();
+
+      let payArr = (storeData && storeData.payment_methods && Array.isArray(storeData.payment_methods) && storeData.payment_methods.length > 0) 
+        ? storeData.payment_methods 
+        : ["信用卡一次付清", "信用卡分期付款", "ATM 虛擬帳號轉帳", "7-ELEVEN 超商代碼"];
+      const payTextarea = document.getElementById('adminPaymentMethodsText');
+      if (payTextarea) payTextarea.value = payArr.join('\n');
+
+      const noticeTextarea = document.getElementById('adminCheckoutNoticeText');
+      if (noticeTextarea) {
+        noticeTextarea.value = (storeData && storeData.checkout_notice) 
+          ? storeData.checkout_notice 
+          : "提供信用卡付款、分期付款、ATM轉帳、7-ELEVEN超商代碼。本服務全面透過PAYUNi (統一金流) 官方加密平台進行交易。電子發票亦將自動開立並寄發至信箱。PayUni是統一企業集團旗下統一數網股份有限公司的第三方支付品牌。";
+      }
+    }
+
+    async function saveCheckoutSettingsAdmin() {
+      let payLines = document.getElementById('adminPaymentMethodsText').value.split('\n').map(s => s.trim()).filter(Boolean);
+      let noticeText = document.getElementById('adminCheckoutNoticeText').value.trim();
+
+      let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_stores?store_id=eq.${STORE_ID}`, {
+        method: 'PATCH',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shipping_methods: adminShippingList,
+          payment_methods: payLines,
+          checkout_notice: noticeText
+        })
+      });
+      if (res.ok) showToast("運送方式、付款選項與下單須知已成功儲存！");
+      else showToast("儲存失敗，請確認資料庫欄位是否已建立");
     }
   </script>
 </body>
