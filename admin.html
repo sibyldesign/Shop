@@ -890,6 +890,16 @@
       立即儲存
     </button>
   </div>
+    <!-- 全站懸浮未儲存變更提醒膠囊 -->
+  <div id="floatingUnsavedBar" class="fixed top-4 left-1/2 -translate-x-1/2 z-[99998] hidden items-center gap-3 bg-stone-900/95 text-white px-4 py-2.5 rounded-full shadow-2xl border border-amber-400/50 text-xs backdrop-blur-md">
+    <span class="flex items-center gap-1.5 font-bold text-amber-300">
+      <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+      <span>您有尚未儲存的外觀／按鈕／條款變更</span>
+    </span>
+    <button type="button" onclick="saveGlobalSettings()" class="bg-taupe-main hover:bg-taupe-hover text-white font-bold px-3 py-1 rounded-full text-[11px] transition">
+      立即儲存
+    </button>
+  </div>
   <div id="adminToast" class="fixed bottom-16 left-1/2 -translate-x-1/2 z-[99999] bg-stone-900/90 text-white text-xs px-4 py-2 rounded-full shadow-xl opacity-0 transition-opacity pointer-events-none"></div>
 <script>
     const STORE_ID = "sibyl";
@@ -2869,6 +2879,31 @@
       }
     });
 
+    function markSettingUnsaved() {
+      const bar = document.getElementById('floatingUnsavedBar');
+      if (bar) {
+        bar.classList.remove('hidden');
+        bar.classList.add('flex');
+      }
+    }
+
+    function clearSettingUnsaved() {
+      const bar = document.getElementById('floatingUnsavedBar');
+      if (bar) {
+        bar.classList.add('hidden');
+        bar.classList.remove('flex');
+      }
+    }
+
+    // 自動監聽「風格分頁」內所有輸入框與選單的異動
+    document.addEventListener('DOMContentLoaded', () => {
+      const settingSec = document.getElementById('settingTab');
+      if (settingSec) {
+        settingSec.addEventListener('input', markSettingUnsaved);
+        settingSec.addEventListener('change', markSettingUnsaved);
+      }
+    });
+
     async function saveGlobalSettings() {
       const btn = document.getElementById('btnSaveGlobalSettings');
       if (btn) { btn.disabled = true; btn.innerText = "正在儲存設定..."; }
@@ -2896,7 +2931,7 @@
         admin_email: document.getElementById('settingAdminEmail').value.trim()
       };
 
-      // ⭐️ 核心防呆：若資料庫已載入過欄位結構，自動過濾掉資料表尚未建立的欄位名稱，保證 100% 寫入成功不報 400 錯誤
+      // ⭐️ 核心防呆：只把資料庫確實存在的欄位送出去，100% 杜絕 400 錯誤
       let patchPayload = {};
       if (cachedStoreSettings && Object.keys(cachedStoreSettings).length > 0) {
         for (let key in candidatePayload) {
@@ -2926,7 +2961,7 @@
             cachedStoreSettings = updatedRows[0];
           }
           clearSettingUnsaved();
-          showToast("設定已永久寫入雲端資料庫並同步至前台！");
+          showToast("全域外觀、快捷按鈕、Logo 與五大條款已成功儲存並同步！");
         } else {
           let errText = await res.text();
           showToast("儲存失敗：" + errText);
@@ -2937,7 +2972,6 @@
         if (btn) { btn.disabled = false; btn.innerText = "儲存全域外觀與條款設定"; }
       }
     }
-
     function showToast(msg) {
       const t = document.getElementById('adminToast');
       t.innerText = msg;
