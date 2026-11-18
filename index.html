@@ -270,12 +270,15 @@
           <input type="text" id="couponCodeInput" placeholder="輸入折扣碼" class="flex-1 p-2 rounded-xl border outline-none uppercase font-mono text-xs focus:border-stone-500 bg-canvas" style="border-color: var(--theme-border);">
           <button onclick="applyCoupon()" class="bg-stone-900 text-white px-4 py-2 rounded-xl font-bold">套用</button>
         </div>
-        <div id="couponNotice" class="text-[11px] font-bold text-emerald-700 hidden"></div>
+        <div id="couponNoticeBox" class="hidden flex items-center justify-between px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-[11px] font-bold text-emerald-800">
+          <span id="couponNotice"></span>
+          <button type="button" onclick="removeCoupon()" class="text-emerald-700 hover:text-rose-600 px-1.5 font-bold" title="取消折扣碼">✕</button>
+        </div>
 
         <div class="space-y-1.5 pt-2 border-t font-mono text-stone-600" style="border-color: var(--theme-border);">
           <div class="flex justify-between"><span>商品金額小計</span><span>NT$ <span id="cartSubtotal">0</span></span></div>
           <div id="discountRow" class="flex justify-between theme-text-primary hidden"><span>優惠折抵</span><span>-NT$ <span id="cartDiscount">0</span></span></div>
-          <div class="flex justify-between"><span>宅配運費 (滿 2 件免運)</span><span id="cartShippingText">NT$ 100</span></div>
+          <div class="flex justify-between"><span>物流運費</span><span id="cartShippingText">NT$ 100</span></div>
           <div class="flex justify-between items-baseline pt-2 border-t text-xs font-bold text-stone-900" style="border-color: var(--theme-border);">
             <span>應付總額</span><span class="text-base font-black theme-text-primary">NT$ <span id="cartGrandTotal">0</span></span>
           </div>
@@ -1891,6 +1894,7 @@
     let currentCouponCode = "";
 
     // 2. 更新套用折扣碼函式
+
     async function applyCoupon() {
       let code = document.getElementById('couponCodeInput').value.trim().toUpperCase();
       if (!code) return showToast("請輸入折扣碼");
@@ -1901,25 +1905,38 @@
         let d = await res.json();
         if (d && d[0]) {
           let val = Number(d[0].discount_val) || 0;
-          // 自動防呆判斷：若資料庫 type 為 amount 或數值 >= 1 (例如 100)，則視為固定金額折抵；若 < 1 (例如 0.1)，視為打折比例
-          if (d[0].discount_type === 'amount' || val >= 1) {
+          let dbType = (d[0].discount_type || "").toLowerCase();
+          
+          // 只要類型是 fixed / amount，或者數值 >= 1（例如輸入 100 元），一律判定為「固定現折金額」
+          if (dbType === 'fixed' || dbType === 'amount' || val >= 1) {
             currentDiscountType = 'amount';
             currentDiscountVal = val;
-            document.getElementById('couponNotice').innerText = `折扣代碼【${code}】套用成功 (折抵 NT$ ${val})`;
+            document.getElementById('couponNotice').innerText = `折扣代碼【${code}】套用成功（現折 NT$ ${val.toLocaleString()}）`;
           } else {
             currentDiscountType = 'percent';
             currentDiscountVal = val;
-            document.getElementById('couponNotice').innerText = `折扣代碼【${code}】套用成功 (享 ${(1 - val) * 10} 折優惠)`;
+            let offLabel = Math.round((1 - val) * 100);
+            document.getElementById('couponNotice').innerText = `折扣代碼【${code}】套用成功（折抵 ${offLabel}% 優惠）`;
           }
           currentCouponCode = code;
-          document.getElementById('couponNotice').classList.remove('hidden');
+          document.getElementById('couponNoticeBox').classList.remove('hidden');
           updateCartUI();
         } else {
-          showToast("無效的折扣代碼");
+          showToast("無效或已過期的折扣代碼");
         }
-      } catch(e) { showToast("連線異常"); }
+      } catch(e) { showToast("連線異常，請稍後再試"); }
     }
 
+    function removeCoupon() {
+      currentDiscountType = "amount";
+      currentDiscountVal = 0;
+      currentCouponCode = "";
+      document.getElementById('couponCodeInput').value = "";
+      document.getElementById('couponNoticeBox').classList.add('hidden');
+      updateCartUI();
+      showToast("已取消套用折扣碼");
+    }
+    
     // ==================== 8. 搜尋功能 (修復即時反應) ====================
     // ==================== 8. 搜尋功能 (近 10 筆歷史紀錄、快速搜尋、單筆刪除) ====================
     let searchHistory = JSON.parse(localStorage.getItem('sibyl_search_history') || '[]');
@@ -2237,8 +2254,7 @@
       }
     }
 
-    // 12. 結帳送單 (整合 PayUni 刷卡與發票開立)
-    // ==================== 12. 結帳送單 (業界標準防 405 最終版) ====================
+    // ==================== 12. 結帳送單 (全欄位必填防呆 + PayUni 安全連線) ====================
     async function submitOrderToCheckout() {
       let name = document.getElementById('orderCustName').value.trim();
       let phone = document.getElementById('orderCustPhone').value.trim();
@@ -2246,16 +2262,30 @@
       let address = document.getElementById('orderCustAddress').value.trim();
       let remark = document.getElementById('orderCustRemark').value.trim();
 
-      if (!name || !phone || !email || !address) return showToast("請完整填寫收件資訊");
       if (cart.length === 0) return showToast("購物車目前為空");
+      if (!name) { document.getElementById('orderCustName').focus(); return showToast("請填寫「收件人真實姓名」"); }
+      if (!phone || !/^09\d{8}$/.test(phone)) { document.getElementById('orderCustPhone').focus(); return showToast("請填寫正確的 10 碼手機號碼（09開頭）"); }
+      if (!email || !email.includes('@')) { document.getElementById('orderCustEmail').focus(); return showToast("請填寫正確的「電子信箱」以接收發票與通知"); }
+      if (!address) { document.getElementById('orderCustAddress').focus(); return showToast("請填寫「完整收件地址」"); }
+
+      let shipSelect = document.getElementById('orderShippingMethod');
+      let paySelect = document.getElementById('orderPaymentMethod');
+      if (!shipSelect || shipSelect.value === "") return showToast("請選擇「運送方式」");
+      if (!paySelect || !paySelect.value) return showToast("請選擇「付款方式」");
 
       let invType = document.getElementById('orderInvoiceType').value;
       let carrierNum = document.getElementById('orderCarrierNum') ? document.getElementById('orderCarrierNum').value.trim() : "";
       let buyerUbn = document.getElementById('orderBuyerUbn') ? document.getElementById('orderBuyerUbn').value.trim() : "";
       let buyerTitle = document.getElementById('orderBuyerTitle') ? document.getElementById('orderBuyerTitle').value.trim() : "";
 
-      if (invType === 'b2c_phone' && !carrierNum.startsWith('/')) return showToast("手機載具需為 / 開頭");
-      if (invType === 'b2b_tax' && buyerUbn.length !== 8) return showToast("公司統一編號需為 8 碼");
+      if (invType === 'b2c_phone' && (!carrierNum || !carrierNum.startsWith('/'))) {
+        document.getElementById('orderCarrierNum').focus();
+        return showToast("請填寫正確的手機條碼載具（需為 / 開頭）");
+      }
+      if (invType === 'b2b_tax') {
+        if (!buyerUbn || !/^\d{8}$/.test(buyerUbn)) { document.getElementById('orderBuyerUbn').focus(); return showToast("請填寫 8 碼公司統一編號"); }
+        if (!buyerTitle) { document.getElementById('orderBuyerTitle').focus(); return showToast("請填寫買受人公司抬頭"); }
+      }
 
       let randomPin = Math.floor(1000 + Math.random() * 9000).toString();
       let savedProfile = JSON.parse(localStorage.getItem('sibyl_user_profile') || '{}');
@@ -2267,11 +2297,11 @@
       let grandTotal = Math.round(Number(document.getElementById('cartGrandTotal').innerText) || 0);
       let subtotal = Math.round(Number(document.getElementById('cartSubtotal').innerText) || 0);
       let discountAmt = Math.round(Number(document.getElementById('cartDiscount').innerText) || 0);
-      let shipIdx = document.getElementById('orderShippingMethod') ? Number(document.getElementById('orderShippingMethod').value) : 0;
+      let shipIdx = Number(shipSelect.value);
       let selectedShipObj = (window.storeShippingMethods && window.storeShippingMethods[shipIdx]) ? window.storeShippingMethods[shipIdx] : { name: "郵寄宅配", fee: 100 };
       let shippingFee = Math.round(calculateCartShipping(subtotal, selectedShipObj));
       let selectedShipName = selectedShipObj.name;
-      let selectedPayMethod = document.getElementById('orderPaymentMethod') ? document.getElementById('orderPaymentMethod').value : "PayUni 線上支付";
+      let selectedPayMethod = paySelect.value;
 
       let now = new Date();
       let datePart = String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
@@ -2295,15 +2325,15 @@
       };
 
       try {
-        // 1. 寫入 Supabase 資料庫
+        // 1. 寫入雲端資料庫
         let dbRes = await fetch(`${SUPABASE_URL}/rest/v1/shop_orders`, {
           method: 'POST',
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
           body: JSON.stringify(dbPayload)
         });
-        if (!dbRes.ok) throw new Error("資料庫寫入失敗");
+        if (!dbRes.ok) throw new Error("訂單資料寫入失敗");
 
-        // 2. 透過 CORS-safe text/plain 請求 GAS 同步試算表 + 寄信 + 取得 PayUni 加密包
+        // 2. 同步試算表 + 寄信 + 取得 PayUni 加密包
         let gasResp = await fetch(GAS_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -2314,6 +2344,7 @@
               storeId: STORE_ID, orderId: orderId, orderPin: randomPin,
               grandTotal: grandTotal, itemTotal: subtotal, shippingFee: shippingFee, discountAmt: discountAmt,
               items: cart, customerName: name, customerPhone: phone, customerEmail: email,
+              shippingMode: selectedShipName, paymentMethod: selectedPayMethod,
               deliveryAddress: address, customerRemark: remark, couponUsed: usedCoupon, paymentStatus: '待付款'
             }
           })
@@ -2327,7 +2358,6 @@
         updateBadgesUI();
 
         if (payuniData && payuniData.success && payuniData.EncryptInfo) {
-          // ⭐️ 核心關鍵：在自己的網頁最外層視窗 (_top) 建立標準表單直接 POST 給 PayUni！
           let form = document.createElement("form");
           form.method = "POST";
           form.action = payuniData.gatewayUrl || "https://api.payuni.com.tw/api/upp";
@@ -2350,7 +2380,7 @@
           }
 
           document.body.appendChild(form);
-          form.submit(); // 直接跳轉至 PayUni 刷卡頁面，100% 避開 iframe 拒絕連線與 405！
+          form.submit();
         } else {
           throw new Error(payuniData.error || "金流加密包產生異常");
         }
