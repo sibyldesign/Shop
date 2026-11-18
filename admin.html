@@ -312,17 +312,18 @@
       <div class="overflow-x-auto border border-taupe-border rounded-xl">
         <table class="w-full text-left text-xs bg-white">
           <thead class="bg-taupe-light/50 border-b border-taupe-border text-taupe-dark font-bold">
-            <tr>
-              <th class="p-3 w-10 text-center"><input type="checkbox" onchange="toggleAllInventory(this)"></th>
-              <th class="p-3 w-16">縮圖</th>
-              <th class="p-3 w-24">貨號</th>
-              <th class="p-3">商品品名</th>
-              <th class="p-3 w-28">分類目錄</th>
-              <th class="p-3 w-20">起標特價</th>
-              <th class="p-3 w-28">當前狀態 (點擊即切換)</th>
-              <th class="p-3 w-20 text-center">操作</th>
-            </tr>
-          </thead>
+  <tr>
+    <th class="p-3 w-10 text-center"><input type="checkbox" onchange="toggleAllInventory(this)"></th>
+    <th class="p-3 w-14 text-center">序號</th>
+    <th class="p-3 w-16">縮圖</th>
+    <th class="p-3 w-24">貨號</th>
+    <th class="p-3">商品品名</th>
+    <th class="p-3 w-28">分類目錄</th>
+    <th class="p-3 w-20">起標特價</th>
+    <th class="p-3 w-28">當前狀態 (點擊即切換)</th>
+    <th class="p-3 w-20 text-center">操作</th>
+  </tr>
+</thead>
           <tbody id="inventoryTableBody" class="divide-y divide-stone-100"></tbody>
         </table>
       </div>
@@ -1769,40 +1770,47 @@ async function pushProductChangeToMasterSheet(productPayload) {
         return;
       }
 
-      paged.forEach(p => {
-        let firstImg = p.images ? p.images.split(/[\s,]+/)[0] : 'https://via.placeholder.com/60';
-        let isChecked = selectedInventorySkus[p.sku] ? "checked" : "";
-        let isOnline = (p.status === '上架');
+      paged.forEach((p, idx) => {
+      let firstImg = p.images ? p.images.split(/[\s,]+/)[0] : 'https://via.placeholder.com/60';
+      let isChecked = selectedInventorySkus[p.sku] ? "checked" : "";
+      let isOnline = (p.status === '上架');
+      
+      // 計算目前分頁的連續序號（第 1 頁為 1~10，第 2 頁為 11~20...）
+      let serialNo = start + idx + 1;
 
-        tbody.innerHTML += `
-          <tr class="hover:bg-taupe-canvas text-xs">
-            <td class="p-3 text-center">
-              <input type="checkbox" class="inv-chk accent-taupe-main" value="${p.sku}" ${isChecked} onchange="handleInventoryCheck(this, '${p.sku}')">
-            </td>
-            <td class="p-3">
-              <div class="w-12 h-12 aspect-square rounded-lg overflow-hidden border border-taupe-border shrink-0 bg-stone-100">
-                <img src="${firstImg}" class="w-full h-full object-cover">
-              </div>
-            </td>
-            <td class="p-3 font-mono font-bold">${p.sku}</td>
-            <td class="p-3 font-medium">${p.name}</td>
-            <td class="p-3">${p.major_category || ''} / ${p.sub_category || ''}</td>
-            <td class="p-3 font-bold text-taupe-crimson font-mono whitespace-nowrap">${getAdminPriceRangeText(p)}</td>
-            <td class="p-3">
-              <button type="button" onclick="toggleSingleProductStatus('${p.sku}', '${isOnline ? '下架' : '上架'}')" class="px-2.5 py-1 rounded-full text-[10.5px] font-bold border transition ${isOnline ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100' : 'bg-stone-100 text-stone-500 border-stone-200 hover:bg-stone-200'}">
-                ${p.status || '上架'}
-              </button>
-            </td>
-            <td class="p-3 text-center whitespace-nowrap">
-              <div class="flex items-center justify-center gap-2">
-                <button type="button" onclick="editProduct('${p.sku}')" class="px-2.5 py-1.5 rounded-lg bg-taupe-light text-taupe-dark font-bold border border-taupe-border">編輯</button>
-                <button type="button" onclick="duplicateProduct('${p.sku}')" class="px-2.5 py-1.5 rounded-lg bg-sky-50 text-sky-700 font-bold border border-sky-200">複製</button>
-                <button type="button" onclick="deleteSingleProductPrompt('${p.sku}')" class="px-2.5 py-1.5 rounded-lg bg-rose-50 text-rose-600 font-bold border border-rose-200">刪除</button>
-              </div>
-            </td>
-          </tr>
-        `;
-      });
+      tbody.innerHTML += `
+        <tr class="hover:bg-taupe-canvas text-xs">
+          <td class="p-3 text-center">
+            <input type="checkbox" class="inv-chk accent-taupe-main" value="${p.sku}" ${isChecked} onchange="handleInventoryCheck(this, '${p.sku}')">
+          </td>
+          <!-- 序號欄位 -->
+          <td class="p-3 text-center font-mono text-stone-400 font-bold">
+            #${serialNo}
+          </td>
+          <td class="p-3">
+            <div class="w-12 h-12 aspect-square rounded-lg overflow-hidden border border-taupe-border shrink-0 bg-stone-100">
+              <img src="${firstImg}" class="w-full h-full object-cover">
+            </div>
+          </td>
+          <td class="p-3 font-mono font-bold">${p.sku}</td>
+          <td class="p-3 font-medium">${p.name}</td>
+          <td class="p-3">${p.major_category || ''} / ${p.sub_category || ''}</td>
+          <td class="p-3 font-bold text-taupe-crimson font-mono whitespace-nowrap">${getAdminPriceRangeText(p)}</td>
+          <td class="p-3">
+            <button type="button" onclick="toggleSingleProductStatus('${p.sku}', '${isOnline ? '下架' : '上架'}')" class="px-2.5 py-1 rounded-full text-[10.5px] font-bold border transition ${isOnline ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100' : 'bg-stone-100 text-stone-500 border-stone-200 hover:bg-stone-200'}">
+              ${p.status || '上架'}
+            </button>
+          </td>
+          <td class="p-3 text-center whitespace-nowrap">
+            <div class="flex items-center justify-center gap-2">
+              <button type="button" onclick="editProduct('${p.sku}')" class="px-2.5 py-1.5 rounded-lg bg-taupe-light text-taupe-dark font-bold border border-taupe-border">編輯</button>
+              <button type="button" onclick="duplicateProduct('${p.sku}')" class="px-2.5 py-1.5 rounded-lg bg-sky-50 text-sky-700 font-bold border border-sky-200">複製</button>
+              <button type="button" onclick="deleteSingleProductPrompt('${p.sku}')" class="px-2.5 py-1.5 rounded-lg bg-rose-50 text-rose-600 font-bold border border-rose-200">刪除</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    });
     }
   
   function duplicateProduct(sku) {
