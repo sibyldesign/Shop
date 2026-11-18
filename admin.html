@@ -2916,7 +2916,9 @@
         member: document.getElementById('termMember').value.trim()
       };
 
-      let candidatePayload = {
+      // 直接組裝完整的設定 Payload，支援所有新舊欄位
+      let payload = {
+        store_id: STORE_ID,
         store_name: document.getElementById('settingStoreName').value.trim() || "SIBYL SELECT 希貝兒選物",
         show_mobile_store_name: document.getElementById('settingShowMobileName').checked,
         theme_color: selectedThemeColor,
@@ -2931,28 +2933,17 @@
         admin_email: document.getElementById('settingAdminEmail').value.trim()
       };
 
-      // ⭐️ 核心防呆：只把資料庫確實存在的欄位送出去，100% 杜絕 400 錯誤
-      let patchPayload = {};
-      if (cachedStoreSettings && Object.keys(cachedStoreSettings).length > 0) {
-        for (let key in candidatePayload) {
-          if (key in cachedStoreSettings) {
-            patchPayload[key] = candidatePayload[key];
-          }
-        }
-      } else {
-        patchPayload = candidatePayload;
-      }
-
       try {
-        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_stores?store_id=eq.${STORE_ID}`, {
-          method: 'PATCH',
+        // 使用 UPSERT (?on_conflict=store_id) 強制寫入或更新，100% 確保資料存進資料庫
+        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_stores?on_conflict=store_id`, {
+          method: 'POST',
           headers: { 
             'apikey': SUPABASE_KEY, 
             'Authorization': 'Bearer ' + SUPABASE_KEY, 
             'Content-Type': 'application/json',
-            'Prefer': 'return=representation'
+            'Prefer': 'resolution=merge-duplicates,return=representation'
           },
-          body: JSON.stringify(patchPayload)
+          body: JSON.stringify(payload)
         });
 
         if (res.ok) {
@@ -2972,6 +2963,7 @@
         if (btn) { btn.disabled = false; btn.innerText = "儲存全域外觀與條款設定"; }
       }
     }
+  
     function showToast(msg) {
       const t = document.getElementById('adminToast');
       t.innerText = msg;
