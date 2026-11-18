@@ -1838,16 +1838,17 @@ async function fetchProducts() {
 
       // 計算行銷活動自動折抵 (支援業界常用：滿件/滿額折固定金額、打折)
       // 前台行銷活動折抵計算 (滿件打折、滿額/滿件現折)
+      // 前台行銷活動折抵計算 (滿件/滿額現折、滿件/滿額打折、滿件/滿額免運)
       let campaignDiscount = 0;
       for (let c of allCampaigns) {
-        if (!c.is_active || c.reward_type === 'free_shipping') continue;
-        let targetCats = c.target_category ? c.target_category.split(',').map(s => s.trim()) : [];
+        if (!c.is_active || c.discount_type === 'free_shipping' || c.reward_type === 'free_shipping') continue;
+        let targetCats = c.target_category ? c.target_category.split(',').map(s => s.trim()).filter(Boolean) : [];
         let excludeList = c.exclude_keywords ? c.exclude_keywords.split(/[,，\s]+/).map(k => k.trim().toLowerCase()).filter(Boolean) : [];
         
         let validQty = 0, validAmount = 0;
         cart.forEach(item => {
           let fullText = `${item.prodName || ''} ${item.color || ''} ${item.size || ''}`.toLowerCase();
-          if (excludeList.some(kw => fullText.includes(kw))) return;
+          if (excludeList.some(kw => fullText.includes(kw))) return; // 排除品項不計入
           let p = allProducts.find(x => x.sku === item.sku);
           let cat = p ? (p.sub_category || p.major_category) : (item.category || '');
           if (c.target_mode === 'all' || targetCats.length === 0 || targetCats.includes(cat)) {
@@ -1856,16 +1857,18 @@ async function fetchProducts() {
           }
         });
 
-        // 判斷門檻：若 condition_type 為 amount 則比對金額，否則比對件數
+        // 獨立判斷門檻：依據 condition_type 判定是滿件還是滿額
         let isAmountMode = (c.condition_type === 'amount' || Number(c.condition_amount) > 0);
         let threshold = isAmountMode ? Number(c.condition_amount || c.condition_qty) : Number(c.condition_qty || 1);
         let condMet = isAmountMode ? (validAmount >= threshold) : (validQty >= threshold);
 
         if (condMet) {
-          let dVal = Number(c.discount_val || c.reward_value || 0);
+          let dVal = Number(c.discount_val !== undefined ? c.discount_val : c.reward_value) || 0;
           let dAmt = 0;
-          if (c.discount_type === 'percent' || c.reward_type === 'percent_off') {
-            // 打折計算：0.9 代表 9 折，折抵 10%
+          let isPercent = (c.discount_type === 'percent' || c.reward_type === 'percent_off');
+
+          if (isPercent) {
+            // 打折折抵金額 (例如 0.9 代表 9 折，折抵 10%)
             let rate = dVal < 1 ? (1 - dVal) : (1 - dVal / 10);
             dAmt = Math.round(validAmount * rate);
           } else {
