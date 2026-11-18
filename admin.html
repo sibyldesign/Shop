@@ -1775,15 +1775,16 @@ async function pushProductChangeToMasterSheet(productPayload) {
       let isChecked = selectedInventorySkus[p.sku] ? "checked" : "";
       let isOnline = (p.status === '上架');
       
-      // 計算目前分頁的連續序號（第 1 頁為 1~10，第 2 頁為 11~20...）
-      let serialNo = start + idx + 1;
+      // ⭐️ 倒數計算序號：第一頁第一筆是最新最大號，最後一頁最後一筆一定是 #01
+      let rawNo = filteredProducts.length - (start + idx);
+      let serialNo = String(rawNo).padStart(2, '0');
 
       tbody.innerHTML += `
         <tr class="hover:bg-taupe-canvas text-xs">
           <td class="p-3 text-center">
             <input type="checkbox" class="inv-chk accent-taupe-main" value="${p.sku}" ${isChecked} onchange="handleInventoryCheck(this, '${p.sku}')">
           </td>
-          <!-- 序號欄位 -->
+          <!-- 倒數固定序號 (例如 #50 ... #02, #01) -->
           <td class="p-3 text-center font-mono text-stone-400 font-bold">
             #${serialNo}
           </td>
@@ -3157,8 +3158,8 @@ async function submitSaveCampaign() {
 // ========================================================
 async function loadInventoryData() {
   try {
-    // ⭐️ 依建立順序排序，編輯內容後位置永遠固定
-    let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_products?store_id=eq.${STORE_ID}&order=id.asc`, {
+    // ⭐️ 改為 order=id.desc：新建立的商品永遠在最前頁
+    let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_products?store_id=eq.${STORE_ID}&order=id.desc`, {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
     });
     globalProducts = await res.json();
