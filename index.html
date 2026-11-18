@@ -1683,21 +1683,39 @@ async function fetchProducts() {
 
     function confirmAddToCartFromDetail() {
       if (!currentDetailProduct) return;
-      let targetKey = `款式:${detailColor} / ${detailSize}`;
-      let specs = Array.isArray(currentDetailProduct.specs_data) ? currentDetailProduct.specs_data : [];
-      let matched = specs.find(v => v && v.spec === targetKey);
-      let price = (matched && matched.price) ? Number(matched.price) : Number(currentDetailProduct.price);
+      
+      // 1. 優先從畫面上的價格標籤提取客人當前看到的真實價格 (去除 "NT$" 與逗號)
+      let priceText = document.getElementById('detailPrice')?.innerText || '';
+      let currentPriceNum = Number(priceText.replace(/[^0-9]/g, ''));
+      
+      // 2. 防呆備援：若抓不到畫面價格，倒序查找 specs_data (優先抓取最新/後方的價格)
+      if (!currentPriceNum || currentPriceNum <= 0) {
+        let targetKey = `款式:${detailColor} / ${detailSize}`;
+        let specs = Array.isArray(currentDetailProduct.specs_data) ? currentDetailProduct.specs_data : [];
+        for (let i = specs.length - 1; i >= 0; i--) {
+          if (specs[i] && specs[i].spec === targetKey && Number(specs[i].price) > 0) {
+            currentPriceNum = Number(specs[i].price);
+            break;
+          }
+        }
+      }
+      
+      if (!currentPriceNum || currentPriceNum <= 0) {
+        currentPriceNum = Number(currentDetailProduct.price || 0);
+      }
 
+      // 3. 檢查購物車內是否已有同 SKU、同款式、同尺寸的商品
       let existing = cart.find(i => i.sku === currentDetailProduct.sku && i.color === detailColor && i.size === detailSize);
       if (existing) {
         existing.qty += detailQty;
+        existing.price = currentPriceNum; // 確保價格同步更新為正確的最新價格 (20元)
       } else {
         cart.push({
           sku: currentDetailProduct.sku,
           prodName: currentDetailProduct.name,
           color: detailColor,
           size: detailSize,
-          price: price,
+          price: currentPriceNum, // ⭐️ 精確存入 20 元
           qty: detailQty,
           image: detailSelectedImgs[0] || '',
           category: currentDetailProduct.sub_category || currentDetailProduct.major_category
@@ -1706,7 +1724,7 @@ async function fetchProducts() {
 
       localStorage.setItem('shop_cart', JSON.stringify(cart));
       updateBadgesUI();
-      showToast("已成功加入購物清單！");
+      showToast(`已將 [${detailColor}/${detailSize}] 加入購物車！(單價 NT$ ${currentPriceNum})`);
     }
     
     // ==================== 6. 我的收藏 View (含商品縮圖與 ✕ 按鈕) ====================
@@ -2586,21 +2604,41 @@ updateBadgesUI();
     function confirmAddFromQuickSpec() {
       if (!qsProduct) return;
       let key = `款式:${qsColor} / ${qsSize}`;
-      let m = (qsProduct.specs_data || []).find(v => v.spec === key);
-      let price = (m && m.price) ? Number(m.price) : qsProduct.price;
+      let specs = Array.isArray(qsProduct.specs_data) ? qsProduct.specs_data : (typeof qsProduct.specs_data === 'string' ? JSON.parse(qsProduct.specs_data || '[]') : []);
+      
+      // ⭐️ 倒序查找，優先取得後方最新設定的特價 (如 20元)
+      let matchedPrice = 0;
+      for (let i = specs.length - 1; i >= 0; i--) {
+        if (specs[i] && specs[i].spec === key && Number(specs[i].price) > 0) {
+          matchedPrice = Number(specs[i].price);
+          break;
+        }
+      }
+      if (!matchedPrice) matchedPrice = Number(qsProduct.price || 0);
+
       let imgs = (qsProduct.images || '').split(/[\s,]+/).filter(Boolean);
 
       let existing = cart.find(i => i.sku === qsProduct.sku && i.color === qsColor && i.size === qsSize);
-      if (existing) existing.qty += qsQty;
-      else cart.push({
-        sku: qsProduct.sku, prodName: qsProduct.name, color: qsColor, size: qsSize,
-        price: price, qty: qsQty, image: imgs[0] || '', category: qsProduct.sub_category || qsProduct.major_category
-      });
+      if (existing) {
+        existing.qty += qsQty;
+        existing.price = matchedPrice;
+      } else {
+        cart.push({
+          sku: qsProduct.sku,
+          prodName: qsProduct.name,
+          color: qsColor,
+          size: qsSize,
+          price: matchedPrice,
+          qty: qsQty,
+          image: imgs[0] || '',
+          category: qsProduct.sub_category || qsProduct.major_category
+        });
+      }
 
       localStorage.setItem('shop_cart', JSON.stringify(cart));
       updateBadgesUI();
       closeQuickSpecModal();
-      showToast("已將選取規格加入購物車！");
+      showToast(`已加入購物車！(單價 NT$ ${matchedPrice})`);
     }
 
     function closeQuickSpecModal() {
