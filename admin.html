@@ -2699,157 +2699,123 @@
       document.getElementById('settingShipThresholdLabel').innerText = (mode === 'amount') ? '免運消費門檻金額 (NTD)' : '免運門檻件數 (滿幾件)';
     }  
   
-  async function loadStoreSettings() {
+  // 暫存從資料庫撈回來的原始設定物件，防止部分欄位未載入時被空值覆蓋
+    let cachedStoreSettings = {};
+
+    async function loadStoreSettings() {
       try {
         let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_stores?store_id=eq.${STORE_ID}`, {
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
         });
         let data = await res.json();
-        if (data && data[0]) {
-          let s = data[0];
-          let needAutoRepairDB = false;
-          let repairPayload = {};
+        if (!data || !data[0]) return;
 
-          document.getElementById('adminHeaderStoreName').innerText = (s.store_name || "Sibyl Select") + " 總管中心";
-          document.getElementById('settingMarqueeText').value = s.marquee_announcement || '韓國換季嚴選美學鋪棉被預購開跑中！指定棉被任選滿 2 件享免運優惠。';
-          if (s.banner_speed) document.getElementById('bannerSpeedSelect').value = s.banner_speed;
-          if (s.spreadsheet_id) document.getElementById('settingSpreadsheetId').value = s.spreadsheet_id;
+        let s = data[0];
+        cachedStoreSettings = s; // 備份原始資料
 
-          // 1. 分類樹還原與永久防呆（若資料庫被清空，自動從商品庫存重建並鎖回資料庫）
-          if (s.category_tree && Array.isArray(s.category_tree) && s.category_tree.length > 0) {
-            visualCategoryTree = s.category_tree;
-          } else {
-            visualCategoryTree = [
-              {
-                id: "m_1",
-                name: "韓國棉被",
-                children: [
-                  { id: "s_101", name: "四季被", children: [] },
-                  { id: "s_102", name: "春夏薄被", children: [] },
-                  { id: "s_103", name: "雙面絨冬被", children: [] },
-                  { id: "s_104", name: "單面絨冬被", children: [] },
-                  { id: "s_105", name: "床寢配件", children: [] }
-                ]
-              },
-              {
-                id: "m_2",
-                name: "美業微工具",
-                children: []
-              }
-            ];
-            needAutoRepairDB = true;
-            repairPayload.category_tree = visualCategoryTree;
-          }
-          renderVisualCategoryTree();
+        document.getElementById('adminHeaderStoreName').innerText = (s.store_name || "Sibyl Select") + " 總管中心";
+        document.getElementById('settingMarqueeText').value = s.marquee_announcement || '';
+        if (s.banner_speed) document.getElementById('bannerSpeedSelect').value = s.banner_speed;
+        if (s.spreadsheet_id) document.getElementById('settingSpreadsheetId').value = s.spreadsheet_id;
 
-          // 2. 主題色系
-          if (s.theme_color) {
-            selectedThemeColor = s.theme_color;
-            let radio = document.querySelector(`input[name="theme_color_radio"][value="${s.theme_color}"]`);
-            if (radio) radio.checked = true;
-            previewThemeSelect(s.theme_color);
-          }
-
-          // 3. Logo 圖片網址與外觀（還原預設 Logo 避免空白）
-          let defaultLogo = "https://tzqpfnrpnfzzubofoqlt.supabase.co/storage/v1/object/public/shop-images/logo_sibyl.png";
-          document.getElementById('settingLogoUrl').value = s.logo_url || "";
-          if (s.logo_shape) document.getElementById('settingLogoShape').value = s.logo_shape;
-          if (s.footer_line_id) document.getElementById('settingFooterLine').value = s.footer_line_id;
-          if (s.footer_company_info) document.getElementById('settingFooterCompany').value = s.footer_company_info;
-
-          // 4. 五大條款與品牌故事（若遺失則自動補回並鎖回資料庫）
-          let t = (s.store_terms && s.store_terms.story) ? s.store_terms : DEFAULT_TERMS;
-          if (!s.store_terms || !s.store_terms.story) {
-            needAutoRepairDB = true;
-            repairPayload.store_terms = DEFAULT_TERMS;
-          }
-          document.getElementById('termStory').value = t.story || DEFAULT_TERMS.story;
-          document.getElementById('termShopping').value = t.shopping || DEFAULT_TERMS.shopping;
-          document.getElementById('termRefund').value = t.refund || DEFAULT_TERMS.refund;
-          document.getElementById('termPrivacy').value = t.privacy || DEFAULT_TERMS.privacy;
-          document.getElementById('termMember').value = t.member || DEFAULT_TERMS.member;
-
-          document.getElementById('settingStoreName').value = s.store_name || "SIBYL SELECT 希貝兒選物";
-          document.getElementById('settingShowMobileName').checked = (s.show_mobile_store_name !== false);
-          document.getElementById('settingAdminEmail').value = s.admin_email || "lingyehh@gmail.com";
-
-          // 5. 首頁輪播下方・相簿部落格圖文專區（補回預設品牌專欄內容）
-          let ed = (s.editorial_content && s.editorial_content.title) ? s.editorial_content : {
-            title: "溫柔包裹每一個日常夢境｜首爾嚴選親膚寢居美學",
-            subtitle: "SEOUL CURATED BEDDING",
-            body: "我們堅持親赴首爾嚴選親膚天絲與細緻莫代爾，以職人鋪棉工藝打造四季皆宜的溫柔觸感。\n不需繁複的被套拆洗，整件可機洗的輕盈蓬鬆，讓日常每一刻睡眠都成為沉澱身心的儀式感。",
-            img_url: "",
-            is_active: true
-          };
-          if (!s.editorial_content || !s.editorial_content.title) {
-            needAutoRepairDB = true;
-            repairPayload.editorial_content = ed;
-          }
-          document.getElementById('editorialTitle').value = ed.title || '';
-          document.getElementById('editorialSubtitle').value = ed.subtitle || '';
-          document.getElementById('editorialBody').value = ed.body || '';
-          document.getElementById('editorialImgUrl').value = ed.img_url || '';
-          if (ed.img_url) {
-            document.getElementById('editorialPreviewImg').src = ed.img_url;
-            document.getElementById('editorialImgPreview').classList.remove('hidden');
-          }
-          document.getElementById('editorialActive').checked = (ed.is_active !== false);
-
-          // 6. 前台右上角快捷按鈕群（補回 LINE 客服與 IG 按鈕）
-          if (s.header_nav_buttons && Array.isArray(s.header_nav_buttons) && s.header_nav_buttons.length > 0) {
-            headerNavButtonsList = s.header_nav_buttons;
-          } else {
-            headerNavButtonsList = [
-              { display_mode: "both", icon_type: "chat", title: "官方客服", link: "https://line.me/R/ti/p/@480kqjoj" },
-              { display_mode: "icon_only", icon_type: "instagram", title: "IG", link: "https://www.instagram.com/sibyl.design/" }
-            ];
-            needAutoRepairDB = true;
-            repairPayload.header_nav_buttons = headerNavButtonsList;
-          }
-          renderHeaderNavButtonsRows();
-          
-          // 7. 首頁正方形快選卡片專區
-          if (s.quick_actions && s.quick_actions.items && s.quick_actions.items.length > 0) {
-            quickActionsData = s.quick_actions;
-          } else {
-            quickActionsData = {
-              is_active: true,
-              items: [
-                { type: "text", tag: "優惠組合", title: "滿件享折扣", desc: "點此看詳情 ➔", link: "#promotions" },
-                { type: "text", tag: "熱門品項", title: "四季鋪棉被", desc: "換季熱選中 ➔", link: "#四季被" },
-                { type: "text", tag: "免運出貨", title: "全館滿2件", desc: "宅配直接免運", link: "#cart" }
+        // 1. 分類樹：優先讀取資料庫現存設定；若資料庫尚未建立，僅在前端畫面還原，絕不擅自覆蓋資料庫
+        if (s.category_tree && Array.isArray(s.category_tree) && s.category_tree.length > 0) {
+          visualCategoryTree = s.category_tree;
+        } else if (visualCategoryTree.length === 0) {
+          visualCategoryTree = [
+            {
+              id: "m_1",
+              name: "韓國棉被",
+              children: [
+                { id: "s_101", name: "四季被", children: [] },
+                { id: "s_102", name: "春夏薄被", children: [] },
+                { id: "s_103", name: "雙面絨冬被", children: [] },
+                { id: "s_104", name: "單面絨冬被", children: [] },
+                { id: "s_105", name: "床寢配件", children: [] }
               ]
-            };
-            needAutoRepairDB = true;
-            repairPayload.quick_actions = quickActionsData;
-          }
-          document.getElementById('quickActionsActive').checked = (quickActionsData.is_active !== false);
-          renderQuickActionsRows();
-
-          // 若偵測到任何設定欄位遺失，自動將還原後的完整設定寫回雲端資料庫永久保存！
-          if (needAutoRepairDB) {
-            await fetch(`${SUPABASE_URL}/rest/v1/shop_stores?store_id=eq.${STORE_ID}`, {
-              method: 'PATCH',
-              headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
-              body: JSON.stringify(repairPayload)
-            });
-          }
-
-          // 初始化「活動」分頁的運送方式、付款偏好與下單須知
-          initCheckoutSettingsUI(s);
+            },
+            { id: "m_2", name: "美業微工具", children: [] }
+          ];
         }
+        renderVisualCategoryTree();
+
+        // 2. 主題色系
+        if (s.theme_color) {
+          selectedThemeColor = s.theme_color;
+          let radio = document.querySelector(`input[name="theme_color_radio"][value="${s.theme_color}"]`);
+          if (radio) radio.checked = true;
+          previewThemeSelect(s.theme_color);
+        }
+
+        // 3. Logo 與頁尾設定（完整保留資料庫原值）
+        document.getElementById('settingLogoUrl').value = s.logo_url || '';
+        if (s.logo_shape) document.getElementById('settingLogoShape').value = s.logo_shape;
+        if (s.footer_line_id) document.getElementById('settingFooterLine').value = s.footer_line_id;
+        if (s.footer_company_info) document.getElementById('settingFooterCompany').value = s.footer_company_info;
+        document.getElementById('settingStoreName').value = s.store_name || "SIBYL SELECT 希貝兒選物";
+        document.getElementById('settingShowMobileName').checked = (s.show_mobile_store_name !== false);
+        document.getElementById('settingAdminEmail').value = s.admin_email || "lingyehh@gmail.com";
+
+        // 4. 五大條款與品牌故事（逐欄安全回填，若該欄未填才帶入預設範本供編輯）
+        let t = s.store_terms || {};
+        document.getElementById('termStory').value = t.story || DEFAULT_TERMS.story;
+        document.getElementById('termShopping').value = t.shopping || DEFAULT_TERMS.shopping;
+        document.getElementById('termRefund').value = t.refund || DEFAULT_TERMS.refund;
+        document.getElementById('termPrivacy').value = t.privacy || DEFAULT_TERMS.privacy;
+        document.getElementById('termMember').value = t.member || DEFAULT_TERMS.member;
+
+        // 5. 首頁輪播下方・相簿部落格圖文專區
+        let ed = s.editorial_content || {};
+        document.getElementById('editorialTitle').value = ed.title || '';
+        document.getElementById('editorialSubtitle').value = ed.subtitle || '';
+        document.getElementById('editorialBody').value = ed.body || '';
+        document.getElementById('editorialImgUrl').value = ed.img_url || '';
+        if (ed.img_url) {
+          document.getElementById('editorialPreviewImg').src = ed.img_url;
+          document.getElementById('editorialImgPreview').classList.remove('hidden');
+        } else {
+          document.getElementById('editorialImgPreview').classList.add('hidden');
+        }
+        document.getElementById('editorialActive').checked = (ed.is_active !== false);
+
+        // 6. 前台右上角快捷按鈕群
+        if (s.header_nav_buttons && Array.isArray(s.header_nav_buttons) && s.header_nav_buttons.length > 0) {
+          headerNavButtonsList = s.header_nav_buttons;
+        } else if (s.header_nav_btn) {
+          headerNavButtonsList = [s.header_nav_btn];
+        } else {
+          headerNavButtonsList = [{ display_mode: "both", icon_type: "chat", title: "官方客服", link: "https://line.me/R/ti/p/@480kqjoj" }];
+        }
+        renderHeaderNavButtonsRows();
+        
+        // 7. 首頁正方形快選卡片專區
+        if (s.quick_actions && Array.isArray(s.quick_actions.items)) {
+          quickActionsData = s.quick_actions;
+        } else {
+          quickActionsData = {
+            is_active: true,
+            items: [
+              { type: "text", tag: "優惠組合", title: "滿件享折扣", desc: "點此看詳情 ➔", link: "#promotions" },
+              { type: "text", tag: "熱門品項", title: "四季鋪棉被", desc: "換季熱選中 ➔", link: "#四季被" },
+              { type: "text", tag: "免運出貨", title: "全館滿2件", desc: "宅配直接免運", link: "#cart" }
+            ]
+          };
+        }
+        document.getElementById('quickActionsActive').checked = (quickActionsData.is_active !== false);
+        renderQuickActionsRows();
+
+        // 8. 初始化物流與結帳設定
+        initCheckoutSettingsUI(s);
       } catch(e) {
         console.error("Load settings error:", e);
       }
     }
 
     async function saveGlobalSettings() {
-      let marquee = document.getElementById('settingMarqueeText').value.trim();
-      let logoUrl = document.getElementById('settingLogoUrl').value.trim();
-      let logoShape = document.getElementById('settingLogoShape').value;
-      let footerLine = document.getElementById('settingFooterLine').value.trim();
-      let footerCompany = document.getElementById('settingFooterCompany').value.trim();
-      let ssId = document.getElementById('settingSpreadsheetId').value.trim();
+      // 防呆保護：若資料庫尚未載入完成就按儲存，阻擋操作以免用空表單蓋掉資料庫
+      if (!cachedStoreSettings || !cachedStoreSettings.store_id) {
+        return showToast("設定資料尚未載入完成，請稍候再按儲存！");
+      }
 
       let terms = {
         story: document.getElementById('termStory').value.trim(),
@@ -2860,15 +2826,15 @@
       };
 
       let patchPayload = {
-        store_name: document.getElementById('settingStoreName').value.trim() || "SIBYL SELECT 希貝兒選物",
+        store_name: document.getElementById('settingStoreName').value.trim() || cachedStoreSettings.store_name || "SIBYL SELECT 希貝兒選物",
         show_mobile_store_name: document.getElementById('settingShowMobileName').checked,
         theme_color: selectedThemeColor,
-        logo_url: logoUrl,
-        logo_shape: logoShape,
-        footer_line_id: footerLine,
-        footer_company_info: footerCompany,
-        spreadsheet_id: ssId,
-        marquee_announcement: marquee,
+        logo_url: document.getElementById('settingLogoUrl').value.trim(),
+        logo_shape: document.getElementById('settingLogoShape').value,
+        footer_line_id: document.getElementById('settingFooterLine').value.trim(),
+        footer_company_info: document.getElementById('settingFooterCompany').value.trim(),
+        spreadsheet_id: document.getElementById('settingSpreadsheetId').value.trim(),
+        marquee_announcement: document.getElementById('settingMarqueeText').value.trim(),
         store_terms: terms,
         header_nav_buttons: headerNavButtonsList,
         admin_email: document.getElementById('settingAdminEmail').value.trim()
@@ -2886,7 +2852,9 @@
         });
 
         if (res.ok) {
-          showToast("全域外觀、按鈕與條款已成功儲存！");
+          // 同步更新本地快取，確保後續操作不遺失
+          cachedStoreSettings = { ...cachedStoreSettings, ...patchPayload };
+          showToast("全域外觀、快捷按鈕、Logo 與五大條款已安全儲存！");
         } else {
           let errText = await res.text();
           showToast("儲存失敗：" + errText);
