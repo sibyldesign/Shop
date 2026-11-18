@@ -1192,14 +1192,16 @@ async function fetchProducts() {
           specs = p.specs_data;
         }
       }
+      
       let prices = specs.map(s => Number(s.price)).filter(n => !isNaN(n) && n > 0);
       if (prices.length === 0 && Number(p.price) > 0) prices.push(Number(p.price));
       if (prices.length === 0) return `NT$ ${p.price || 0}`;
 
       let minP = Math.min(...prices);
       let maxP = Math.max(...prices);
-      if (minP === maxP) return `NT$ ${minP.toLocaleString()}`;
-      return `NT$ ${minP.toLocaleString()} - ${maxP.toLocaleString()}`;
+      
+      // 若有不同價格，正確顯示 "NT$ 20 - 100"
+      return minP === maxP ? `NT$ ${minP.toLocaleString()}` : `NT$ ${minP.toLocaleString()} - ${maxP.toLocaleString()}`;
     }
 
     // 渲染商品網格 (支援卡片內直接左右滑動多圖 ＋ 低到高價格區間 ＋ 原價空白隱藏)
@@ -1535,20 +1537,28 @@ async function fetchProducts() {
       if (!currentDetailProduct) return;
       let targetKey = `款式:${detailColor} / ${detailSize}`;
       let specs = Array.isArray(currentDetailProduct.specs_data) ? currentDetailProduct.specs_data : [];
-      let matched = specs.find(v => v && v.spec === targetKey);
+      
+      // 倒序尋找，優先抓取最新的一筆
+      let matched = null;
+      for (let i = specs.length - 1; i >= 0; i--) {
+        if (specs[i] && specs[i].spec === targetKey) {
+          matched = specs[i];
+          break;
+        }
+      }
       
       const priceEl = document.getElementById('detailPrice');
       const oldPriceEl = document.getElementById('detailOldPrice');
 
       if (matched && matched.price) {
-        if (priceEl) priceEl.innerText = `NT$ ${matched.price}`;
+        if (priceEl) priceEl.innerText = `NT$ ${Number(matched.price).toLocaleString()}`;
         if (oldPriceEl) {
-          oldPriceEl.innerText = (!currentDetailProduct.hide_old_price && matched.oldPrice && Number(matched.oldPrice) > 0) ? `NT$ ${matched.oldPrice}` : '';
+          oldPriceEl.innerText = (!currentDetailProduct.hide_old_price && matched.oldPrice && Number(matched.oldPrice) > 0) ? `NT$ ${Number(matched.oldPrice).toLocaleString()}` : '';
         }
       } else {
-        if (priceEl) priceEl.innerText = `NT$ ${currentDetailProduct.price || 0}`;
+        if (priceEl) priceEl.innerText = `NT$ ${Number(currentDetailProduct.price || 0).toLocaleString()}`;
         if (oldPriceEl) {
-          oldPriceEl.innerText = (!currentDetailProduct.hide_old_price && currentDetailProduct.old_price && Number(currentDetailProduct.old_price) > 0) ? `NT$ ${currentDetailProduct.old_price}` : '';
+          oldPriceEl.innerText = (!currentDetailProduct.hide_old_price && currentDetailProduct.old_price && Number(currentDetailProduct.old_price) > 0) ? `NT$ ${Number(currentDetailProduct.old_price).toLocaleString()}` : '';
         }
       }
     }
