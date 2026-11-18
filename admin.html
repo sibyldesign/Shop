@@ -131,8 +131,9 @@
               <th class="p-3 w-24 text-right">應付總額</th>
               <th class="p-3 w-32">收件客戶</th>
               <th class="p-3 min-w-[180px]">配送地址 / 備註</th>
-              <th class="p-3 w-32 text-taupe-main">內部對帳備註</th>
-              <th class="p-3 w-32 text-center">訂單狀態流轉</th>
+              <th class="p-3 w-40">郵局包裹託運單號</th>
+<th class="p-3 w-32 text-taupe-main">內部對帳備註</th>
+<th class="p-3 w-32 text-center">訂單狀態流轉</th>
             </tr>
           </thead>
           <tbody id="orderTableBody" class="divide-y divide-stone-100"></tbody>
@@ -819,8 +820,9 @@
           </div>
         </div>
       </div>
-      <div class="pt-4 border-t border-taupe-border flex justify-end">
-        <div class="pt-4 border-t border-taupe-border flex flex-wrap justify-between items-center gap-3 sticky bottom-16 bg-white/95 backdrop-blur-xs p-3 rounded-2xl border shadow-sm z-30">
+
+      <!-- 儲存操作列：確保完整收納在 settingTab 內部 -->
+      <div class="pt-4 border-t border-taupe-border flex flex-wrap justify-between items-center gap-3 sticky bottom-16 bg-white/95 backdrop-blur-xs p-3 rounded-2xl border shadow-sm z-30">
         <div id="settingUnsavedBadge" class="hidden flex items-center gap-1.5 text-xs font-bold text-amber-700 bg-amber-50 px-3 py-1.5 rounded-full border border-amber-200">
           <span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
           <span>您有尚未儲存的外觀／按鈕／條款變更</span>
@@ -831,7 +833,7 @@
         </button>
       </div>
     </section>
-
+    
   <!-- 底部固定導覽列 -->
   <nav id="adminBottomNav" class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-taupe-border shadow-lg transition-transform duration-300">
     <div class="max-w-md mx-auto grid grid-cols-7 py-1.5 px-1 text-center">
@@ -885,18 +887,7 @@
     </div>
   </div>
 
-  <div id="printArea" class="print-invoice-area"></div>
-  <!-- 全站懸浮未儲存變更提醒膠囊 -->
-  <div id="floatingUnsavedBar" class="fixed top-4 left-1/2 -translate-x-1/2 z-[99998] hidden items-center gap-3 bg-stone-900/95 text-white px-4 py-2.5 rounded-full shadow-2xl border border-amber-400/50 text-xs backdrop-blur-md">
-    <span class="flex items-center gap-1.5 font-bold text-amber-300">
-      <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
-      <span>您有尚未儲存的外觀／按鈕／條款變更</span>
-    </span>
-    <button type="button" onclick="saveGlobalSettings()" class="bg-taupe-main hover:bg-taupe-hover text-white font-bold px-3 py-1 rounded-full text-[11px] transition">
-      立即儲存
-    </button>
-  </div>
-    <!-- 全站懸浮未儲存變更提醒膠囊 -->
+  <!-- 全站懸浮未儲存變更提醒膠囊 (僅保留單一實體) -->
   <div id="floatingUnsavedBar" class="fixed top-4 left-1/2 -translate-x-1/2 z-[99998] hidden items-center gap-3 bg-stone-900/95 text-white px-4 py-2.5 rounded-full shadow-2xl border border-amber-400/50 text-xs backdrop-blur-md">
     <span class="flex items-center gap-1.5 font-bold text-amber-300">
       <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
@@ -907,7 +898,7 @@
     </button>
   </div>
   <div id="adminToast" class="fixed bottom-16 left-1/2 -translate-x-1/2 z-[99999] bg-stone-900/90 text-white text-xs px-4 py-2 rounded-full shadow-xl opacity-0 transition-opacity pointer-events-none"></div>
-<script>
+  <script>
     const STORE_ID = "sibyl";
     const ADMIN_PASSWORD = "8888";
     const SUPABASE_URL = "https://tzqpfnrpnfzzubofoqlt.supabase.co";
@@ -1233,21 +1224,6 @@
     function updateLeafName(mIdx, sIdx, lIdx, val) { visualCategoryTree[mIdx].children[sIdx].children[lIdx].name = val.trim(); }
     function removeLeafCategory(mIdx, sIdx, lIdx) { visualCategoryTree[mIdx].children[sIdx].children.splice(lIdx, 1); renderVisualCategoryTree(); }
 
-    async function saveCategoryTreeToSupabase() {
-      let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_stores?store_id=eq.${STORE_ID}`, {
-        method: 'PATCH',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category_tree: visualCategoryTree })
-      });
-      if (res.ok) {
-        showToast("分類架構已成功儲存！前台將以此樹狀順序顯示。");
-        populateCampaignCategoryCheckboxes();
-        populateHotCategorySelect();
-      } else {
-        showToast("分類儲存失敗");
-      }
-    }
-
     function syncProductCategoryDropdowns() {
       const majSel = document.getElementById('pMajorSelect');
       majSel.innerHTML = visualCategoryTree.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
@@ -1360,92 +1336,103 @@
     }
 
     function renderOrderTable() {
-      const tbody = document.getElementById('orderTableBody');
-      tbody.innerHTML = "";
-      let totalPages = Math.ceil(filteredOrders.length / orderPageSize) || 1;
-      document.getElementById('orderPaginationText').innerText = `第 ${orderPage} 頁，共 ${totalPages} 頁 (總計 ${filteredOrders.length} 筆)`;
+  const tbody = document.getElementById('orderTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = "";
+  let totalPages = Math.ceil(filteredOrders.length / orderPageSize) || 1;
+  document.getElementById('orderPaginationText').innerText = `第 ${orderPage} 頁，共 ${totalPages} 頁 (總計 ${filteredOrders.length} 筆)`;
 
-      let start = (orderPage - 1) * orderPageSize;
-      let paged = filteredOrders.slice(start, start + orderPageSize);
+  let start = (orderPage - 1) * orderPageSize;
+  let paged = filteredOrders.slice(start, start + orderPageSize);
 
-      if (paged.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-stone-400">目前暫無訂單記錄</td></tr>`;
-        return;
-      }
+  if (paged.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="10" class="p-8 text-center text-stone-400">目前暫無訂單記錄</td></tr>`;
+    return;
+  }
 
-      paged.forEach(o => {
-        let isChecked = selectedOrderIds[o.order_id] ? "checked" : "";
-        let itemsHtml = (o.items || []).map(i => `
-          <div class="leading-snug py-0.5">
-            <span class="font-bold text-stone-800">[${i.sku || '商品'}] ${i.prodName}</span>
-            <span class="text-stone-500 text-[11px] block sm:inline">(${i.color}/${i.size}) × ${i.qty}</span>
-          </div>
-        `).join('');
+  paged.forEach(o => {
+    let isChecked = selectedOrderIds[o.order_id] ? "checked" : "";
+    let itemsHtml = (o.items || []).map(i => `
+      <div class="leading-snug py-0.5">
+        <span class="font-bold text-stone-800">[${i.sku || '商品'}] ${i.prodName}</span>
+        <span class="text-stone-500 text-[11px] block sm:inline">(${i.color || ''}/${i.size || ''}) × ${i.qty}</span>
+      </div>
+    `).join('');
+    
+    let payStr = o.payment_status || '待付款';
+    let isPaid = payStr.includes('已付款');
+    let payBadgeHtml = isPaid
+      ? `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 whitespace-nowrap">● ${payStr}</span>`
+      : `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200 whitespace-nowrap">○ ${payStr}</span>`;
+
+    let invBadge = o.invoice_no 
+      ? `<span class="inline-block px-2 py-0.5 rounded text-[10.5px] font-bold bg-stone-100 text-stone-700 border border-stone-200 font-mono whitespace-nowrap">發票 ${o.invoice_no}</span>` 
+      : `<span class="inline-block px-2 py-0.5 rounded text-[10.5px] text-stone-400 bg-stone-50 border border-stone-200 whitespace-nowrap">發票待開立</span>`;
+
+    let couponBadge = (o.coupon_used && o.coupon_used !== '無') 
+      ? `<span class="inline-block px-2 py-0.5 rounded text-[10.5px] font-bold bg-amber-50 text-amber-800 border border-amber-200 font-mono whitespace-nowrap">代碼：${o.coupon_used}</span>` 
+      : '';
+
+    let dateStr = new Date(o.created_at).toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+    let trackVal = o.tracking_no || '';
+
+    tbody.innerHTML += `
+      <tr class="hover:bg-taupe-canvas/80 text-xs transition ${isPaid ? 'bg-emerald-50/15' : ''}">
+        <td class="p-3 text-center align-top pt-3.5">
+          <input type="checkbox" class="order-chk accent-taupe-main w-4 h-4" value="${o.order_id}" ${isChecked} onchange="handleOrderCheck(this, '${o.order_id}')">
+        </td>
+        <td class="p-3 align-top whitespace-nowrap">
+          <div class="font-mono font-bold text-sm text-taupe-charcoal">${o.order_id}</div>
+          <div class="text-[11px] text-stone-400 font-mono mt-0.5">${dateStr}</div>
+          ${couponBadge ? `<div class="mt-1.5">${couponBadge}</div>` : ''}
+        </td>
+        <td class="p-3 align-top space-y-1.5 whitespace-nowrap">
+          <div>${payBadgeHtml}</div>
+          <div>${invBadge}</div>
+        </td>
+        <td class="p-3 align-top bg-taupe-canvas/40 border-x border-taupe-border/40">
+          ${itemsHtml}
+        </td>
+        <td class="p-3 align-top text-right whitespace-nowrap">
+          <div class="font-bold text-taupe-crimson text-sm font-mono">NT$ ${Number(o.grand_total).toLocaleString()}</div>
+          <div class="text-[10.5px] text-stone-400 mt-0.5">${o.shipping_mode || '郵寄宅配'}</div>
+        </td>
+        <td class="p-3 align-top whitespace-nowrap">
+          <div class="font-bold text-stone-800">${o.customer_name}</div>
+          <div class="text-stone-500 font-mono text-[11px] mt-0.5">${o.customer_phone}</div>
+        </td>
+        <td class="p-3 align-top leading-relaxed">
+          <div class="text-stone-700">${o.delivery_address}</div>
+          ${o.customer_remark ? `<div class="text-[11px] text-taupe-main font-bold mt-1 bg-taupe-light/60 px-2 py-0.5 rounded inline-block">客備註：${o.customer_remark}</div>` : ''}
+        </td>
         
-        let payStr = o.payment_status || '待付款';
-        let isPaid = payStr.includes('已付款');
-        let payBadgeHtml = isPaid
-          ? `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 whitespace-nowrap">● ${payStr}</span>`
-          : `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200 whitespace-nowrap">○ ${payStr}</span>`;
+        <!-- 郵局物流單號回填區塊 -->
+        <td class="p-3 align-top space-y-1.5 min-w-[150px]">
+          <input type="text" id="track_${o.order_id}" value="${trackVal}" placeholder="輸入郵局包裹單號..." class="p-1.5 border border-taupe-border rounded-lg w-full text-xs font-mono outline-none bg-white focus:border-taupe-main">
+          <button type="button" onclick="saveTrackingAndNotify('${o.order_id}')" class="w-full px-2 py-1 bg-taupe-main hover:bg-taupe-hover text-white rounded-lg text-[10.5px] font-bold shadow-2xs transition">
+            儲存並發出貨信
+          </button>
+        </td>
 
-        let invBadge = o.invoice_no 
-          ? `<span class="inline-block px-2 py-0.5 rounded text-[10.5px] font-bold bg-stone-100 text-stone-700 border border-stone-200 font-mono whitespace-nowrap">發票 ${o.invoice_no}</span>` 
-          : `<span class="inline-block px-2 py-0.5 rounded text-[10.5px] text-stone-400 bg-stone-50 border border-stone-200 whitespace-nowrap">發票待開立</span>`;
-
-        let couponBadge = (o.coupon_used && o.coupon_used !== '無') 
-          ? `<span class="inline-block px-2 py-0.5 rounded text-[10.5px] font-bold bg-amber-50 text-amber-800 border border-amber-200 font-mono whitespace-nowrap">代碼：${o.coupon_used}</span>` 
-          : '';
-
-        let dateStr = new Date(o.created_at).toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
-
-        tbody.innerHTML += `
-          <tr class="hover:bg-taupe-canvas/80 text-xs transition ${isPaid ? 'bg-emerald-50/15' : ''}">
-            <td class="p-3 text-center align-top pt-3.5">
-              <input type="checkbox" class="order-chk accent-taupe-main w-4 h-4" value="${o.order_id}" ${isChecked} onchange="handleOrderCheck(this, '${o.order_id}')">
-            </td>
-            <td class="p-3 align-top whitespace-nowrap">
-              <div class="font-mono font-bold text-sm text-taupe-charcoal">${o.order_id}</div>
-              <div class="text-[11px] text-stone-400 font-mono mt-0.5">${dateStr}</div>
-              ${couponBadge ? `<div class="mt-1.5">${couponBadge}</div>` : ''}
-            </td>
-            <td class="p-3 align-top space-y-1.5 whitespace-nowrap">
-              <div>${payBadgeHtml}</div>
-              <div>${invBadge}</div>
-            </td>
-            <td class="p-3 align-top bg-taupe-canvas/40 border-x border-taupe-border/40">
-              ${itemsHtml}
-            </td>
-            <td class="p-3 align-top text-right whitespace-nowrap">
-              <div class="font-bold text-taupe-crimson text-sm font-mono">NT$ ${Number(o.grand_total).toLocaleString()}</div>
-              <div class="text-[10.5px] text-stone-400 mt-0.5">${o.shipping_mode || '郵寄宅配'}</div>
-            </td>
-            <td class="p-3 align-top whitespace-nowrap">
-              <div class="font-bold text-stone-800">${o.customer_name}</div>
-              <div class="text-stone-500 font-mono text-[11px] mt-0.5">${o.customer_phone}</div>
-            </td>
-            <td class="p-3 align-top leading-relaxed">
-              <div class="text-stone-700">${o.delivery_address}</div>
-              ${o.customer_remark ? `<div class="text-[11px] text-taupe-main font-bold mt-1 bg-taupe-light/60 px-2 py-0.5 rounded inline-block">客備註：${o.customer_remark}</div>` : ''}
-            </td>
-            <td class="p-3 align-top">
-              <input type="text" value="${o.boss_remark || ''}" placeholder="點擊輸入備註..." onchange="updateBossRemark('${o.order_id}', this.value)" class="p-1.5 border border-taupe-border rounded-lg w-full text-xs bg-white outline-none focus:border-taupe-main">
-            </td>
-            <td class="p-3 align-top text-center whitespace-nowrap">
-              <span class="inline-block px-2.5 py-0.5 rounded-md bg-taupe-light text-taupe-dark font-bold text-[11px] mb-1.5">${o.order_status}</span>
-              <select onchange="updateOrderStatus('${o.order_id}', this.value)" class="w-full p-1.5 border border-taupe-border text-[11px] rounded-lg bg-white outline-none cursor-pointer">
-                <option value="">變更狀態...</option>
-                <option value="新訂單">新訂單</option>
-                <option value="已確認訂單">已確認訂單</option>
-                <option value="等待到貨中">等待到貨中</option>
-                <option value="待宅配出貨">待宅配出貨</option>
-                <option value="已結案">已結案</option>
-                <option value="取消不成立">取消不成立</option>
-              </select>
-            </td>
-          </tr>
-        `;
-      });
-    }
+        <td class="p-3 align-top">
+          <input type="text" value="${o.boss_remark || ''}" placeholder="內部對帳備註..." onchange="updateBossRemark('${o.order_id}', this.value)" class="p-1.5 border border-taupe-border rounded-lg w-full text-xs bg-white outline-none focus:border-taupe-main">
+        </td>
+        <td class="p-3 align-top text-center whitespace-nowrap">
+          <span class="inline-block px-2.5 py-0.5 rounded-md bg-taupe-light text-taupe-dark font-bold text-[11px] mb-1.5">${o.order_status}</span>
+          <select onchange="updateOrderStatus('${o.order_id}', this.value)" class="w-full p-1.5 border border-taupe-border text-[11px] rounded-lg bg-white outline-none cursor-pointer">
+            <option value="">變更狀態...</option>
+            <option value="新訂單">新訂單</option>
+            <option value="已確認訂單">已確認訂單</option>
+            <option value="等待到貨中">等待到貨中</option>
+            <option value="待宅配出貨">待宅配出貨</option>
+            <option value="已結案">已結案</option>
+            <option value="取消不成立">取消不成立</option>
+          </select>
+        </td>
+      </tr>
+    `;
+  });
+}
   
     async function updateOrderStatus(orderId, nextStatus) {
       if (!nextStatus) return;
@@ -1699,48 +1686,24 @@
       }
     }
 
-    // ==================== 5. 商品庫存清單與數字符號分頁 ====================
-    async function loadInventoryData() {
-      try {
-        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_products?store_id=eq.${STORE_ID}&order=created_at.desc`, {
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
-        });
-        globalProducts = await res.json();
-        filteredProducts = [...globalProducts];
-        invPage = 1;
-        selectedInventorySkus = {};
-        renderInventoryTable();
-        renderHotCandidateProducts();
-        populateHotCategorySelect();
-      } catch(e) {
-        showToast("商品資料讀取失敗，請檢查網路連線");
-      }
-      // ⭐️ 自動從現有商品庫存還原所有大分類與次分類，確保分類頁面永不空白
-        if (globalProducts && globalProducts.length > 0) {
-          let rebuilt = false;
-          globalProducts.forEach(p => {
-            let maj = (p.major_category || "").trim();
-            let sub = (p.sub_category || "").trim();
-            if (!maj) return;
+    // 同步商品至 Master GAS 寫入 Google 試算表
+async function pushProductChangeToMasterSheet(productPayload) {
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'syncProductToSheet',
+        storeId: STORE_ID,
+        product: productPayload
+      })
+    });
+  } catch (err) {
+    console.warn("GAS 試算表同步連線提示 (已成功寫入資料庫):", err);
+  }
+}
 
-            let majorNode = visualCategoryTree.find(m => m.name === maj);
-            if (!majorNode) {
-              majorNode = { id: "m_" + Math.random().toString(36).substr(2, 6), name: maj, children: [] };
-              visualCategoryTree.push(majorNode);
-              rebuilt = true;
-            }
-            if (sub && !majorNode.children.some(s => s.name === sub)) {
-              majorNode.children.push({ id: "s_" + Math.random().toString(36).substr(2, 6), name: sub, children: [] });
-              rebuilt = true;
-            }
-          });
-          if (rebuilt) {
-            renderVisualCategoryTree();
-            populateCampaignCategoryCheckboxes();
-            populateHotCategorySelect();
-          }
-        }
-    }
+    // ==================== 5. 商品庫存清單與數字符號分頁 ====================
 
   // 計算商品價格區間字串 (如 "NT$ 520 - 3,220" 或單一價格 "NT$ 1,280")
     function getAdminPriceRangeText(p) {
@@ -2164,24 +2127,6 @@
       else showToast("輪播秒數儲存失敗");
     }
 
-    async function saveEditorialContent() {
-      let content = {
-        title: document.getElementById('editorialTitle').value.trim(),
-        subtitle: document.getElementById('editorialSubtitle').value.trim(),
-        body: document.getElementById('editorialBody').value.trim(),
-        img_url: document.getElementById('editorialImgUrl').value.trim(),
-        is_active: document.getElementById('editorialActive').checked
-      };
-
-      let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_stores?store_id=eq.${STORE_ID}`, {
-        method: 'PATCH',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ editorial_content: content })
-      });
-      if (res.ok) showToast("專欄圖文設定已成功儲存！");
-      else showToast("專欄儲存失敗");
-    }
-
     function renderQuickActionsRows() {
       const container = document.getElementById('quickActionsContainer');
       container.innerHTML = (quickActionsData.items || []).map((item, idx) => `
@@ -2522,59 +2467,6 @@
       document.getElementById('btnCancelEditCampaign').classList.add('hidden');
     }
 
-    async function submitSaveCampaign() {
-      let editId = document.getElementById('editingCampaignId').value;
-      let title = document.getElementById('campTitle').value.trim();
-      let subtitle = document.getElementById('campSubtitle').value.trim();
-      let type = document.getElementById('campDiscountType').value;
-      let condQty = parseInt(document.getElementById('campCondQty').value) || 1;
-      let val = parseFloat(document.getElementById('campDiscountVal').value) || 0;
-      let targetMode = document.getElementById('campTargetMode').value;
-      let excludeKw = document.getElementById('campExcludeKeywords').value.trim();
-      
-      let selectedCats = [];
-      document.querySelectorAll('.camp-cat-chk:checked').forEach(c => selectedCats.push(c.value));
-
-      if (!title) return showToast("請輸入活動大標題！");
-      if (targetMode === 'category' && selectedCats.length === 0) {
-        return showToast("請至少勾選一個套用的商品分類！");
-      }
-
-      // 同時寫入基礎欄位與擴充欄位，確保 100% 寫入成功不報錯
-      let payload = {
-        store_id: STORE_ID,
-        title: title,
-        subtitle: subtitle,
-        discount_type: type,
-        discount_val: val,
-        condition_qty: condQty,
-        target_mode: targetMode,
-        target_category: targetMode === 'category' ? selectedCats.join(',') : '',
-        is_active: true
-      };
-
-      let url = editId 
-        ? `${SUPABASE_URL}/rest/v1/shop_campaigns?id=eq.${editId}&store_id=eq.${STORE_ID}` 
-        : `${SUPABASE_URL}/rest/v1/shop_campaigns`;
-      let method = editId ? 'PATCH' : 'POST';
-      if (!editId) payload.sort_order = activeCampaignsList.length + 1;
-
-      let res = await fetch(url, {
-        method: method,
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (res.ok) {
-        resetCampaignForm();
-        await loadCampaignsData();
-        showToast(editId ? "優惠活動修改已成功儲存！" : "新優惠活動已成功建立！");
-      } else {
-        let errTxt = await res.text();
-        showToast("儲存失敗：" + errTxt);
-      }
-    }
-
     async function toggleCampaignActiveStatus(id, nextActive) {
       let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_campaigns?id=eq.${id}&store_id=eq.${STORE_ID}`, {
         method: 'PATCH',
@@ -2747,22 +2639,6 @@
       document.getElementById('settingShipCategoriesBox').classList.toggle('hidden', mode !== 'category_qty');
       document.getElementById('settingShipThresholdLabel').innerText = (mode === 'amount') ? '免運消費門檻金額 (NTD)' : '免運門檻件數 (滿幾件)';
     }  
-
-    function markSettingUnsaved() {
-      const bar = document.getElementById('floatingUnsavedBar');
-      if (bar) {
-        bar.classList.remove('hidden');
-        bar.classList.add('flex');
-      }
-    }
-
-    function clearSettingUnsaved() {
-      const bar = document.getElementById('floatingUnsavedBar');
-      if (bar) {
-        bar.classList.add('hidden');
-        bar.classList.remove('flex');
-      }
-    }
 
     // 自動監聽「風格分頁」內所有輸入框與選單的異動
     document.addEventListener('DOMContentLoaded', () => {
@@ -3070,86 +2946,271 @@ async function saveGlobalSettings() {
       setTimeout(() => { t.style.opacity = '0'; }, 3000);
     }
 
-    // 3. 儲存專欄圖文專區設定
-    async function saveEditorialContent() {
-      let content = {
-        title: document.getElementById('editorialTitle').value.trim(),
-        subtitle: document.getElementById('editorialSubtitle').value.trim(),
-        body: document.getElementById('editorialBody').value.trim(),
-        img_url: document.getElementById('editorialImgUrl').value.trim(),
-        is_active: document.getElementById('editorialActive').checked
-      };
+  // ========================================================
+// 1. 運送方式與結帳設定完整實體模組 (修復無法點按、未定義與連線異常)
+// ========================================================
+let adminShippingList = [
+  { name: "郵寄宅配", fee: 100, free_threshold: 0 }
+];
 
-      try {
-        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_stores?on_conflict=store_id`, {
-          method: 'POST',
-          headers: { 
-            'apikey': SUPABASE_KEY, 
-            'Authorization': 'Bearer ' + SUPABASE_KEY, 
-            'Content-Type': 'application/json',
-            'Prefer': 'resolution=merge-duplicates'
-          },
-          body: JSON.stringify({ store_id: STORE_ID, editorial_content: content })
-        });
-        if (res.ok) showToast("專欄圖文設定已成功儲存！");
-        else showToast("專欄儲存失敗");
-      } catch(e) {
-        showToast("連線異常：" + e.message);
-      }
+function initCheckoutSettingsUI(storeData) {
+  if (storeData.shipping_methods && Array.isArray(storeData.shipping_methods) && storeData.shipping_methods.length > 0) {
+    adminShippingList = storeData.shipping_methods;
+  }
+  renderAdminShippingMethods();
+
+  if (storeData.payment_methods && Array.isArray(storeData.payment_methods)) {
+    document.getElementById('adminPaymentMethodsText').value = storeData.payment_methods.join('\n');
+  } else {
+    document.getElementById('adminPaymentMethodsText').value = "信用卡一次付清\n信用卡分期付款\nATM 虛擬帳號轉帳\n7-ELEVEN 超商代碼";
+  }
+
+  if (storeData.checkout_notice) {
+    document.getElementById('adminCheckoutNoticeText').value = storeData.checkout_notice;
+  }
+}
+
+function renderAdminShippingMethods() {
+  const container = document.getElementById('adminShippingMethodsList');
+  if (!container) return;
+  container.innerHTML = adminShippingList.map((m, idx) => `
+    <div class="flex items-center gap-2 bg-taupe-canvas p-2.5 rounded-xl border border-taupe-border">
+      <input type="text" value="${m.name}" oninput="adminShippingList[${idx}].name = this.value" placeholder="物流名稱 (如 郵寄宅配)" class="flex-1 p-1.5 border border-taupe-border rounded-lg bg-white text-xs outline-none">
+      <div class="flex items-center gap-1">
+        <span class="text-stone-400 font-bold">運費NT$</span>
+        <input type="number" value="${m.fee}" oninput="adminShippingList[${idx}].fee = Number(this.value)" class="w-20 p-1.5 border border-taupe-border rounded-lg bg-white text-xs outline-none font-mono">
+      </div>
+      <div class="flex items-center gap-1">
+        <span class="text-stone-400 font-bold">滿額免運NT$</span>
+        <input type="number" value="${m.free_threshold || 0}" oninput="adminShippingList[${idx}].free_threshold = Number(this.value)" placeholder="0為無門檻" class="w-24 p-1.5 border border-taupe-border rounded-lg bg-white text-xs outline-none font-mono">
+      </div>
+      <button type="button" onclick="adminShippingList.splice(${idx}, 1); renderAdminShippingMethods();" class="text-rose-600 hover:text-rose-800 font-bold px-2 py-1 text-xs">✕</button>
+    </div>
+  `).join('');
+}
+
+function addShippingMethodRow() {
+  adminShippingList.push({ name: "新運送方式", fee: 100, free_threshold: 0 });
+  renderAdminShippingMethods();
+}
+
+async function saveCheckoutSettingsAdmin() {
+  let payLines = document.getElementById('adminPaymentMethodsText').value.split('\n').map(s => s.trim()).filter(Boolean);
+  let noticeText = document.getElementById('adminCheckoutNoticeText').value.trim();
+
+  try {
+    let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_stores?store_id=eq.${STORE_ID}`, {
+      method: 'PATCH',
+      headers: { 
+        'apikey': SUPABASE_KEY, 
+        'Authorization': 'Bearer ' + SUPABASE_KEY, 
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        shipping_methods: adminShippingList,
+        payment_methods: payLines,
+        checkout_notice: noticeText
+      })
+    });
+    if (res.ok) {
+      showToast("運送方式、付款選項與下單須知已成功儲存！");
+    } else {
+      let errTxt = await res.text();
+      alert("儲存失敗：" + errTxt);
     }
+  } catch(e) {
+    alert("連線異常：" + e.message);
+  }
+}
 
-    // 4. 儲存分類架構
-    async function saveCategoryTreeToSupabase() {
-      try {
-        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_stores?on_conflict=store_id`, {
-          method: 'POST',
-          headers: { 
-            'apikey': SUPABASE_KEY, 
-            'Authorization': 'Bearer ' + SUPABASE_KEY, 
-            'Content-Type': 'application/json',
-            'Prefer': 'resolution=merge-duplicates'
-          },
-          body: JSON.stringify({ store_id: STORE_ID, category_tree: visualCategoryTree })
-        });
-        if (res.ok) {
-          showToast("分類架構已成功儲存！前台將以此樹狀順序顯示。");
-          populateCampaignCategoryCheckboxes();
-          populateHotCategorySelect();
-        } else {
-          showToast("分類儲存失敗");
-        }
-      } catch(e) {
-        showToast("連線異常：" + e.message);
-      }
+// ========================================================
+// 2. 修復專欄圖文儲存 (改為穩健 PATCH，杜絕 POST 衝突)
+// ========================================================
+async function saveEditorialContent() {
+  let content = {
+    title: document.getElementById('editorialTitle').value.trim(),
+    subtitle: document.getElementById('editorialSubtitle').value.trim(),
+    body: document.getElementById('editorialBody').value.trim(),
+    img_url: document.getElementById('editorialImgUrl').value.trim(),
+    is_active: document.getElementById('editorialActive').checked
+  };
+
+  try {
+    let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_stores?store_id=eq.${STORE_ID}`, {
+      method: 'PATCH',
+      headers: { 
+        'apikey': SUPABASE_KEY, 
+        'Authorization': 'Bearer ' + SUPABASE_KEY, 
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ editorial_content: content })
+    });
+    if (res.ok) {
+      showToast("專欄圖文設定已成功儲存！");
+    } else {
+      let errTxt = await res.text();
+      alert("專欄儲存失敗：" + errTxt);
     }
+  } catch(e) {
+    alert("連線異常：" + e.message);
+  }
+}
 
-    // 5. 儲存物流與結帳設定
-    async function saveCheckoutSettingsAdmin() {
-      let payLines = document.getElementById('adminPaymentMethodsText').value.split('\n').map(s => s.trim()).filter(Boolean);
-      let noticeText = document.getElementById('adminCheckoutNoticeText').value.trim();
-
-      try {
-        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_stores?on_conflict=store_id`, {
-          method: 'POST',
-          headers: { 
-            'apikey': SUPABASE_KEY, 
-            'Authorization': 'Bearer ' + SUPABASE_KEY, 
-            'Content-Type': 'application/json',
-            'Prefer': 'resolution=merge-duplicates'
-          },
-          body: JSON.stringify({
-            store_id: STORE_ID,
-            shipping_methods: adminShippingList,
-            payment_methods: payLines,
-            checkout_notice: noticeText
-          })
-        });
-        if (res.ok) showToast("運送方式、付款選項與下單須知已成功儲存！");
-        else showToast("儲存失敗");
-      } catch(e) {
-        showToast("連線異常：" + e.message);
-      }
+// ========================================================
+// 3. 修復可視化分類架構儲存 (改為 PATCH，避免 primary key 撞車)
+// ========================================================
+async function saveCategoryTreeToSupabase() {
+  try {
+    let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_stores?store_id=eq.${STORE_ID}`, {
+      method: 'PATCH',
+      headers: { 
+        'apikey': SUPABASE_KEY, 
+        'Authorization': 'Bearer ' + SUPABASE_KEY, 
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ category_tree: visualCategoryTree })
+    });
+    if (res.ok) {
+      showToast("分類架構已成功儲存！前台將以此樹狀順序顯示。");
+      populateCampaignCategoryCheckboxes();
+      populateHotCategorySelect();
+    } else {
+      let errTxt = await res.text();
+      alert("分類儲存失敗：" + errTxt);
     }
+  } catch(e) {
+    alert("連線異常：" + e.message);
+  }
+}
+
+// ========================================================
+// 4. 修復優惠活動分類勾選偵測 (修正 selector 為 .camp-cat-check)
+// ========================================================
+async function submitSaveCampaign() {
+  let editId = document.getElementById('editingCampaignId').value;
+  let title = document.getElementById('campTitle').value.trim();
+  let subtitle = document.getElementById('campSubtitle').value.trim();
+  let type = document.getElementById('campDiscountType').value;
+  let condQty = parseInt(document.getElementById('campCondQty').value) || 1;
+  let val = parseFloat(document.getElementById('campDiscountVal').value) || 0;
+  let targetMode = document.getElementById('campTargetMode').value;
+  let excludeKw = document.getElementById('campExcludeKeywords').value.trim();
+  
+  // ⭐️ 核心修正：對齊 class 名稱 .camp-cat-check
+  let selectedCats = [];
+  document.querySelectorAll('.camp-cat-check:checked').forEach(c => selectedCats.push(c.value));
+
+  if (!title) return showToast("請輸入活動大標題！");
+  if (targetMode === 'category' && selectedCats.length === 0) {
+    return alert("請至少勾選一個套用的商品分類！");
+  }
+
+  let payload = {
+    store_id: STORE_ID,
+    title: title,
+    subtitle: subtitle,
+    discount_type: type,
+    discount_val: val,
+    condition_qty: condQty,
+    target_mode: targetMode,
+    target_category: targetMode === 'category' ? selectedCats.join(',') : '',
+    exclude_keywords: excludeKw,
+    is_active: true
+  };
+
+  let url = editId 
+    ? `${SUPABASE_URL}/rest/v1/shop_campaigns?id=eq.${editId}&store_id=eq.${STORE_ID}` 
+    : `${SUPABASE_URL}/rest/v1/shop_campaigns`;
+  let method = editId ? 'PATCH' : 'POST';
+  if (!editId) payload.sort_order = activeCampaignsList.length + 1;
+
+  try {
+    let res = await fetch(url, {
+      method: method,
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+      resetCampaignForm();
+      await loadCampaignsData();
+      showToast(editId ? "優惠活動修改已成功儲存！" : "新優惠活動已成功建立！");
+    } else {
+      let errTxt = await res.text();
+      alert("儲存活動失敗：" + errTxt);
+    }
+  } catch(e) {
+    alert("連線異常：" + e.message);
+  }
+}
+
+// ========================================================
+// 5. 商品清單固定原始位置排序 (將 created_at.desc 改為 id.asc)
+// ========================================================
+async function loadInventoryData() {
+  try {
+    // ⭐️ 依建立順序排序，編輯內容後位置永遠固定
+    let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_products?store_id=eq.${STORE_ID}&order=id.asc`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+    });
+    globalProducts = await res.json();
+    filteredProducts = [...globalProducts];
+    invPage = 1;
+    selectedInventorySkus = {};
+    renderInventoryTable();
+    renderHotCandidateProducts();
+    populateHotCategorySelect();
+  } catch(e) {
+    showToast("商品資料讀取失敗，請檢查網路連線");
+  }
+}
+
+  async function saveTrackingAndNotify(orderId) {
+  let trackingInput = document.getElementById(`track_${orderId}`);
+  let trackingNo = trackingInput ? trackingInput.value.trim() : '';
+
+  if (!trackingNo) {
+    return alert("請先填入郵局包裹掛號單號！");
+  }
+
+  showToast("正在更新郵局單號並發送出貨信件...");
+
+  try {
+    // 1. 同步寫入 Supabase
+    let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_orders?order_id=eq.${orderId}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        tracking_no: trackingNo,
+        order_status: '待宅配出貨',
+        shipped_at: new Date().toISOString()
+      })
+    });
+
+    if (!res.ok) throw new Error("資料庫更新失敗");
+
+    // 2. 呼叫 GAS 發送郵局出貨信給顧客
+    fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'shipOrderNotify',
+        storeId: STORE_ID,
+        orderId: orderId,
+        trackingNo: trackingNo
+      })
+    });
+
+    showToast(`訂單 ${orderId} 物流單號已儲存，出貨通知信已發出！`);
+    loadOrdersData();
+  } catch(e) {
+    alert("出貨操作異常：" + e.message);
+  }
+}
   
   </script>
 </body>
