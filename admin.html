@@ -528,29 +528,47 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <!-- 1. 獨立優惠形式 -->
             <div>
-              <label class="font-bold text-stone-600 block mb-1">優惠類型</label>
-              <select id="campDiscountType" onchange="toggleCampaignParamFields()" class="w-full p-2 border border-taupe-border rounded-lg bg-white outline-none font-bold">
-                <option value="free_shipping">指定門檻免運費</option>
-                <option value="percent">滿件打折 (例如 9 折輸入 0.9)</option>
-                <option value="fixed">滿件/滿額現折 (例如折 200 輸入 200)</option>
+              <label class="font-bold text-stone-600 block mb-1">1. 優惠回饋形式</label>
+              <select id="campRewardType" onchange="toggleCampaignParamFields()" class="w-full p-2 border border-taupe-border rounded-lg bg-white outline-none font-bold">
+                <option value="fixed">現折固定金額 (例如折 200)</option>
+                <option value="percent">訂單打折 (例如 9 折)</option>
+                <option value="free_shipping">全單免運費</option>
               </select>
             </div>
+
+            <!-- 2. 獨立門檻依據 -->
             <div>
-              <label class="font-bold text-stone-600 block mb-1">門檻條件 (滿幾件/元)</label>
-              <div class="flex gap-1">
-                <select id="campCondType" class="p-2 border border-taupe-border rounded-lg bg-white outline-none">
-                  <option value="qty">滿件</option>
-                  <option value="amount">滿額</option>
-                </select>
-                <input type="number" id="campCondQty" value="2" class="w-full p-2 border border-taupe-border rounded-lg bg-white outline-none font-mono">
+              <label class="font-bold text-stone-600 block mb-1">2. 達成門檻依據</label>
+              <select id="campCondType" onchange="toggleCampaignCondFields()" class="w-full p-2 border border-taupe-border rounded-lg bg-white outline-none font-bold">
+                <option value="qty">依「購買件數」達標</option>
+                <option value="amount">依「消費金額」達標</option>
+              </select>
+            </div>
+
+            <!-- 3. 門檻數值輸入 -->
+            <div>
+              <label class="font-bold text-stone-600 block mb-1" id="campCondNumLabel">門檻件數 (滿幾件)</label>
+              <div class="flex items-center gap-1">
+                <input type="number" id="campCondNum" value="2" class="w-full p-2 border border-taupe-border rounded-lg bg-white outline-none font-mono">
+                <span class="text-xs font-bold text-stone-400 shrink-0" id="campCondUnit">件</span>
               </div>
             </div>
-            <div id="campValCol" class="hidden">
-              <label class="font-bold text-stone-600 block mb-1" id="campValLabel">折抵數值 (0.9 代表 9折)</label>
-              <input type="number" step="0.01" id="campDiscountVal" value="0" class="w-full p-2 border border-taupe-border rounded-lg bg-white outline-none font-mono">
+
+            <!-- 4. 折抵數值輸入 (免運時自動隱藏) -->
+            <div id="campValCol">
+              <label class="font-bold text-stone-600 block mb-1" id="campValLabel">折抵金額 (NT$)</label>
+              <div class="flex items-center gap-1">
+                <input type="number" step="0.01" id="campDiscountVal" value="200" class="w-full p-2 border border-taupe-border rounded-lg bg-white outline-none font-mono">
+                <span class="text-xs font-bold text-stone-400 shrink-0" id="campValUnit">元</span>
+              </div>
             </div>
+          </div>
+
+          <!-- 適用範圍 -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
             <div>
               <label class="font-bold text-stone-600 block mb-1">適用商品範圍</label>
               <select id="campTargetMode" onchange="toggleCampaignCategorySelect()" class="w-full p-2 border border-taupe-border rounded-lg bg-white outline-none">
@@ -558,20 +576,11 @@
                 <option value="category">限定指定分類專區</option>
               </select>
             </div>
+            <div>
+              <label class="font-bold text-stone-600 block mb-1">不可包含的品項關鍵字 (逗號分隔)</label>
+              <input type="text" id="campExcludeKeywords" placeholder="例如：枕頭套, 枕套, 加購, 體驗包" class="w-full p-2 border border-taupe-border rounded-lg bg-white outline-none">
+            </div>
           </div>
-
-          <!-- 指定分類勾選區 -->
-          <div id="campCategorySelectBox" class="hidden space-y-1.5">
-            <label class="font-bold text-stone-600 block">勾選套用之商品分類 (支援多選)：</label>
-            <div id="campCategoryCheckboxContainer" class="flex flex-wrap gap-2 p-2.5 bg-white rounded-xl border border-taupe-border"></div>
-          </div>
-
-          <!-- 新增：不可包含的品項關鍵字 -->
-          <div>
-            <label class="font-bold text-stone-600 block mb-1">不可包含的品項關鍵字 (商品名稱或規格包含這些字眼不計入活動，請用逗號分隔)</label>
-            <input type="text" id="campExcludeKeywords" placeholder="例如：枕頭套, 枕套, 加購, 體驗包" class="w-full p-2 border border-taupe-border rounded-lg bg-white outline-none">
-          </div>
-
           <div class="flex justify-end pt-1">
             <button onclick="submitSaveCampaign()" id="btnSubmitCampaign" class="bg-taupe-main hover:bg-taupe-hover text-white text-xs font-bold px-6 py-2.5 rounded-xl transition shadow-xs">
               確認建立優惠活動
@@ -2361,149 +2370,6 @@ async function pushProductChangeToMasterSheet(productPayload) {
       `).join('');
     }
 
-    function renderCampaignsTable() {
-  const tbody = document.getElementById('campaignListTableBody');
-  if (!tbody) return;
-  if (!activeCampaignsList || activeCampaignsList.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-stone-400">目前尚無建立任何優惠活動</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = activeCampaignsList.map(c => {
-    // 統一折抵型態
-    let dType = c.discount_type || 'free_shipping';
-    let dVal = Number(c.discount_val) || 0;
-    
-    let typeText = "全單免運費";
-    if (dType === 'percent') {
-      let percentLabel = dVal < 1 ? Math.round(dVal * 100) / 10 : dVal;
-      typeText = `滿額打折 (${percentLabel} 折)`;
-    } else if (dType === 'fixed' || dType === 'amount') {
-      typeText = `滿額現折 (NT$ ${dVal.toLocaleString()})`;
-    }
-
-    // 統一門檻顯示：滿件 vs 滿額
-    let condType = c.condition_type || (c.condition_amount > 0 ? 'amount' : 'qty');
-    let condText = (condType === 'amount') 
-      ? `消費滿 NT$ ${Number(c.condition_amount || c.condition_qty).toLocaleString()}` 
-      : `購買滿 ${c.condition_qty || 1} 件`;
-
-    let targetText = (c.target_mode === 'all' || !c.target_category) ? '全館通用' : `限定：${c.target_category}`;
-    let excludeText = c.exclude_keywords ? `<div class="text-[10.5px] text-rose-600 mt-0.5">排除：${c.exclude_keywords}</div>` : '';
-    let isActive = (c.is_active !== false);
-
-    return `
-      <tr class="hover:bg-taupe-canvas text-xs">
-        <td class="p-3">
-          <div class="font-bold text-stone-800">${c.title}</div>
-          <div class="text-[10.5px] text-stone-400">${c.subtitle || ''}</div>
-        </td>
-        <td class="p-3 font-bold text-taupe-crimson">${typeText}</td>
-        <td class="p-3 font-mono font-bold">${condText}</td>
-        <td class="p-3">
-          <div>${targetText}</div>
-          ${excludeText}
-        </td>
-        <td class="p-3 text-center">
-          <button type="button" onclick="toggleCampaignActiveStatus(${c.id}, ${!isActive})" class="px-2.5 py-1 rounded-full text-[10.5px] font-bold border transition ${isActive ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-stone-100 text-stone-400 border-stone-200'}">
-            ${isActive ? '已啟用' : '已停用'}
-          </button>
-        </td>
-        <td class="p-3 text-center whitespace-nowrap">
-          <button type="button" onclick="editCampaignItem(${c.id})" class="text-taupe-main hover:underline font-bold mr-2">編輯</button>
-          <button type="button" onclick="deleteCampaignItem(${c.id})" class="text-rose-600 hover:underline font-bold">刪除</button>
-        </td>
-      </tr>
-    `;
-  }).join('');
-}
-
-    function toggleCampaignParamFields() {
-  let type = document.getElementById('campDiscountType').value;
-  const valCol = document.getElementById('campValCol');
-  const valLabel = document.getElementById('campValLabel');
-  
-  if (type === 'free_shipping') {
-    valCol.classList.add('hidden');
-  } else {
-    valCol.classList.remove('hidden');
-    if (type === 'percent') {
-      valLabel.innerText = "折抵數值 (例如 9折請輸入 0.9)";
-    } else {
-      valLabel.innerText = "現折金額 (例如現折 200 請輸入 200)";
-    }
-  }
-}
-
-function toggleCampaignCategorySelect() {
-  let mode = document.getElementById('campTargetMode').value;
-  const box = document.getElementById('campCategorySelectBox');
-  if (box) box.classList.toggle('hidden', mode !== 'category');
-}
-
-    function editCampaignItem(id) {
-  let c = activeCampaignsList.find(x => x.id == id);
-  if (!c) return;
-
-  document.getElementById('editingCampaignId').value = c.id;
-  document.getElementById('campTitle').value = c.title || '';
-  document.getElementById('campSubtitle').value = c.subtitle || '';
-  
-  // 標準化優惠形式 (percent / fixed / free_shipping)
-  let dType = c.discount_type || 'free_shipping';
-  if (dType === 'amount') dType = 'fixed';
-  document.getElementById('campDiscountType').value = dType;
-
-  // 判斷滿件還是滿額
-  let condType = c.condition_type || (c.condition_amount > 0 ? 'amount' : 'qty');
-  document.getElementById('campCondType').value = condType;
-  document.getElementById('campCondQty').value = (condType === 'amount') ? (c.condition_amount || 0) : (c.condition_qty || 2);
-
-  // 折抵數值回填
-  document.getElementById('campDiscountVal').value = (c.discount_val !== undefined) ? c.discount_val : (c.reward_value || 0);
-
-  // 適用範圍
-  document.getElementById('campTargetMode').value = c.target_mode || 'all';
-  document.getElementById('campExcludeKeywords').value = c.exclude_keywords || '';
-
-  toggleCampaignParamFields();
-  toggleCampaignCategorySelect();
-
-  // 分類核取方塊回填
-  let cats = (c.target_category || '').split(',').map(s => s.trim()).filter(Boolean);
-  document.querySelectorAll('.camp-cat-check').forEach(cb => {
-    cb.checked = cats.includes(cb.value);
-  });
-
-  document.getElementById('campaignFormHeaderTitle').innerText = `正在編輯優惠活動：${c.title}`;
-  document.getElementById('btnSubmitCampaign').innerText = "確認儲存修改";
-  document.getElementById('btnCancelEditCampaign').classList.remove('hidden');
-  
-  // 平滑滾動至編輯表單位置
-  document.getElementById('campTitle').scrollIntoView({ behavior: 'smooth', block: 'center' });
-  document.getElementById('campTitle').focus();
-}
-
-    function resetCampaignForm() {
-  document.getElementById('editingCampaignId').value = "";
-  document.getElementById('campTitle').value = "";
-  document.getElementById('campSubtitle').value = "";
-  document.getElementById('campDiscountType').value = "free_shipping";
-  document.getElementById('campCondType').value = "qty";
-  document.getElementById('campCondQty').value = "2";
-  document.getElementById('campDiscountVal').value = "0";
-  document.getElementById('campTargetMode').value = "all";
-  document.getElementById('campExcludeKeywords').value = "";
-  
-  toggleCampaignParamFields();
-  toggleCampaignCategorySelect();
-  document.querySelectorAll('.camp-cat-check').forEach(cb => cb.checked = false);
-
-  document.getElementById('campaignFormHeaderTitle').innerText = "建立 / 編輯行銷優惠活動";
-  document.getElementById('btnSubmitCampaign').innerText = "確認建立優惠活動";
-  document.getElementById('btnCancelEditCampaign').classList.add('hidden');
-}
-
     async function toggleCampaignActiveStatus(id, nextActive) {
       let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_campaigns?id=eq.${id}&store_id=eq.${STORE_ID}`, {
         method: 'PATCH',
@@ -3121,80 +2987,6 @@ async function saveCategoryTreeToSupabase() {
 }
 
 // ========================================================
-// 4. 修復優惠活動分類勾選偵測 (修正 selector 為 .camp-cat-check)
-// ========================================================
-async function submitSaveCampaign() {
-  let editId = document.getElementById('editingCampaignId').value;
-  let title = document.getElementById('campTitle').value.trim();
-  let subtitle = document.getElementById('campSubtitle').value.trim();
-  let type = document.getElementById('campDiscountType').value;
-  let condType = document.getElementById('campCondType').value; // 'qty' 或 'amount'
-  let condNum = parseFloat(document.getElementById('campCondQty').value) || 0;
-  let val = parseFloat(document.getElementById('campDiscountVal').value) || 0;
-  let targetMode = document.getElementById('campTargetMode').value;
-  let excludeKw = document.getElementById('campExcludeKeywords').value.trim();
-  
-  let selectedCats = [];
-  document.querySelectorAll('.camp-cat-check:checked').forEach(c => selectedCats.push(c.value));
-
-  if (!title) return alert("請輸入活動大標題！");
-  if (targetMode === 'category' && selectedCats.length === 0) {
-    return alert("請至少勾選一個套用的商品分類！");
-  }
-
-  // 智慧門檻分配：若是滿額存入 condition_amount，若是滿件存入 condition_qty
-  let condQtyVal = (condType === 'qty') ? Math.round(condNum) : 0;
-  let condAmountVal = (condType === 'amount') ? Math.round(condNum) : 0;
-
-  // 雙重對齊舊欄位與新欄位，保證前台與後台都能精確讀取
-  let payload = {
-    store_id: STORE_ID,
-    title: title,
-    subtitle: subtitle,
-    discount_type: type,
-    discount_val: val,
-    condition_type: condType,
-    condition_qty: condQtyVal,
-    condition_amount: condAmountVal,
-    target_mode: targetMode,
-    target_category: (targetMode === 'category') ? selectedCats.join(',') : '',
-    exclude_keywords: excludeKw,
-    reward_type: (type === 'percent' ? 'percent_off' : (type === 'fixed' ? 'amount_off' : 'free_shipping')),
-    reward_value: val,
-    is_active: true
-  };
-
-  let url = editId 
-    ? `${SUPABASE_URL}/rest/v1/shop_campaigns?id=eq.${editId}&store_id=eq.${STORE_ID}` 
-    : `${SUPABASE_URL}/rest/v1/shop_campaigns`;
-  let method = editId ? 'PATCH' : 'POST';
-  if (!editId) payload.sort_order = activeCampaignsList.length + 1;
-
-  try {
-    let res = await fetch(url, {
-      method: method,
-      headers: { 
-        'apikey': SUPABASE_KEY, 
-        'Authorization': 'Bearer ' + SUPABASE_KEY, 
-        'Content-Type': 'application/json' 
-      },
-      body: JSON.stringify(payload)
-    });
-
-    if (res.ok) {
-      resetCampaignForm();
-      await loadCampaignsData();
-      showToast(editId ? "優惠活動修改已成功儲存！" : "新優惠活動已成功建立！");
-    } else {
-      let errTxt = await res.text();
-      alert("儲存活動失敗：" + errTxt);
-    }
-  } catch(e) {
-    alert("連線異常：" + e.message);
-  }
-}
-
-// ========================================================
 // 5. 商品清單固定原始位置排序 (將 created_at.desc 改為 id.asc)
 // ========================================================
 async function loadInventoryData() {
@@ -3259,6 +3051,253 @@ async function loadInventoryData() {
     loadOrdersData();
   } catch(e) {
     alert("出貨操作異常：" + e.message);
+  }
+}
+
+    // ========================================================
+// 區塊 B：行銷優惠活動模組 (四維度分開設置：形式、依據、門檻、回饋)
+// ========================================================
+
+// 門檻依據切換：滿件 vs 滿額
+function toggleCampaignCondFields() {
+  let condType = document.getElementById('campCondType').value;
+  const label = document.getElementById('campCondNumLabel');
+  const unit = document.getElementById('campCondUnit');
+  const numInput = document.getElementById('campCondNum');
+
+  if (condType === 'amount') {
+    label.innerText = "消費滿額金額 (NT$)";
+    unit.innerText = "元";
+    if (numInput.value === "2") numInput.value = "2000"; // 智慧切換預設值
+  } else {
+    label.innerText = "購買件數 (滿幾件)";
+    unit.innerText = "件";
+    if (numInput.value === "2000") numInput.value = "2";
+  }
+}
+
+// 優惠形式切換：現折 vs 打折 vs 免運
+function toggleCampaignParamFields() {
+  let rewardType = document.getElementById('campRewardType').value;
+  const valCol = document.getElementById('campValCol');
+  const valLabel = document.getElementById('campValLabel');
+  const valUnit = document.getElementById('campValUnit');
+  const valInput = document.getElementById('campDiscountVal');
+
+  if (rewardType === 'free_shipping') {
+    valCol.classList.add('hidden');
+  } else {
+    valCol.classList.remove('hidden');
+    if (rewardType === 'percent') {
+      valLabel.innerText = "折抵數值 (如 9折請填 0.9)";
+      valUnit.innerText = "折率";
+      if (Number(valInput.value) >= 1) valInput.value = "0.9";
+    } else {
+      valLabel.innerText = "現折金額 (NT$)";
+      valUnit.innerText = "元";
+      if (Number(valInput.value) < 1) valInput.value = "200";
+    }
+  }
+}
+
+function toggleCampaignCategorySelect() {
+  let mode = document.getElementById('campTargetMode').value;
+  const box = document.getElementById('campCategorySelectBox');
+  if (box) box.classList.toggle('hidden', mode !== 'category');
+}
+
+// 渲染列表：明確拆解「優惠形式」與「門檻條件」
+function renderCampaignsTable() {
+  const tbody = document.getElementById('campaignListTableBody');
+  if (!tbody) return;
+  if (!activeCampaignsList || activeCampaignsList.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-stone-400">目前尚無建立任何優惠活動</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = activeCampaignsList.map(c => {
+    // 1. 解析優惠形式
+    let rewardType = c.discount_type || 'free_shipping';
+    let val = Number(c.discount_val) || 0;
+    let rewardText = "全單免運費";
+
+    if (rewardType === 'fixed' || rewardType === 'amount') {
+      rewardText = `現折 NT$ ${val.toLocaleString()}`;
+    } else if (rewardType === 'percent') {
+      let disp = val < 1 ? Math.round(val * 100) / 10 : val;
+      rewardText = `享 ${disp} 折優惠`;
+    }
+
+    // 2. 解析門檻條件
+    let isAmount = (c.condition_type === 'amount' || Number(c.condition_amount) > 0);
+    let condNum = isAmount ? (c.condition_amount || c.condition_qty) : (c.condition_qty || 1);
+    let condText = isAmount ? `消費滿 NT$ ${Number(condNum).toLocaleString()}` : `購買滿 ${condNum} 件`;
+
+    let targetText = (c.target_mode === 'all' || !c.target_category) ? '全館通用' : `限定：${c.target_category}`;
+    let excludeText = c.exclude_keywords ? `<div class="text-[10.5px] text-rose-600 mt-0.5">排除：${c.exclude_keywords}</div>` : '';
+    let isActive = (c.is_active !== false);
+
+    return `
+      <tr class="hover:bg-taupe-canvas text-xs">
+        <td class="p-3">
+          <div class="font-bold text-stone-800">${c.title}</div>
+          <div class="text-[10.5px] text-stone-400">${c.subtitle || ''}</div>
+        </td>
+        <td class="p-3 font-bold text-taupe-crimson">${rewardText}</td>
+        <td class="p-3 font-mono font-bold">${condText}</td>
+        <td class="p-3">
+          <div>${targetText}</div>
+          ${excludeText}
+        </td>
+        <td class="p-3 text-center">
+          <button type="button" onclick="toggleCampaignActiveStatus(${c.id}, ${!isActive})" class="px-2.5 py-1 rounded-full text-[10.5px] font-bold border transition ${isActive ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-stone-100 text-stone-400 border-stone-200'}">
+            ${isActive ? '已啟用' : '已停用'}
+          </button>
+        </td>
+        <td class="p-3 text-center whitespace-nowrap">
+          <button type="button" onclick="editCampaignItem(${c.id})" class="text-taupe-main hover:underline font-bold mr-2">編輯</button>
+          <button type="button" onclick="deleteCampaignItem(${c.id})" class="text-rose-600 hover:underline font-bold">刪除</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// 點擊編輯：精確回填各個獨立欄位，永不打架
+function editCampaignItem(id) {
+  let c = activeCampaignsList.find(x => x.id == id);
+  if (!c) return;
+
+  document.getElementById('editingCampaignId').value = c.id;
+  document.getElementById('campTitle').value = c.title || '';
+  document.getElementById('campSubtitle').value = c.subtitle || '';
+  
+  // 1. 回填優惠形式
+  let rewardType = c.discount_type || 'free_shipping';
+  if (rewardType === 'amount') rewardType = 'fixed';
+  document.getElementById('campRewardType').value = rewardType;
+
+  // 2. 回填門檻依據與數值
+  let isAmount = (c.condition_type === 'amount' || Number(c.condition_amount) > 0);
+  document.getElementById('campCondType').value = isAmount ? 'amount' : 'qty';
+  document.getElementById('campCondNum').value = isAmount ? (c.condition_amount || 0) : (c.condition_qty || 1);
+
+  // 3. 回填折抵金額/折數
+  document.getElementById('campDiscountVal').value = (c.discount_val !== undefined) ? c.discount_val : (c.reward_value || 0);
+
+  // 4. 適用範圍與排除字
+  document.getElementById('campTargetMode').value = c.target_mode || 'all';
+  document.getElementById('campExcludeKeywords').value = c.exclude_keywords || '';
+
+  // 刷新 UI 標籤與單位
+  toggleCampaignCondFields();
+  toggleCampaignParamFields();
+  toggleCampaignCategorySelect();
+
+  // 分類核取方塊回填
+  let cats = (c.target_category || '').split(',').map(s => s.trim()).filter(Boolean);
+  document.querySelectorAll('.camp-cat-check').forEach(cb => {
+    cb.checked = cats.includes(cb.value);
+  });
+
+  document.getElementById('campaignFormHeaderTitle').innerText = `正在編輯優惠活動：${c.title}`;
+  document.getElementById('btnSubmitCampaign').innerText = "確認儲存修改";
+  document.getElementById('btnCancelEditCampaign').classList.remove('hidden');
+  
+  document.getElementById('campTitle').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  document.getElementById('campTitle').focus();
+}
+
+function resetCampaignForm() {
+  document.getElementById('editingCampaignId').value = "";
+  document.getElementById('campTitle').value = "";
+  document.getElementById('campSubtitle').value = "";
+  document.getElementById('campRewardType').value = "fixed";
+  document.getElementById('campCondType').value = "qty";
+  document.getElementById('campCondNum').value = "2";
+  document.getElementById('campDiscountVal').value = "200";
+  document.getElementById('campTargetMode').value = "all";
+  document.getElementById('campExcludeKeywords').value = "";
+  
+  toggleCampaignCondFields();
+  toggleCampaignParamFields();
+  toggleCampaignCategorySelect();
+  document.querySelectorAll('.camp-cat-check').forEach(cb => cb.checked = false);
+
+  document.getElementById('campaignFormHeaderTitle').innerText = "建立 / 編輯行銷優惠活動";
+  document.getElementById('btnSubmitCampaign').innerText = "確認建立優惠活動";
+  document.getElementById('btnCancelEditCampaign').classList.add('hidden');
+}
+
+// 儲存：分開且精準寫入 condition_type, condition_qty, condition_amount
+async function submitSaveCampaign() {
+  let editId = document.getElementById('editingCampaignId').value;
+  let title = document.getElementById('campTitle').value.trim();
+  let subtitle = document.getElementById('campSubtitle').value.trim();
+  let rewardType = document.getElementById('campRewardType').value; // fixed / percent / free_shipping
+  let condType = document.getElementById('campCondType').value;     // qty / amount
+  let condNum = parseFloat(document.getElementById('campCondNum').value) || 0;
+  let discountVal = (rewardType === 'free_shipping') ? 0 : (parseFloat(document.getElementById('campDiscountVal').value) || 0);
+  let targetMode = document.getElementById('campTargetMode').value;
+  let excludeKw = document.getElementById('campExcludeKeywords').value.trim();
+  
+  let selectedCats = [];
+  document.querySelectorAll('.camp-cat-check:checked').forEach(c => selectedCats.push(c.value));
+
+  if (!title) return alert("請輸入活動大標題！");
+  if (targetMode === 'category' && selectedCats.length === 0) {
+    return alert("請至少勾選一個套用的商品分類！");
+  }
+
+  // ⭐️ 核心解法：精確分流寫入，滿額存 condition_amount，滿件存 condition_qty
+  let condQty = (condType === 'qty') ? Math.round(condNum) : 0;
+  let condAmount = (condType === 'amount') ? Math.round(condNum) : 0;
+
+  let payload = {
+    store_id: STORE_ID,
+    title: title,
+    subtitle: subtitle,
+    discount_type: rewardType,
+    discount_val: discountVal,
+    condition_type: condType,
+    condition_qty: condQty,
+    condition_amount: condAmount,
+    target_mode: targetMode,
+    target_category: (targetMode === 'category') ? selectedCats.join(',') : '',
+    exclude_keywords: excludeKw,
+    // 兼容備用欄位
+    reward_type: (rewardType === 'percent' ? 'percent_off' : (rewardType === 'fixed' ? 'amount_off' : 'free_shipping')),
+    reward_value: discountVal,
+    is_active: true
+  };
+
+  let url = editId 
+    ? `${SUPABASE_URL}/rest/v1/shop_campaigns?id=eq.${editId}&store_id=eq.${STORE_ID}` 
+    : `${SUPABASE_URL}/rest/v1/shop_campaigns`;
+  let method = editId ? 'PATCH' : 'POST';
+  if (!editId) payload.sort_order = activeCampaignsList.length + 1;
+
+  try {
+    let res = await fetch(url, {
+      method: method,
+      headers: { 
+        'apikey': SUPABASE_KEY, 
+        'Authorization': 'Bearer ' + SUPABASE_KEY, 
+        'Content-Type': 'application/json' 
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+      resetCampaignForm();
+      await loadCampaignsData();
+      showToast(editId ? "優惠活動修改已成功儲存！" : "新優惠活動已成功建立！");
+    } else {
+      let errTxt = await res.text();
+      alert("儲存活動失敗：" + errTxt);
+    }
+  } catch(e) {
+    alert("連線異常：" + e.message);
   }
 }
   
