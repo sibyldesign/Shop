@@ -339,11 +339,20 @@
 
     <!-- ==================== 5. 【搜尋】主畫面 (支援近 10 筆歷史紀錄) ==================== -->
     <section id="view-search" class="main-view space-y-4 hidden">
-      <!-- 搜尋輸入框 -->
-      <div class="relative">
-        <input type="text" id="searchPageViewInput" oninput="handleSearchPageInput()" onkeydown="handleSearchKeyDown(event)" placeholder="搜尋商品品名、貨號或款式..." class="w-full pl-9 pr-10 py-3 text-xs rounded-2xl bg-white border shadow-xs outline-none focus:border-stone-500" style="border-color: var(--theme-border);">
-        <svg class="w-4 h-4 text-stone-400 absolute left-3.5 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-        <button type="button" onclick="clearSearchInput()" id="btnSearchClear" class="absolute right-3 top-3 text-stone-400 hover:text-stone-700 text-xs hidden font-bold">✕</button>
+      <!-- 搜尋輸入框 (附帶獨立搜尋按鈕) -->
+      <div class="flex items-center gap-2">
+        <div class="relative flex-1">
+          <input type="text" id="searchPageViewInput" 
+                 onkeydown="if(event.key==='Enter') executeSearchClick();" 
+                 placeholder="搜尋商品品名、貨號或款式..." 
+                 class="w-full pl-9 pr-8 py-2.5 text-xs rounded-xl bg-white border shadow-xs outline-none focus:border-stone-500" 
+                 style="border-color: var(--theme-border);">
+          <svg class="w-4 h-4 text-stone-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <button type="button" onclick="clearSearchInput()" id="btnSearchClear" class="absolute right-2.5 top-2.5 text-stone-400 hover:text-stone-700 text-xs hidden font-bold">✕</button>
+        </div>
+        <button type="button" onclick="executeSearchClick()" class="theme-btn-primary px-4 py-2.5 rounded-xl text-xs font-bold shrink-0 shadow-xs transition">
+          搜尋
+        </button>
       </div>
 
       <!-- 近 10 筆搜尋歷史紀錄專區 -->
@@ -1425,7 +1434,14 @@ async function fetchProducts() {
 
       // 5. 標題、標籤與劃線原價防呆處理
       const titleEl = document.getElementById('detailTitle');
-      if (titleEl) titleEl.innerText = p.name || '未命名商品';
+      if (titleEl) {
+        titleEl.innerHTML = `
+          <div class="flex items-center gap-2 mb-1">
+            <span class="font-mono text-[11px] font-bold px-2 py-0.5 rounded bg-stone-100 text-stone-700 border border-stone-200 tracking-wider">編號 ${p.sku}</span>
+          </div>
+          <span>${p.name || '未命名商品'}</span>
+        `;
+      }
 
       const tagEl = document.getElementById('detailTagBadge');
       if (tagEl) {
@@ -1806,10 +1822,21 @@ async function fetchProducts() {
 
       list.innerHTML = cart.map((item, idx) => `
         <div class="bg-white p-3.5 rounded-2xl border flex items-center justify-between gap-3 shadow-xs" style="border-color: var(--theme-border);">
-          <img src="${item.image || 'https://via.placeholder.com/60'}" class="w-14 h-14 rounded-xl object-cover shrink-0 border" style="border-color: var(--theme-border);">
+          <!-- 點擊圖片或品名直達商品詳情頁 -->
+          <img src="${item.image || 'https://via.placeholder.com/60'}" 
+               onclick="openProductDetailPage('${item.sku}')"
+               class="w-14 h-14 rounded-xl object-cover shrink-0 border cursor-pointer hover:opacity-80 transition" style="border-color: var(--theme-border);">
           <div class="flex-1 min-w-0">
-            <div class="font-bold text-stone-800 text-xs line-clamp-1">${item.prodName}</div>
-            <div class="text-[11px] text-stone-400 mt-0.5">${item.color}/${item.size}</div>
+            <!-- 顯示商品編號 (SKU) -->
+            <div class="flex items-center gap-1.5 mb-0.5">
+              <span class="font-mono text-[10px] font-bold px-1.5 py-0.2 rounded bg-stone-100 text-stone-600 border border-stone-200">${item.sku}</span>
+              <span class="text-[10px] text-stone-400">${item.category || ''}</span>
+            </div>
+            <div onclick="openProductDetailPage('${item.sku}')" 
+                 class="font-bold text-stone-800 text-xs line-clamp-1 cursor-pointer hover:opacity-75 transition">
+              ${item.prodName}
+            </div>
+            <div class="text-[11px] text-stone-500 mt-0.5">${item.color}/${item.size}</div>
             <div class="theme-text-primary font-mono font-bold mt-1 text-xs">NT$ ${item.price * item.qty}</div>
           </div>
           <div class="flex items-center gap-2 font-mono">
@@ -1820,7 +1847,7 @@ async function fetchProducts() {
           </div>
         </div>
       `).join('');
-
+      
       let subtotal = cart.reduce((s, i) => s + (i.price * i.qty), 0);
       
       // 取得目前下拉選單選取的運送方式物件
@@ -2039,26 +2066,18 @@ async function fetchProducts() {
       }
     }
 
-    // 搜尋輸入監聽
-    function handleSearchPageInput() {
+    function executeSearchClick() {
       let inputEl = document.getElementById('searchPageViewInput');
-      let clearBtn = document.getElementById('btnSearchClear');
-      let kw = inputEl.value.trim().toLowerCase();
+      let kw = inputEl.value.trim();
+      if (!kw) return showToast("請輸入欲搜尋的關鍵字");
+      
+      // 只有在按下搜尋按鈕或按下 Enter 時才存入歷史紀錄！
+      addSearchHistoryKeyword(kw);
+      performSearchFilter(kw.toLowerCase());
+    }
+
+    function performSearchFilter(kw) {
       const grid = document.getElementById('searchResultGrid');
-
-      if (clearBtn) clearBtn.classList.toggle('hidden', kw === '');
-
-      if (!kw) {
-        grid.innerHTML = `<div class="col-span-full py-12 text-center text-xs text-stone-400">請輸入關鍵字搜尋商品</div>`;
-        renderSearchHistoryUI();
-        return;
-      }
-
-      // 輸入超過 2 個字且停止打字時自動加入歷史
-      if (kw.length >= 2) {
-        addSearchHistoryKeyword(inputEl.value.trim());
-      }
-
       let results = allProducts.filter(p => 
         (p.name || '').toLowerCase().includes(kw) || 
         (p.sku || '').toLowerCase().includes(kw) || 
@@ -2067,7 +2086,7 @@ async function fetchProducts() {
       );
 
       if (results.length === 0) {
-        grid.innerHTML = `<div class="col-span-full py-12 text-center text-xs text-stone-400">查無符合【${inputEl.value.trim()}】的商品</div>`;
+        grid.innerHTML = `<div class="col-span-full py-12 text-center text-xs text-stone-400">查無符合【${kw}】的商品</div>`;
         return;
       }
 
@@ -2077,6 +2096,7 @@ async function fetchProducts() {
             <img src="${(p.images || '').split(/[\s,]+/)[0] || 'https://via.placeholder.com/300x300'}" class="w-full h-full object-cover">
           </div>
           <div class="pt-2">
+            <span class="font-mono text-[9.5px] font-bold text-stone-500">[${p.sku}]</span>
             <h4 class="text-xs font-bold text-stone-800 line-clamp-1">${p.name}</h4>
             <div class="text-xs font-bold theme-text-primary font-mono mt-1">NT$ ${p.price}</div>
           </div>
@@ -2084,6 +2104,18 @@ async function fetchProducts() {
       `).join('');
     }
 
+    // 移除原有 input 事件中存入歷史的行為
+    function handleSearchPageInput() {
+      let inputEl = document.getElementById('searchPageViewInput');
+      let clearBtn = document.getElementById('btnSearchClear');
+      let kw = inputEl.value.trim().toLowerCase();
+      if (clearBtn) clearBtn.classList.toggle('hidden', kw === '');
+      if (!kw) {
+        document.getElementById('searchResultGrid').innerHTML = `<div class="col-span-full py-12 text-center text-xs text-stone-400">請輸入關鍵字搜尋商品</div>`;
+        renderSearchHistoryUI();
+      }
+    }
+    
     // 9. 導航分頁與徽章更新
     function switchNavTab(tab) {
       document.querySelectorAll('.main-view').forEach(v => v.classList.add('hidden'));
@@ -2408,8 +2440,8 @@ async function fetchProducts() {
         let payuniData = JSON.parse(rawText);
 
         localStorage.removeItem('shop_cart');
-        cart = [];
-        updateBadgesUI();
+cart = [];
+updateBadgesUI();
 
         if (payuniData && payuniData.success && payuniData.EncryptInfo) {
           let form = document.createElement("form");
