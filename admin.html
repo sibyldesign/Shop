@@ -390,7 +390,7 @@
           </div>
           <div>
             <label class="text-xs font-bold text-stone-500 block mb-1">專欄內容介紹文案</label>
-            <textarea id="editorialBody" rows="3" class="w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-white outline-none"></textarea>
+            <textarea id="editorialBody" rows="13" class="w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-white outline-none"></textarea>
           </div>
           <div>
             <label class="text-xs font-bold text-stone-500 block mb-1">專欄插圖</label>
@@ -631,37 +631,43 @@
       </div>
 
       <!-- ==================== 區塊 D：運送方式、付款偏好選項與結帳下單須知設定 ==================== -->
-      <div class="pt-5 border-t border-taupe-border space-y-4">
-        <div class="flex justify-between items-center border-b border-taupe-border pb-2">
-          <div>
-            <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase">運送方式、付款偏好與結帳下單須知設定</h2>
-            <p class="text-[10px] text-stone-400 mt-0.5">自訂前台購物車顯示的物流運費選項、顧客付款偏好統計選單，以及付款按鈕上方的說明文字</p>
-          </div>
-          <button type="button" onclick="saveCheckoutSettingsAdmin()" class="bg-taupe-main hover:bg-taupe-hover text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-xs">
-            儲存物流與結帳設定
-          </button>
-        </div>
-
-        <!-- 1. 自訂運送方式清單 -->
-        <div class="space-y-2 text-xs">
-          <div class="flex justify-between items-center">
-            <label class="font-bold text-stone-700">自訂運送方式與基本運費 (可建立多筆並與上方免運活動連動)</label>
-            <button type="button" onclick="addShippingMethodRow()" class="text-[11px] font-bold text-taupe-main hover:underline">+ 新增運送方式</button>
-          </div>
-          <div id="adminShippingMethodsList" class="space-y-2"></div>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-          <!-- 2. 自訂付款偏好選項 -->
-          <div class="space-y-1.5">
-            <label class="font-bold text-stone-700 block">前台購物車付款偏好選項 (每行一項，供統計客戶常用方式)</label>
-            <textarea id="adminPaymentMethodsText" rows="4" class="w-full p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none leading-relaxed" placeholder="信用卡一次付清&#10;信用卡分期付款&#10;ATM 虛擬帳號轉帳&#10;7-ELEVEN 超商代碼"></textarea>
+      <div class="pt-6 border-t-2 border-dashed border-taupe-border">
+        <div class="bg-taupe-canvas/60 border-2 border-taupe-border rounded-2xl p-5 space-y-5 shadow-2xs">
+          <div class="flex flex-wrap justify-between items-center gap-2 border-b border-taupe-border pb-3">
+            <div>
+              <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded bg-taupe-main text-white mb-1">獨立設定區塊</span>
+              <h2 class="text-sm font-bold tracking-wider text-taupe-charcoal">運送方式、付款偏好與結帳下單須知設定</h2>
+              <p class="text-[11px] text-stone-500 mt-0.5">修改下方的物流運費、付款選項或下單須知後，請務必點擊此區塊底部的「儲存物流與結帳設定」按鈕</p>
+            </div>
           </div>
 
-          <!-- 3. 自訂結帳下單須知 -->
-          <div class="space-y-1.5">
-            <label class="font-bold text-stone-700 block">結帳下單須知 (顯示於前台「前往 PayUni 安全付款」按鈕上方)</label>
-            <textarea id="adminCheckoutNoticeText" rows="4" class="w-full p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none leading-relaxed"></textarea>
+          <!-- 1. 自訂運送方式清單 -->
+          <div class="bg-white p-4 rounded-xl border border-taupe-border space-y-2.5 text-xs">
+            <div class="flex justify-between items-center">
+              <label class="font-bold text-stone-800">1. 自訂運送方式與基本運費</label>
+              <button type="button" onclick="addShippingMethodRow()" class="px-3 py-1 rounded-lg bg-taupe-light hover:bg-taupe-sand text-taupe-dark text-xs font-bold border border-taupe-border transition">+ 新增運送方式</button>
+            </div>
+            <div id="adminShippingMethodsList" class="space-y-2"></div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <!-- 2. 自訂付款偏好選項 -->
+            <div class="bg-white p-4 rounded-xl border border-taupe-border space-y-1.5">
+              <label class="font-bold text-stone-800 block">2. 前台購物車付款偏好選項 (每行一項)</label>
+              <textarea id="adminPaymentMethodsText" rows="5" class="w-full p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none leading-relaxed" placeholder="信用卡一次付清&#10;信用卡分期付款&#10;ATM 虛擬帳號轉帳&#10;7-ELEVEN 超商代碼"></textarea>
+            </div>
+
+            <!-- 3. 自訂結帳下單須知 -->
+            <div class="bg-white p-4 rounded-xl border border-taupe-border space-y-1.5">
+              <label class="font-bold text-stone-800 block">3. 結帳下單須知 (顯示於付款按鈕上方)</label>
+              <textarea id="adminCheckoutNoticeText" rows="5" class="w-full p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none leading-relaxed"></textarea>
+            </div>
+          </div>
+
+          <div class="flex justify-end pt-1">
+            <button type="button" onclick="saveCheckoutSettingsAdmin()" class="bg-taupe-main hover:bg-taupe-hover text-white text-xs font-bold px-6 py-3 rounded-xl transition shadow-sm">
+              確認儲存物流與結帳設定
+            </button>
           </div>
         </div>
       </div>
@@ -808,7 +814,13 @@
         </div>
       </div>
       <div class="pt-4 border-t border-taupe-border flex justify-end">
-        <button onclick="saveGlobalSettings()" class="bg-taupe-main hover:bg-taupe-hover text-white text-xs font-bold px-6 py-3 rounded-xl shadow-xs transition">
+        <div class="pt-4 border-t border-taupe-border flex flex-wrap justify-between items-center gap-3 sticky bottom-16 bg-white/95 backdrop-blur-xs p-3 rounded-2xl border shadow-sm z-30">
+        <div id="settingUnsavedBadge" class="hidden flex items-center gap-1.5 text-xs font-bold text-amber-700 bg-amber-50 px-3 py-1.5 rounded-full border border-amber-200">
+          <span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+          <span>您有尚未儲存的外觀／按鈕／條款變更</span>
+        </div>
+        <div id="settingSavedHint" class="text-[11px] text-stone-400">修改任何欄位後，請點擊右側按鈕儲存並同步至前台</div>
+        <button type="button" onclick="saveGlobalSettings()" id="btnSaveGlobalSettings" class="ml-auto bg-taupe-main hover:bg-taupe-hover text-white text-xs font-bold px-6 py-3 rounded-xl shadow-sm transition">
           儲存全域外觀與條款設定
         </button>
       </div>
@@ -2624,6 +2636,16 @@
     }
 
     // ==================== 8. 全域設定與右上角多按鈕管理 ====================
+    function moveHeaderNavBtnItem(idx, dir) {
+      let target = idx + dir;
+      if (target < 0 || target >= headerNavButtonsList.length) return;
+      let temp = headerNavButtonsList[idx];
+      headerNavButtonsList[idx] = headerNavButtonsList[target];
+      headerNavButtonsList[target] = temp;
+      renderHeaderNavButtonsRows();
+      markSettingUnsaved();
+    }
+
     function renderHeaderNavButtonsRows() {
       const container = document.getElementById('headerNavButtonsContainer');
       if (!container) return;
@@ -2636,8 +2658,8 @@
       container.innerHTML = headerNavButtonsList.map((btn, idx) => `
         <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 bg-white p-3 rounded-xl border border-taupe-border items-center text-xs shadow-xs">
           <div>
-            <label class="text-[10px] text-stone-400 font-bold block mb-0.5">樣式外觀</label>
-            <select onchange="headerNavButtonsList[${idx}].display_mode = this.value" class="w-full p-1.5 border border-taupe-border rounded-lg outline-none">
+            <label class="text-[10px] text-stone-400 font-bold block mb-0.5">順序 #${idx + 1}・樣式外觀</label>
+            <select onchange="headerNavButtonsList[${idx}].display_mode = this.value; markSettingUnsaved();" class="w-full p-1.5 border border-taupe-border rounded-lg outline-none">
               <option value="both" ${btn.display_mode === 'both' ? 'selected' : ''}>圖示 ＋ 文字</option>
               <option value="icon_only" ${btn.display_mode === 'icon_only' ? 'selected' : ''}>僅質感圖示</option>
               <option value="text_only" ${btn.display_mode === 'text_only' ? 'selected' : ''}>僅純文字</option>
@@ -2645,7 +2667,7 @@
           </div>
           <div>
             <label class="text-[10px] text-stone-400 font-bold block mb-0.5">選擇圖標</label>
-            <select onchange="headerNavButtonsList[${idx}].icon_type = this.value" class="w-full p-1.5 border border-taupe-border rounded-lg outline-none">
+            <select onchange="headerNavButtonsList[${idx}].icon_type = this.value; markSettingUnsaved();" class="w-full p-1.5 border border-taupe-border rounded-lg outline-none">
               <option value="chat" ${btn.icon_type === 'chat' ? 'selected' : ''}>訊息/LINE</option>
               <option value="instagram" ${btn.icon_type === 'instagram' ? 'selected' : ''}>Instagram</option>
               <option value="globe" ${btn.icon_type === 'globe' ? 'selected' : ''}>地球/官網</option>
@@ -2654,16 +2676,18 @@
           </div>
           <div>
             <label class="text-[10px] text-stone-400 font-bold block mb-0.5">顯示文字</label>
-            <input type="text" value="${btn.title || ''}" onchange="headerNavButtonsList[${idx}].title = this.value" placeholder="如：官方客服" class="w-full p-1.5 border border-taupe-border rounded-lg outline-none">
+            <input type="text" value="${btn.title || ''}" oninput="headerNavButtonsList[${idx}].title = this.value; markSettingUnsaved();" placeholder="如：官方客服" class="w-full p-1.5 border border-taupe-border rounded-lg outline-none">
           </div>
-          <div class="flex items-center gap-1.5">
-            <div class="flex-1">
+          <div class="flex items-center gap-1">
+            <div class="flex-1 min-w-0">
               <label class="text-[10px] text-stone-400 font-bold block mb-0.5">跳轉連結</label>
-              <input type="text" value="${btn.link || ''}" onchange="headerNavButtonsList[${idx}].link = this.value" placeholder="https://..." class="w-full p-1.5 border border-taupe-border rounded-lg outline-none font-mono">
+              <input type="text" value="${btn.link || ''}" oninput="headerNavButtonsList[${idx}].link = this.value; markSettingUnsaved();" placeholder="https://..." class="w-full p-1.5 border border-taupe-border rounded-lg outline-none font-mono">
             </div>
-            <button type="button" onclick="headerNavButtonsList.splice(${idx}, 1); renderHeaderNavButtonsRows();" class="text-rose-600 hover:text-rose-800 font-bold p-1 self-end mb-1">
-              ✕
-            </button>
+            <div class="flex items-center gap-0.5 self-end mb-1 shrink-0">
+              <button type="button" onclick="moveHeaderNavBtnItem(${idx}, -1)" ${idx === 0 ? 'disabled class="px-1.5 py-1 text-stone-300 cursor-not-allowed"' : 'class="px-1.5 py-1 rounded bg-taupe-canvas hover:bg-taupe-light text-stone-700 font-bold border border-taupe-border"'} title="往前移">&lt;</button>
+              <button type="button" onclick="moveHeaderNavBtnItem(${idx}, 1)" ${idx === headerNavButtonsList.length - 1 ? 'disabled class="px-1.5 py-1 text-stone-300 cursor-not-allowed"' : 'class="px-1.5 py-1 rounded bg-taupe-canvas hover:bg-taupe-light text-stone-700 font-bold border border-taupe-border"'} title="往後移">&gt;</button>
+              <button type="button" onclick="headerNavButtonsList.splice(${idx}, 1); renderHeaderNavButtonsRows(); markSettingUnsaved();" class="px-1.5 py-1 text-rose-600 hover:bg-rose-50 rounded font-bold" title="刪除">✕</button>
+            </div>
           </div>
         </div>
       `).join('');
@@ -2811,11 +2835,32 @@
       }
     }
 
-    async function saveGlobalSettings() {
-      // 防呆保護：若資料庫尚未載入完成就按儲存，阻擋操作以免用空表單蓋掉資料庫
-      if (!cachedStoreSettings || !cachedStoreSettings.store_id) {
-        return showToast("設定資料尚未載入完成，請稍候再按儲存！");
+    function markSettingUnsaved() {
+      const badge = document.getElementById('settingUnsavedBadge');
+      const hint = document.getElementById('settingSavedHint');
+      if (badge) badge.classList.remove('hidden');
+      if (hint) hint.classList.add('hidden');
+    }
+
+    function clearSettingUnsaved() {
+      const badge = document.getElementById('settingUnsavedBadge');
+      const hint = document.getElementById('settingSavedHint');
+      if (badge) badge.classList.add('hidden');
+      if (hint) hint.classList.remove('hidden');
+    }
+
+    // 自動監聽「風格分頁」內所有輸入框與選單的異動
+    document.addEventListener('DOMContentLoaded', () => {
+      const settingSec = document.getElementById('settingTab');
+      if (settingSec) {
+        settingSec.addEventListener('input', markSettingUnsaved);
+        settingSec.addEventListener('change', markSettingUnsaved);
       }
+    });
+
+    async function saveGlobalSettings() {
+      const btn = document.getElementById('btnSaveGlobalSettings');
+      if (btn) { btn.disabled = true; btn.innerText = "正在儲存設定..."; }
 
       let terms = {
         story: document.getElementById('termStory').value.trim(),
@@ -2826,7 +2871,7 @@
       };
 
       let patchPayload = {
-        store_name: document.getElementById('settingStoreName').value.trim() || cachedStoreSettings.store_name || "SIBYL SELECT 希貝兒選物",
+        store_name: document.getElementById('settingStoreName').value.trim() || "SIBYL SELECT 希貝兒選物",
         show_mobile_store_name: document.getElementById('settingShowMobileName').checked,
         theme_color: selectedThemeColor,
         logo_url: document.getElementById('settingLogoUrl').value.trim(),
@@ -2852,15 +2897,19 @@
         });
 
         if (res.ok) {
-          // 同步更新本地快取，確保後續操作不遺失
-          cachedStoreSettings = { ...cachedStoreSettings, ...patchPayload };
-          showToast("全域外觀、快捷按鈕、Logo 與五大條款已安全儲存！");
+          if (typeof cachedStoreSettings === 'object') {
+            cachedStoreSettings = { ...cachedStoreSettings, ...patchPayload };
+          }
+          clearSettingUnsaved();
+          showToast("全域外觀、快捷按鈕、Logo 與五大條款已成功儲存並同步！");
         } else {
           let errText = await res.text();
           showToast("儲存失敗：" + errText);
         }
       } catch (e) {
         showToast("連線異常：" + e.message);
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerText = "儲存全域外觀與條款設定"; }
       }
     }
 
