@@ -1561,18 +1561,35 @@
       container.appendChild(div);
     }
 
+    // 支援 英文逗號 , 中文逗號 ， 頓號 、 以及空白 分隔多個選項，且記憶已填數值！
     function regenerateMatrix() {
       const tbody = document.getElementById('matrixTableBody');
+      
+      // 1. 先備份目前畫面上所有已填寫的 原價、特價、庫存！
+      let existingValues = {};
+      tbody.querySelectorAll('tr').forEach(row => {
+        let key = row.dataset.key;
+        if (key) {
+          existingValues[key] = {
+            old: row.querySelector('.m-old')?.value || '0',
+            price: row.querySelector('.m-price')?.value || '',
+            stock: row.querySelector('.m-stock')?.value || '99'
+          };
+        }
+      });
+
       tbody.innerHTML = "";
       let groups = [];
+      
+      // 2. 支援「,」「，」「、」「空格」多種分隔符
       document.querySelectorAll('.spec-group-input').forEach(inp => {
-        let items = inp.value.split(',').map(s => s.trim()).filter(Boolean);
+        let items = inp.value.split(/[,，、\s]+/).map(s => s.trim()).filter(Boolean);
         if (items.length > 0) groups.push(items);
       });
 
       if (groups.length === 0) groups = [["單一規格"]];
 
-      // 計算所有規格維度的笛卡爾積交叉組合（例如：棉被S號 / 藍、棉被Q號 / 藍...）
+      // 3. 計算笛卡爾積組合
       let combos = groups.reduce((acc, curr) => {
         let res = [];
         acc.forEach(a => curr.forEach(b => res.push(a.concat(b))));
@@ -1585,12 +1602,15 @@
           ? `款式:${comboArr[0]} / ${comboArr.slice(1).join('-')}` 
           : `款式:${comboArr[0]} / 標準`;
 
+        // 4. 若之前有填過，自動還原價格！不再被重設清空
+        let saved = existingValues[storageKey] || { old: '0', price: '', stock: '99' };
+
         tbody.innerHTML += `
           <tr class="border-b border-taupe-border" data-key="${storageKey}">
             <td class="p-2 font-bold">${displayLabel}</td>
-            <td class="p-2"><input type="number" class="m-old w-full p-1.5 border border-taupe-border rounded text-xs" value="0"></td>
-            <td class="p-2"><input type="number" class="m-price w-full p-1.5 border border-taupe-border rounded text-xs font-bold text-taupe-crimson"></td>
-            <td class="p-2"><input type="number" class="m-stock w-full p-1.5 border border-taupe-border rounded text-xs" value="99"></td>
+            <td class="p-2"><input type="number" class="m-old w-full p-1.5 border border-taupe-border rounded text-xs" value="${saved.old}"></td>
+            <td class="p-2"><input type="number" class="m-price w-full p-1.5 border border-taupe-border rounded text-xs font-bold text-taupe-crimson" value="${saved.price}"></td>
+            <td class="p-2"><input type="number" class="m-stock w-full p-1.5 border border-taupe-border rounded text-xs" value="${saved.stock}"></td>
             <td class="p-2 text-center">
               <button type="button" onclick="this.closest('tr').remove()" class="text-rose-600 hover:text-rose-800 font-bold px-1.5 py-0.5">✕ 刪除</button>
             </td>
@@ -1679,6 +1699,9 @@
 
         // 等待資料庫寫入成功後，立即同步寫入試算表總表
         await pushProductChangeToMasterSheet(payload);
+        // 在 publishProduct 成功後加入：
+        await loadInventoryData();
+        showToast("商品已成功儲存並同步至試算表與前台！");
 
         currentUploadedImages = [];
         renderProductThumbnails();
