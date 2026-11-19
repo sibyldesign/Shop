@@ -149,7 +149,6 @@
       </div>
     </section>
 
-    <!-- 2. 商品上架分頁 (已清理外部殘留表格) -->
     <!-- 2. 商品上架分頁 -->
     <section id="uploadTab" class="tab-content bg-white border border-taupe-border rounded-2xl p-5 shadow-xs space-y-4 hidden">
       <h2 id="formActionTitle" class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase border-b border-taupe-border pb-2">商品配置設定</h2>
@@ -207,29 +206,34 @@
         <input type="text" id="pTag" class="w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none focus:bg-white focus:border-taupe-main" placeholder="例如 熱銷推薦 / 天絲莫代爾">
       </div>
 
-      <!-- 動態多層規格輸入區 (支援規格1、規格2、並可自由新增規格3...) -->
+      <!-- 動態多層規格輸入區 (解耦即時監聽，改為確認生成按鈕) -->
       <div class="bg-white p-4 border border-taupe-border rounded-xl space-y-3">
         <div class="flex flex-wrap justify-between items-center gap-2">
           <div>
             <span class="text-xs font-bold text-taupe-charcoal">商品規格維度設定</span>
-            <span class="text-[11px] text-rose-600 font-bold ml-2">※ 多個選項支援「逗號 , 或 ，」、「頓號 、」或「空格」分隔（例如：棉被S號、棉被Q號、枕頭套）</span>
+            <span class="text-[11px] text-stone-500 ml-2">※ 選項支援「逗號 , 或 ，」、「頓號 、」或「空格」分隔</span>
           </div>
-          <button type="button" onclick="addDynamicSpecGroup()" class="text-xs bg-taupe-light hover:bg-taupe-sand text-taupe-dark px-3 py-1 rounded-lg border border-taupe-border font-bold">
-            + 新增規格維度
-          </button>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="addDynamicSpecGroup()" class="text-xs bg-taupe-canvas hover:bg-taupe-light text-taupe-dark px-3 py-1.5 rounded-lg border border-taupe-border font-bold transition">
+              + 新增維度
+            </button>
+            <button type="button" onclick="generateMatrixFromGroups()" class="text-xs bg-taupe-main hover:bg-taupe-hover text-white px-3.5 py-1.5 rounded-lg font-bold shadow-xs transition flex items-center gap-1">
+              <span>⚡️ 生成／更新定價矩陣</span>
+            </button>
+          </div>
         </div>
         <div id="dynamicSpecGroupsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div class="spec-group-item">
-            <label class="text-xs font-bold text-stone-500 block mb-1">規格 1（例如款式／尺寸：棉被S號, 棉被Q號, 枕頭套）</label>
-            <input type="text" class="spec-group-input w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none focus:bg-white focus:border-taupe-main" oninput="debouncedRegenerateMatrix()" placeholder="使用英文逗號 , 分隔選項">
+            <label class="text-xs font-bold text-stone-500 block mb-1">規格 1（例如款式／尺寸：棉被S號、棉被Q號、枕頭套）</label>
+            <input type="text" class="spec-group-input w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none focus:bg-white focus:border-taupe-main" placeholder="例如：棉被S號、棉被Q號、枕頭套">
           </div>
           <div class="spec-group-item">
-            <label class="text-xs font-bold text-stone-500 block mb-1">規格 2（例如顏色：藍, 粉）</label>
-            <input type="text" class="spec-group-input w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none focus:bg-white focus:border-taupe-main" oninput="debouncedRegenerateMatrix()" placeholder="使用英文逗號 , 分隔選項">
+            <label class="text-xs font-bold text-stone-500 block mb-1">規格 2（例如顏色：米、藍、粉、灰）</label>
+            <input type="text" class="spec-group-input w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none focus:bg-white focus:border-taupe-main" placeholder="例如：米、藍、粉、灰">
           </div>
         </div>
       </div>
-
+      
       <!-- 規格定價矩陣 (補上原價填0隱藏說明) -->
       <div class="bg-taupe-canvas p-4 border border-taupe-border rounded-xl space-y-2">
         <div class="flex justify-between items-center flex-wrap gap-2">
@@ -1559,21 +1563,176 @@
     }
 
     // ==================== 4. 商品發布與規格矩陣 ====================
-    function addDynamicSpecGroup() {
+    // 新增規格維度輸入框 (不綁定即時 oninput，杜絕頻繁清空)
+    function addDynamicSpecGroup(defaultValue = '') {
       const container = document.getElementById('dynamicSpecGroupsContainer');
       let count = container.querySelectorAll('.spec-group-item').length + 1;
       let div = document.createElement('div');
       div.className = "spec-group-item relative";
       div.innerHTML = `
         <div class="flex justify-between items-center mb-1">
-          <label class="text-xs font-bold text-stone-500">規格 ${count}（英文逗號 , 分隔）</label>
-          <button type="button" onclick="this.closest('.spec-group-item').remove(); regenerateMatrix();" class="text-[11px] text-rose-600 font-bold">✕ 移除</button>
+          <label class="text-xs font-bold text-stone-500">規格 ${count}</label>
+          <button type="button" onclick="this.closest('.spec-group-item').remove();" class="text-[11px] text-rose-600 font-bold hover:underline">✕ 移除</button>
         </div>
-        <input type="text" class="spec-group-input w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none focus:bg-white focus:border-taupe-main" oninput="debouncedRegenerateMatrix()" placeholder="使用英文逗號 , 分隔選項">
+        <input type="text" value="${defaultValue}" class="spec-group-input w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none focus:bg-white focus:border-taupe-main" placeholder="使用逗號、頓號或空格分隔選項">
       `;
       container.appendChild(div);
     }
 
+    // 點擊「⚡️ 生成／更新定價矩陣」時觸發，完整記憶已填價格
+    function generateMatrixFromGroups() {
+      const tbody = document.getElementById('matrixTableBody');
+      if (!tbody) return;
+
+      // 1. 完整備份畫面上所有已填價格與庫存
+      let existingValues = {};
+      tbody.querySelectorAll('tr').forEach(row => {
+        let key = row.dataset.key;
+        if (key) {
+          existingValues[key] = {
+            old: row.querySelector('.m-old')?.value || '0',
+            price: row.querySelector('.m-price')?.value || '',
+            stock: row.querySelector('.m-stock')?.value || '99'
+          };
+        }
+      });
+
+      // 2. 解析各維度輸入框字串 (支援逗號、頓號、空格)
+      let groups = [];
+      document.querySelectorAll('.spec-group-input').forEach(inp => {
+        let items = inp.value.split(/[,，、\s]+/).map(s => s.trim()).filter(Boolean);
+        if (items.length > 0) groups.push(items);
+      });
+
+      if (groups.length === 0) groups = [["單一規格"]];
+
+      // 3. 笛卡爾積組合計算
+      let combos = groups.reduce((acc, curr) => {
+        let res = [];
+        acc.forEach(a => curr.forEach(b => res.push(a.concat(b))));
+        return res;
+      }, [[]]);
+
+      tbody.innerHTML = "";
+
+      // 4. 生成表格並自動匹配還原價格
+      combos.forEach(comboArr => {
+        let displayLabel = comboArr.join(' / ');
+        let storageKey = comboArr.length >= 2 
+          ? `款式:${comboArr[0]} / ${comboArr.slice(1).join('-')}` 
+          : `款式:${comboArr[0]} / 標準`;
+
+        let saved = existingValues[storageKey] || { old: '0', price: '', stock: '99' };
+
+        tbody.innerHTML += `
+          <tr class="border-b border-taupe-border" data-key="${storageKey}">
+            <td class="p-2 font-bold">${displayLabel}</td>
+            <td class="p-2"><input type="number" class="m-old w-full p-1.5 border border-taupe-border rounded text-xs" value="${saved.old}"></td>
+            <td class="p-2"><input type="number" class="m-price w-full p-1.5 border border-taupe-border rounded text-xs font-bold text-taupe-crimson" value="${saved.price}"></td>
+            <td class="p-2"><input type="number" class="m-stock w-full p-1.5 border border-taupe-border rounded text-xs" value="${saved.stock}"></td>
+            <td class="p-2 text-center whitespace-nowrap">
+              <button type="button" onclick="moveMatrixRow(this, -1)" class="text-stone-500 hover:text-taupe-main font-bold px-1" title="上移">▲</button>
+              <button type="button" onclick="moveMatrixRow(this, 1)" class="text-stone-500 hover:text-taupe-main font-bold px-1" title="下移">▼</button>
+              <button type="button" onclick="this.closest('tr').remove()" class="text-rose-600 hover:text-rose-800 font-bold px-1.5" title="刪除">✕</button>
+            </td>
+          </tr>
+        `;
+      });
+
+      showToast(`已生成 ${combos.length} 組規格定價矩陣！`);
+    }
+
+    // 編輯商品：同時將矩陣反向拆解還原回「商品規格維度設定」輸入框中
+    function editProduct(sku) {
+      let p = globalProducts.find(x => x.sku === sku);
+      if (!p) return;
+
+      document.getElementById('pSku').value = p.sku;
+      document.getElementById('pName').value = p.name;
+      document.getElementById('pStatus').value = p.status || '上架';
+      document.getElementById('pImgRatio').value = p.img_ratio || '1:1';
+      document.getElementById('pShowArrivalCheck').checked = (p.show_arrival_date !== false);
+      document.getElementById('pHideOldPriceCheck').checked = (p.hide_old_price === true);
+      document.getElementById('pMajorSelect').value = p.major_category || '韓國棉被';
+      syncSubCategoriesDropdown();
+      document.getElementById('pSubSelect').value = p.sub_category || '四季被';
+      document.getElementById('pTag').value = p.tag || '';
+      document.getElementById('pArrivalDate').value = p.arrival_date || '';
+      document.getElementById('pDesc').value = p.description || '';
+
+      currentUploadedImages = p.images ? p.images.split(/[\s,]+/).filter(Boolean) : [];
+      renderProductThumbnails();
+
+      // 解析規格資料
+      let specs = p.specs_data || [];
+      if (typeof specs === 'string') {
+        try { specs = JSON.parse(specs); } catch(e) { specs = []; }
+      }
+
+      // ⭐️ 核心優化：反向將已存在的規格組合，拆分填回「規格維度設定」輸入框
+      let spec1List = new Set();
+      let spec2List = new Set();
+
+      if (specs.length > 0) {
+        specs.forEach(sp => {
+          let raw = sp.spec.replace("款式:", "").trim();
+          let parts = raw.split('/').map(s => s.trim());
+          if (parts[0]) spec1List.add(parts[0]);
+          if (parts[1] && parts[1] !== '標準') spec2List.add(parts[1]);
+        });
+      }
+
+      // 重建維度輸入框
+      const specGroupContainer = document.getElementById('dynamicSpecGroupsContainer');
+      specGroupContainer.innerHTML = `
+        <div class="spec-group-item">
+          <label class="text-xs font-bold text-stone-500 block mb-1">規格 1（款式／尺寸）</label>
+          <input type="text" value="${Array.from(spec1List).join('、')}" class="spec-group-input w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none focus:bg-white focus:border-taupe-main" placeholder="例如：棉被S號、棉被Q號、枕頭套">
+        </div>
+        <div class="spec-group-item">
+          <label class="text-xs font-bold text-stone-500 block mb-1">規格 2（顏色／配件）</label>
+          <input type="text" value="${Array.from(spec2List).join('、')}" class="spec-group-input w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none focus:bg-white focus:border-taupe-main" placeholder="例如：米、藍、粉、灰">
+        </div>
+      `;
+
+      // 渲染矩陣表格
+      const tbody = document.getElementById('matrixTableBody');
+      tbody.innerHTML = "";
+
+      if (specs.length > 0) {
+        specs.forEach(sp => {
+          let displayName = sp.spec.replace("款式:", "").replace(" / 標準", "").trim();
+          tbody.innerHTML += `
+            <tr class="border-b border-taupe-border" data-key="${sp.spec}">
+              <td class="p-2 font-bold">${displayName}</td>
+              <td class="p-2"><input type="number" class="m-old w-full p-1 border border-taupe-border rounded text-xs" value="${sp.oldPrice || 0}"></td>
+              <td class="p-2"><input type="number" class="m-price w-full p-1 border border-taupe-border rounded text-xs font-bold text-taupe-crimson" value="${sp.price || 0}"></td>
+              <td class="p-2"><input type="number" class="m-stock w-full p-1 border border-taupe-border rounded text-xs" value="${sp.stock || 99}"></td>
+              <td class="p-2 text-center whitespace-nowrap">
+                <button type="button" onclick="moveMatrixRow(this, -1)" class="text-stone-500 hover:text-taupe-main font-bold px-1" title="上移">▲</button>
+                <button type="button" onclick="moveMatrixRow(this, 1)" class="text-stone-500 hover:text-taupe-main font-bold px-1" title="下移">▼</button>
+                <button type="button" onclick="this.closest('tr').remove()" class="text-rose-600 hover:text-rose-800 font-bold px-1.5" title="刪除">✕</button>
+              </td>
+            </tr>
+          `;
+        });
+      } else {
+        tbody.innerHTML = `
+          <tr class="border-b border-taupe-border" data-key="款式:單一規格 / 標準">
+            <td class="p-2 font-bold">單一規格</td>
+            <td class="p-2"><input type="number" class="m-old w-full p-1 border border-taupe-border rounded text-xs" value="${p.old_price || 0}"></td>
+            <td class="p-2"><input type="number" class="m-price w-full p-1 border border-taupe-border rounded text-xs font-bold text-taupe-crimson" value="${p.price || 0}"></td>
+            <td class="p-2"><input type="number" class="m-stock w-full p-1 border border-taupe-border rounded text-xs" value="99"></td>
+            <td class="p-2 text-center">
+              <button type="button" onclick="this.closest('tr').remove()" class="text-rose-600 hover:text-rose-800 font-bold px-1.5 py-0.5">✕ 刪除</button>
+            </td>
+          </tr>
+        `;
+      }
+
+      switchTab('uploadTab');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
     // 加入防抖計時器，避免每敲一個字就瘋狂重繪
 let matrixDebounceTimer = null;
 function debouncedRegenerateMatrix() {
@@ -2041,69 +2200,6 @@ async function pushProductChangeToMasterSheet(productPayload) {
       } catch(e) {
         showToast("批量更新異常：" + e.message);
       }
-    }
-
-    function editProduct(sku) {
-      let p = globalProducts.find(x => x.sku === sku);
-      if (!p) return;
-
-      document.getElementById('pSku').value = p.sku;
-      document.getElementById('pName').value = p.name;
-      document.getElementById('pStatus').value = p.status || '上架';
-      document.getElementById('pImgRatio').value = p.img_ratio || '1:1';
-      document.getElementById('pShowArrivalCheck').checked = (p.show_arrival_date !== false);
-      document.getElementById('pHideOldPriceCheck').checked = (p.hide_old_price === true);
-      document.getElementById('pMajorSelect').value = p.major_category || '韓國棉被';
-      syncSubCategoriesDropdown();
-      document.getElementById('pSubSelect').value = p.sub_category || '四季被';
-      document.getElementById('pTag').value = p.tag || '';
-      document.getElementById('pArrivalDate').value = p.arrival_date || '';
-      document.getElementById('pDesc').value = p.description || '';
-
-      currentUploadedImages = p.images ? p.images.split(/[\s,]+/).filter(Boolean) : [];
-      renderProductThumbnails();
-
-      const tbody = document.getElementById('matrixTableBody');
-      tbody.innerHTML = "";
-
-      let specs = p.specs_data || [];
-      if (typeof specs === 'string') {
-        try { specs = JSON.parse(specs); } catch(e) { specs = []; }
-      }
-
-      if (specs.length > 0) {
-        specs.forEach(sp => {
-          let displayName = sp.spec.replace("款式:", "").replace(" / 標準", "").trim();
-          tbody.innerHTML += `
-            <tr class="border-b border-taupe-border" data-key="${sp.spec}">
-              <td class="p-2 font-bold">${displayName}</td>
-              <td class="p-2"><input type="number" class="m-old w-full p-1 border border-taupe-border rounded text-xs" value="${sp.oldPrice || 0}"></td>
-              <td class="p-2"><input type="number" class="m-price w-full p-1 border border-taupe-border rounded text-xs font-bold text-taupe-crimson" value="${sp.price || 0}"></td>
-              <td class="p-2"><input type="number" class="m-stock w-full p-1 border border-taupe-border rounded text-xs" value="${sp.stock || 99}"></td>
-              <td class="p-2 text-center whitespace-nowrap">
-                <button type="button" onclick="moveMatrixRow(this, -1)" class="text-stone-500 hover:text-taupe-main font-bold px-1" title="上移">▲</button>
-                <button type="button" onclick="moveMatrixRow(this, 1)" class="text-stone-500 hover:text-taupe-main font-bold px-1" title="下移">▼</button>
-                <button type="button" onclick="this.closest('tr').remove()" class="text-rose-600 hover:text-rose-800 font-bold px-1.5" title="刪除">✕</button>
-              </td>
-            </tr>
-          `;
-        });
-      } else {
-        tbody.innerHTML = `
-          <tr class="border-b border-taupe-border" data-key="款式:單一規格 / 標準">
-            <td class="p-2 font-bold">單一規格</td>
-            <td class="p-2"><input type="number" class="m-old w-full p-1 border border-taupe-border rounded text-xs" value="${p.old_price || 0}"></td>
-            <td class="p-2"><input type="number" class="m-price w-full p-1 border border-taupe-border rounded text-xs font-bold text-taupe-crimson" value="${p.price || 0}"></td>
-            <td class="p-2"><input type="number" class="m-stock w-full p-1 border border-taupe-border rounded text-xs" value="99"></td>
-            <td class="p-2 text-center">
-              <button type="button" onclick="this.closest('tr').remove()" class="text-rose-600 hover:text-rose-800 font-bold px-1.5 py-0.5">✕ 刪除</button>
-            </td>
-          </tr>
-        `;
-      }
-
-      switchTab('uploadTab');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
   function moveMatrixRow(btn, dir) {
