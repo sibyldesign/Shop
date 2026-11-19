@@ -115,12 +115,16 @@
 
         <!-- 水平滑動分類標籤列 (Sticky Header) -->
         <!-- 水平滑動分類導航 (大分類頁籤 + 次分類橢圓膠囊鈕) -->
-        <div class="sticky top-[53px] z-30 py-2 -mx-4 px-4 bg-white/95 backdrop-blur-md border-b space-y-2 shadow-2xs" style="border-color: var(--theme-border);">
-          <!-- 第一層：大分類頁籤 (全部 / 韓國棉被 / 美業微工具) -->
+        <!-- 水平滑動分類導航 (支援三層階梯切換) -->
+        <div class="sticky top-[53px] z-30 py-2 -mx-4 px-4 bg-white/95 backdrop-blur-md border-b space-y-1.5 shadow-2xs" style="border-color: var(--theme-border);">
+          <!-- 第一層：大分類頁籤 (韓國棉被 / 美業微工具) -->
           <div id="majorCategoryTabsRow" class="flex gap-4 overflow-x-auto no-scrollbar border-b pb-1 text-xs font-bold" style="border-color: var(--theme-border);"></div>
           
-          <!-- 第二層：該大分類底下的次分類橢圓膠囊鈕 (四季被 / 春夏薄被 / 雙面絨冬被 / 床寢配件) -->
+          <!-- 第二層：次分類長條膠囊 (四季被 / 春夏薄被 / 雙面絨冬被...) -->
           <div id="categoryFilterBar" class="flex gap-2 overflow-x-auto no-scrollbar pt-0.5"></div>
+
+          <!-- 第三層：細分類小圓標籤 (點選次分類後自動展開細項，如 單人S / 雙人Q / 加大K) -->
+          <div id="leafCategoryFilterBar" class="flex gap-1.5 overflow-x-auto no-scrollbar pt-0.5 hidden"></div>
         </div>
 
         <!-- 全部分類商品網格 (手機 2 欄、電腦 4 欄，分類標籤在左上方) -->
@@ -1017,164 +1021,173 @@
       }).join('');
     }
 
-    // 4. 取得商品主檔
+    // 全域分類狀態維護 (預設聚焦韓國棉被，微工具依需求點選)
+    let currentMajorCategory = "韓國棉被";
+    let currentSubCategory = "全部";
+    let currentLeafCategory = "全部";
+
+    // 取得商品主檔 (固定順序 id.asc，載入後直接依預設分類過濾)
     async function fetchProducts() {
       try {
-        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_products?store_id=eq.${STORE_ID}&status=eq.上架&order=created_at.desc`, {
+        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_products?store_id=eq.${STORE_ID}&status=eq.上架&order=id.asc`, {
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
         });
         allProducts = await res.json();
-        filteredProducts = [...allProducts];
         renderCategoryFilterBar();
-        renderProductGrid();
+        applyProductFilters();
         renderPopularGrid();
-      } catch(e){}
+      } catch(e) {
+        console.error("商品載入失敗:", e);
+      }
     }
 
-    // 1. 預設呈現「韓國棉被」，隱藏微工具，只有點擊時才切換
-let currentMajorCategory = "韓國棉被";
-let currentSubCategory = "全部";
+/**
+ * 依據後台「可視化分類樹」渲染第一層大分類、第二層次分類、第三層細分類
+ */
+function renderCategoryFilterBar() {
+  const majorRow = document.getElementById('majorCategoryTabsRow');
+  const subRow = document.getElementById('categoryFilterBar');
+  const leafRow = document.getElementById('leafCategoryFilterBar');
+  const detailBar = document.getElementById('detailCategoryPillsRow');
+  const drawerList = document.getElementById('drawerCategoriesList');
 
-// 2. 前台商品讀取同樣固定順序 (id.asc)
-async function fetchProducts() {
-  try {
-    let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_products?store_id=eq.${STORE_ID}&status=eq.上架&order=id.asc`, {
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
-    });
-    allProducts = await res.json();
-    renderCategoryFilterBar();
-    applyProductFilters(); // 載入後直接套用預設的「韓國棉被」過濾
-    renderPopularGrid();
-  } catch(e){}
+  // 1. 取得大分類清單 (以 categoryTree 樹狀排序為主)
+  let majorList = [];
+  if (categoryTree && categoryTree.length > 0) {
+    majorList = categoryTree.map(m => m.name);
+  } else {
+    majorList = ["韓國棉被", "美業微工具"];
+  }
+
+  // 渲染第一層：大分類頁籤
+  if (majorRow) {
+    majorRow.innerHTML = majorList.map(m => `
+      <button type="button" onclick="selectMajorCategory('${m}')" class="whitespace-nowrap pb-1 transition ${m === currentMajorCategory ? 'theme-text-primary border-b-2 theme-border-primary font-bold' : 'text-stone-400 hover:text-stone-700 font-medium'}">
+        ${m}
+      </button>
+    `).join('');
+  }
+
+  // 2. 取得次分類清單
+  let matchedMajor = categoryTree.find(m => m.name === currentMajorCategory);
+  let subList = ["全部"];
+  if (matchedMajor && matchedMajor.children && matchedMajor.children.length > 0) {
+    matchedMajor.children.forEach(s => subList.push(s.name));
+  }
+
+  // 渲染第二層：次分類橢圓膠囊
+  if (subRow) {
+    subRow.innerHTML = subList.map(s => `
+      <button type="button" onclick="selectSubCategory('${s}', this)" class="cat-pill px-3.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition ${s === currentSubCategory ? 'theme-btn-primary font-bold shadow-xs' : 'bg-white text-stone-600 border'}" style="border-color: var(--theme-border);">
+        ${s}
+      </button>
+    `).join('');
+  }
+
+  // 3. 取得第三層：細分類小標籤 (僅在選取具體次分類且有子項目時展開)
+  if (leafRow) {
+    let matchedSub = (matchedMajor && matchedMajor.children) 
+      ? matchedMajor.children.find(s => s.name === currentSubCategory) 
+      : null;
+
+    if (matchedSub && matchedSub.children && matchedSub.children.length > 0) {
+      let leafList = ["全部", ...matchedSub.children.map(l => l.name)];
+      leafRow.classList.remove('hidden');
+      leafRow.innerHTML = leafList.map(l => `
+        <button type="button" onclick="selectLeafCategory('${l}', this)" class="leaf-pill px-2.5 py-0.5 rounded-md text-[11px] whitespace-nowrap transition ${l === currentLeafCategory ? 'bg-stone-800 text-white font-bold' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}">
+          ${l}
+        </button>
+      `).join('');
+    } else {
+      leafRow.classList.add('hidden');
+      currentLeafCategory = "全部";
+    }
+  }
+
+  // 4. 商品詳情頁置頂橢圓分類切換列
+  if (detailBar) {
+    detailBar.innerHTML = subList.map(s => `
+      <button type="button" onclick="switchCategoryFromDetail('${s}')" class="detail-cat-pill px-3.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition bg-white text-stone-700 border hover:border-stone-400" style="border-color: var(--theme-border);">
+        ${s}
+      </button>
+    `).join('');
+  }
+
+  // 5. 側邊漢堡抽屜分類清單
+  if (drawerList) {
+    drawerList.innerHTML = majorList.map(m => `
+      <div onclick="selectMajorCategory('${m}'); toggleSideDrawer(false);" class="cursor-pointer py-1.5 font-bold text-stone-800 hover:opacity-75 transition">
+        ${m}
+      </div>
+    `).join('');
+  }
 }
 
-    // ⭐️ 核心：嚴格依據後台「可視化分類樹」順序呈現大分類與次分類
-    function renderCategoryFilterBar() {
-      const majorRow = document.getElementById('majorCategoryTabsRow');
-      const subRow = document.getElementById('categoryFilterBar');
-      const detailBar = document.getElementById('detailCategoryPillsRow');
-      const drawerList = document.getElementById('drawerCategoriesList');
+function selectMajorCategory(m, skipPushState = false) {
+  currentMajorCategory = m;
+  currentSubCategory = "全部";
+  currentLeafCategory = "全部";
+  renderCategoryFilterBar();
+  applyProductFilters();
+  syncCategoryUrl(skipPushState);
+}
 
-      // 1. 取得大分類清單 (以 categoryTree 為主)
-      let majorList = ["全部"];
-      if (categoryTree && categoryTree.length > 0) {
-        categoryTree.forEach(m => {
-          if (m.name && !majorList.includes(m.name)) majorList.push(m.name);
-        });
-      } else {
-        let majorsFromProd = [...new Set(allProducts.map(p => p.major_category).filter(Boolean))];
-        majorList = ["全部", ...majorsFromProd];
-      }
+function selectSubCategory(s, btn, skipPushState = false) {
+  currentSubCategory = s;
+  currentLeafCategory = "全部";
+  renderCategoryFilterBar();
+  applyProductFilters();
+  syncCategoryUrl(skipPushState);
+}
 
-      // 渲染大分類頁籤
-      if (majorRow) {
-        majorRow.innerHTML = majorList.map(m => `
-          <button type="button" onclick="selectMajorCategory('${m}')" class="whitespace-nowrap pb-1 transition ${m === currentMajorCategory ? 'theme-text-primary border-b-2 theme-border-primary font-bold' : 'text-stone-400 hover:text-stone-700 font-medium'}">
-            ${m}
-          </button>
-        `).join('');
-      }
+function selectLeafCategory(l, btn, skipPushState = false) {
+  currentLeafCategory = l;
+  document.querySelectorAll('.leaf-pill').forEach(b => {
+    b.className = "leaf-pill px-2.5 py-0.5 rounded-md text-[11px] whitespace-nowrap transition bg-stone-100 text-stone-500";
+  });
+  if (btn) btn.className = "leaf-pill px-2.5 py-0.5 rounded-md text-[11px] whitespace-nowrap transition bg-stone-800 text-white font-bold";
+  applyProductFilters();
+  syncCategoryUrl(skipPushState);
+}
 
-      // 2. 取得次分類清單
-      let subList = ["全部"];
-      if (currentMajorCategory === "全部") {
-        if (categoryTree && categoryTree.length > 0) {
-          categoryTree.forEach(m => {
-            (m.children || []).forEach(s => { if (!subList.includes(s.name)) subList.push(s.name); });
-          });
-        } else {
-          let subs = [...new Set(allProducts.map(p => p.sub_category).filter(Boolean))];
-          subList = ["全部", ...subs];
-        }
-      } else {
-        let matchedMajor = categoryTree.find(m => m.name === currentMajorCategory);
-        if (matchedMajor && matchedMajor.children) {
-          matchedMajor.children.forEach(s => subList.push(s.name));
-        } else {
-          let subs = [...new Set(allProducts.filter(p => p.major_category === currentMajorCategory).map(p => p.sub_category).filter(Boolean))];
-          subList = ["全部", ...subs];
-        }
-      }
+function filterByCategory(cat, btn) {
+  selectSubCategory(cat, btn, false);
+}
 
-      // 渲染次分類橢圓鈕
-      if (subRow) {
-        subRow.innerHTML = subList.map(s => `
-          <button type="button" onclick="selectSubCategory('${s}', this)" class="cat-pill px-3.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition ${s === currentSubCategory ? 'theme-btn-primary font-bold shadow-xs' : 'bg-white text-stone-600 border'}" style="border-color: var(--theme-border);">
-            ${s}
-          </button>
-        `).join('');
-      }
+function applyProductFilters() {
+  filteredProducts = allProducts.filter(p => {
+    let matchMajor = (currentMajorCategory === "全部") || (p.major_category === currentMajorCategory);
+    let matchSub = (currentSubCategory === "全部") || (p.sub_category === currentSubCategory);
+    let matchLeaf = (currentLeafCategory === "全部") || (p.leaf_category === currentLeafCategory);
+    return matchMajor && matchSub && matchLeaf;
+  });
 
-      // 渲染商品頁橢圓分類切換鈕
-      if (detailBar) {
-        detailBar.innerHTML = subList.map(s => `
-          <button type="button" onclick="switchCategoryFromDetail('${s}')" class="detail-cat-pill px-3.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition bg-white text-stone-700 border hover:border-stone-400" style="border-color: var(--theme-border);">
-            ${s}
-          </button>
-        `).join('');
-      }
+  // 動態組裝專區標題 (如：韓國棉被 ➔ 四季被 ➔ 單人S)
+  let titleParts = [currentMajorCategory];
+  if (currentSubCategory !== "全部") titleParts.push(currentSubCategory);
+  if (currentLeafCategory !== "全部") titleParts.push(currentLeafCategory);
+  
+  const titleEl = document.getElementById('catalogSectionTitle');
+  if (titleEl) titleEl.innerText = titleParts.join(' ➔ ');
 
-      // 側邊抽屜
-      if (drawerList) {
-        drawerList.innerHTML = majorList.filter(m => m !== '全部').map(m => `
-          <div onclick="selectMajorCategory('${m}'); toggleSideDrawer(false);" class="cursor-pointer py-1.5 font-bold text-stone-800 hover:opacity-75">
-            ${m}
-          </div>
-        `).join('');
-      }
-    }
+  renderProductGrid();
+}
 
-    function syncCategoryUrl(skipPushState = false) {
-      if (skipPushState) return;
-      let url = new URL(window.location.origin + window.location.pathname);
-      if (currentMajorCategory && currentMajorCategory !== "全部") {
-        url.searchParams.set('major', currentMajorCategory);
-      }
-      if (currentSubCategory && currentSubCategory !== "全部") {
-        url.searchParams.set('cat', currentSubCategory);
-      }
-      window.history.pushState({}, '', url);
-    }
-
-    function selectMajorCategory(m, skipPushState = false) {
-      currentMajorCategory = m;
-      currentSubCategory = "全部";
-      renderCategoryFilterBar();
-      applyProductFilters();
-      syncCategoryUrl(skipPushState);
-    }
-
-    function selectSubCategory(s, btn, skipPushState = false) {
-      currentSubCategory = s;
-      document.querySelectorAll('.cat-pill').forEach(b => {
-        b.className = "cat-pill px-3.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition bg-white text-stone-600 border";
-        b.style.borderColor = "var(--theme-border)";
-      });
-      if (btn) btn.className = "cat-pill px-3.5 py-1 rounded-full text-xs font-bold whitespace-nowrap transition theme-btn-primary shadow-xs";
-      
-      syncCategoryUrl(skipPushState);
-      applyProductFilters();
-    }
-
-    function filterByCategory(cat, btn) {
-      currentSubCategory = cat;
-      selectSubCategory(cat, btn, false);
-    }
+function syncCategoryUrl(skipPushState = false) {
+  if (skipPushState) return;
+  let url = new URL(window.location.origin + window.location.pathname);
+  if (currentMajorCategory && currentMajorCategory !== "全部") {
+    url.searchParams.set('major', currentMajorCategory);
+  }
+  if (currentSubCategory && currentSubCategory !== "全部") {
+    url.searchParams.set('cat', currentSubCategory);
+  }
+  if (currentLeafCategory && currentLeafCategory !== "全部") {
+    url.searchParams.set('leaf', currentLeafCategory);
+  }
+  window.history.pushState({}, '', url);
+}
     
-    function applyProductFilters() {
-      filteredProducts = allProducts.filter(p => {
-        let matchMajor = (currentMajorCategory === "全部") || (p.major_category === currentMajorCategory);
-        let matchSub = (currentSubCategory === "全部") || (p.sub_category === currentSubCategory);
-        return matchMajor && matchSub;
-      });
-
-      let title = "全部分類商品";
-      if (currentMajorCategory !== "全部") title = currentMajorCategory;
-      if (currentSubCategory !== "全部") title += ` ➔ ${currentSubCategory}`;
-      document.getElementById('catalogSectionTitle').innerText = title;
-      renderProductGrid();
-    }
-
     // 商品頁分類鈕跳轉回首頁
     function switchCategoryFromDetail(cat) {
       closeProductDetailPage();
@@ -1382,8 +1395,7 @@ async function fetchProducts() {
         </div>
       `).join('');
     }
-    // ==================== 5. 獨立商品全頁面 View ====================
-    // ==================== 5. 獨立商品全頁面 View (徹底修復資料空白 Bug) ====================
+
     // ==================== 5. 獨立商品全頁面 View (100% 防呆解析修復) ====================
     function openProductDetailPage(sku, skipPushState = false) {
       if (!sku) return;
@@ -1491,40 +1503,46 @@ async function fetchProducts() {
       }
       p.specs_data = parsedSpecs; // 確保放回物件中一定是陣列
 
-      // 8. 款式規格安全拆解
+      // 8. 款式規格拆解
       let colors = [];
+      let sizes = [];
       if (parsedSpecs.length > 0) {
         colors = [...new Set(parsedSpecs.map(s => {
           let specStr = (s && s.spec) ? s.spec : '';
           return specStr.split('/')[0].replace('款式:', '').trim();
         }).filter(Boolean))];
+
+        sizes = [...new Set(parsedSpecs.map(s => {
+          let specStr = (s && s.spec) ? s.spec : '';
+          let part2 = specStr.split('/')[1] ? specStr.split('/')[1].trim() : '';
+          return (part2 && part2 !== '標準') ? part2 : '';
+        }).filter(Boolean))];
       }
-      if (colors.length === 0) colors = ["單一款式"];
+      
+      if (colors.length === 0) colors = ["單一規格"];
       detailColor = colors[0];
 
       const colorBox = document.getElementById('detailColorOptions');
       if (colorBox) {
         colorBox.innerHTML = colors.map((c, idx) => `
-          <button type="button" onclick="selectDetailColor('${c}', this)" class="spec-btn px-3.5 py-1.5 rounded-xl border text-xs font-bold transition shadow-2xs ${idx === 0 ? 'theme-btn-primary shadow-xs' : 'bg-white text-stone-700'}" style="border-color: var(--theme-border);">${c}</button>
+          <button type="button" onclick="selectDetailColor('${encodeURIComponent(c)}', this)" class="spec-btn px-3.5 py-1.5 rounded-xl border text-xs font-bold transition shadow-2xs ${idx === 0 ? 'theme-btn-primary shadow-xs' : 'bg-white text-stone-700'}" style="border-color: var(--theme-border);">${c}</button>
         `).join('');
       }
 
-      // 9. 尺寸規格安全拆解
-      let sizes = [];
-      if (parsedSpecs.length > 0) {
-        sizes = [...new Set(parsedSpecs.map(s => {
-          let specStr = (s && s.spec) ? s.spec : '';
-          return specStr.split('/')[1] ? specStr.split('/')[1].trim() : '標準規格';
-        }).filter(Boolean))];
-      }
-      if (sizes.length === 0) sizes = ["單一規格"];
-      detailSize = sizes[0];
-
+      // 9. 第二規格拆解 (若無顏色/配件等次規格則整塊隱藏)
+      const sizeBlock = document.getElementById('sizeBlock');
       const sizeBox = document.getElementById('detailSizeOptions');
-      if (sizeBox) {
-        sizeBox.innerHTML = sizes.map((s, idx) => `
-          <button type="button" onclick="selectDetailSize('${s}', this)" class="spec-size-btn px-3.5 py-1.5 rounded-xl border text-xs font-bold transition shadow-2xs ${idx === 0 ? 'theme-btn-primary shadow-xs' : 'bg-white text-stone-700'}" style="border-color: var(--theme-border);">${s}</button>
-        `).join('');
+      if (sizes.length > 0) {
+        detailSize = sizes[0];
+        if (sizeBlock) sizeBlock.classList.remove('hidden');
+        if (sizeBox) {
+          sizeBox.innerHTML = sizes.map((s, idx) => `
+            <button type="button" onclick="selectDetailSize('${encodeURIComponent(s)}', this)" class="spec-size-btn px-3.5 py-1.5 rounded-xl border text-xs font-bold transition shadow-2xs ${idx === 0 ? 'theme-btn-primary shadow-xs' : 'bg-white text-stone-700'}" style="border-color: var(--theme-border);">${s}</button>
+          `).join('');
+        }
+      } else {
+        detailSize = "標準";
+        if (sizeBlock) sizeBlock.classList.add('hidden');
       }
 
       updateDetailHeartUI();
@@ -1655,8 +1673,8 @@ async function fetchProducts() {
     }
 
     // 規格選項點選高亮 (轉為主題色底色 + 純白字)
-    function selectDetailColor(c, el) {
-      detailColor = c;
+    function selectDetailColor(encodedC, el) {
+      detailColor = decodeURIComponent(encodedC);
       document.querySelectorAll('.spec-btn').forEach(b => {
         b.className = "spec-btn px-3.5 py-1.5 rounded-xl border text-xs font-bold transition shadow-2xs bg-white text-stone-700";
         b.style.borderColor = "var(--theme-border)";
@@ -1665,8 +1683,8 @@ async function fetchProducts() {
       syncDetailPrice();
     }
 
-    function selectDetailSize(s, el) {
-      detailSize = s;
+    function selectDetailSize(encodedS, el) {
+      detailSize = decodeURIComponent(encodedS);
       document.querySelectorAll('.spec-size-btn').forEach(b => {
         b.className = "spec-size-btn px-3.5 py-1.5 rounded-xl border text-xs font-bold transition shadow-2xs bg-white text-stone-700";
         b.style.borderColor = "var(--theme-border)";
