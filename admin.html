@@ -176,7 +176,7 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <div>
           <label class="text-xs font-bold text-stone-500 block mb-1">上架狀態</label>
           <select id="pStatus" class="w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas">
@@ -185,19 +185,23 @@
           </select>
         </div>
         <div>
-          <label class="text-xs font-bold text-stone-500 block mb-1">圖片展示比例</label>
+          <label class="text-xs font-bold text-stone-500 block mb-1">圖片比例</label>
           <select id="pImgRatio" class="w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas">
-            <option value="1:1">1:1 正方形 (適用寢居、配件)</option>
-            <option value="4:6">4:6 直式長框 (適用服飾、全身穿搭)</option>
+            <option value="1:1">1:1 正方形</option>
+            <option value="4:6">4:6 直式長框</option>
           </select>
         </div>
         <div>
-          <label class="text-xs font-bold text-stone-500 block mb-1">主分類</label>
+          <label class="text-xs font-bold text-stone-500 block mb-1">第一層 (主分類)</label>
           <select id="pMajorSelect" onchange="syncSubCategoriesDropdown()" class="w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas"></select>
         </div>
         <div>
-          <label class="text-xs font-bold text-stone-500 block mb-1">次分類</label>
-          <select id="pSubSelect" class="w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas"></select>
+          <label class="text-xs font-bold text-stone-500 block mb-1">第二層 (次分類)</label>
+          <select id="pSubSelect" onchange="syncLeafCategoriesDropdown()" class="w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas"></select>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-stone-500 block mb-1">第三層 (細分類)</label>
+          <select id="pLeafSelect" class="w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas"></select>
         </div>
       </div>
 
@@ -1240,6 +1244,7 @@
 
     function syncProductCategoryDropdowns() {
       const majSel = document.getElementById('pMajorSelect');
+      if (!majSel) return;
       majSel.innerHTML = visualCategoryTree.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
       syncSubCategoriesDropdown();
     }
@@ -1247,11 +1252,30 @@
     function syncSubCategoriesDropdown() {
       const curMaj = document.getElementById('pMajorSelect').value;
       const subSel = document.getElementById('pSubSelect');
+      if (!subSel) return;
       let m = visualCategoryTree.find(x => x.name === curMaj);
       if (m && m.children && m.children.length > 0) {
         subSel.innerHTML = m.children.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
       } else {
-        subSel.innerHTML = `<option value="">通用</option>`;
+        subSel.innerHTML = `<option value="">全部</option>`;
+      }
+      syncLeafCategoriesDropdown();
+    }
+
+    // ⭐️ 新增：第三層細分類動態聯動
+    function syncLeafCategoriesDropdown() {
+      const curMaj = document.getElementById('pMajorSelect').value;
+      const curSub = document.getElementById('pSubSelect').value;
+      const leafSel = document.getElementById('pLeafSelect');
+      if (!leafSel) return;
+
+      let m = visualCategoryTree.find(x => x.name === curMaj);
+      let s = m && m.children ? m.children.find(x => x.name === curSub) : null;
+
+      if (s && s.children && s.children.length > 0) {
+        leafSel.innerHTML = `<option value="">全部細分類</option>` + s.children.map(l => `<option value="${l.name}">${l.name}</option>`).join('');
+      } else {
+        leafSel.innerHTML = `<option value="">無</option>`;
       }
     }
 
@@ -1687,8 +1711,10 @@
       document.getElementById('pShowArrivalCheck').checked = (p.show_arrival_date !== false);
       document.getElementById('pHideOldPriceCheck').checked = (p.hide_old_price === true);
       document.getElementById('pMajorSelect').value = p.major_category || '韓國棉被';
-      syncSubCategoriesDropdown();
-      document.getElementById('pSubSelect').value = p.sub_category || '四季被';
+    syncSubCategoriesDropdown();
+    document.getElementById('pSubSelect').value = p.sub_category || '';
+    syncLeafCategoriesDropdown();
+    document.getElementById('pLeafSelect').value = p.leaf_category || '';
       document.getElementById('pTag').value = p.tag || '';
       document.getElementById('pArrivalDate').value = p.arrival_date || '';
       document.getElementById('pDesc').value = p.description || '';
@@ -1906,6 +1932,7 @@ async function publishProduct() {
     name: name,
     status: document.getElementById('pStatus').value,
     img_ratio: document.getElementById('pImgRatio').value,
+    leaf_category: document.getElementById('pLeafSelect')?.value || '',
     show_arrival_date: document.getElementById('pShowArrivalCheck').checked,
     hide_old_price: document.getElementById('pHideOldPriceCheck').checked,
     major_category: document.getElementById('pMajorSelect').value,
@@ -2011,93 +2038,96 @@ async function pushProductChangeToMasterSheet(productPayload) {
     }
 
     function renderInventoryTable() {
-      const tbody = document.getElementById('inventoryTableBody');
-      if (!tbody) return;
-      tbody.innerHTML = "";
-      
-      let totalPages = Math.ceil(filteredProducts.length / invPageSize) || 1;
-      const pagText = document.getElementById('invPaginationText');
-      if (pagText) {
-        pagText.innerText = `第 ${invPage} 頁，共 ${totalPages} 頁 (總計 ${filteredProducts.length} 款商品)`;
-      }
+  const tbody = document.getElementById('inventoryTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = "";
+  
+  let totalPages = Math.ceil(filteredProducts.length / invPageSize) || 1;
+  const pagText = document.getElementById('invPaginationText');
+  if (pagText) {
+    pagText.innerText = `第 ${invPage} 頁，共 ${totalPages} 頁 (總計 ${filteredProducts.length} 款商品)`;
+  }
 
-      // 渲染 [上一頁] [1] [2] [3]... [下一頁]
-      const btnRow = document.getElementById('invPaginationButtonsRow');
-      if (btnRow) {
-        let btnsHtml = `
-          <button type="button" onclick="changeInvPage(-1)" ${invPage === 1 ? 'disabled class="px-2.5 py-1 bg-stone-50 text-stone-300 rounded border border-stone-200 cursor-not-allowed"' : 'class="px-2.5 py-1 bg-white hover:bg-stone-100 text-stone-700 rounded border border-taupe-border"'}>
-            上一頁
-          </button>
-        `;
+  // 渲染分頁列：[上一頁] [1] [2] [3]... [下一頁]
+  const btnRow = document.getElementById('invPaginationButtonsRow');
+  if (btnRow) {
+    let btnsHtml = `
+      <button type="button" onclick="changeInvPage(-1)" ${invPage === 1 ? 'disabled class="px-2.5 py-1 bg-stone-50 text-stone-300 rounded border border-stone-200 cursor-not-allowed"' : 'class="px-2.5 py-1 bg-white hover:bg-stone-100 text-stone-700 rounded border border-taupe-border"'}>
+        上一頁
+      </button>
+    `;
 
-        for (let p = 1; p <= totalPages; p++) {
-          let isActive = (p === invPage);
-          btnsHtml += `
-            <button type="button" onclick="goToInvPage(${p})" class="w-7 h-7 rounded text-xs font-bold transition ${isActive ? 'bg-taupe-main text-white shadow-xs' : 'bg-white hover:bg-stone-100 text-stone-700 border border-taupe-border'}">
-              ${p}
-            </button>
-          `;
-        }
-
-        btnsHtml += `
-          <button type="button" onclick="changeInvPage(1)" ${invPage === totalPages ? 'disabled class="px-2.5 py-1 bg-stone-50 text-stone-300 rounded border border-stone-200 cursor-not-allowed"' : 'class="px-2.5 py-1 bg-white hover:bg-stone-100 text-stone-700 rounded border border-taupe-border"'}>
-            下一頁
-          </button>
-        `;
-        btnRow.innerHTML = btnsHtml;
-      }
-
-      let start = (invPage - 1) * invPageSize;
-      let paged = filteredProducts.slice(start, start + invPageSize);
-
-      if (paged.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-stone-400">目前尚無任何商品資料</td></tr>`;
-        return;
-      }
-
-      paged.forEach((p, idx) => {
-      let firstImg = p.images ? p.images.split(/[\s,]+/)[0] : 'https://via.placeholder.com/60';
-      let isChecked = selectedInventorySkus[p.sku] ? "checked" : "";
-      let isOnline = (p.status === '上架');
-      
-      // ⭐️ 倒數計算序號：第一頁第一筆是最新最大號，最後一頁最後一筆一定是 #01
-      let rawNo = filteredProducts.length - (start + idx);
-      let serialNo = String(rawNo).padStart(2, '0');
-
-      tbody.innerHTML += `
-        <tr class="hover:bg-taupe-canvas text-xs">
-          <td class="p-3 text-center">
-            <input type="checkbox" class="inv-chk accent-taupe-main" value="${p.sku}" ${isChecked} onchange="handleInventoryCheck(this, '${p.sku}')">
-          </td>
-          <!-- 倒數固定序號 (例如 #50 ... #02, #01) -->
-          <td class="p-3 text-center font-mono text-stone-400 font-bold">
-            #${serialNo}
-          </td>
-          <td class="p-3">
-            <div class="w-12 h-12 aspect-square rounded-lg overflow-hidden border border-taupe-border shrink-0 bg-stone-100">
-              <img src="${firstImg}" class="w-full h-full object-cover">
-            </div>
-          </td>
-          <td class="p-3 font-mono font-bold">${p.sku}</td>
-          <td class="p-3 font-medium">${p.name}</td>
-          <td class="p-3">${p.major_category || ''} / ${p.sub_category || ''}</td>
-          <td class="p-3 font-bold text-taupe-crimson font-mono whitespace-nowrap">${getAdminPriceRangeText(p)}</td>
-          <td class="p-3">
-            <button type="button" onclick="toggleSingleProductStatus('${p.sku}', '${isOnline ? '下架' : '上架'}')" class="px-2.5 py-1 rounded-full text-[10.5px] font-bold border transition ${isOnline ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100' : 'bg-stone-100 text-stone-500 border-stone-200 hover:bg-stone-200'}">
-              ${p.status || '上架'}
-            </button>
-          </td>
-          <td class="p-3 text-center whitespace-nowrap">
-            <div class="flex items-center justify-center gap-2">
-              <button type="button" onclick="editProduct('${p.sku}')" class="px-2.5 py-1.5 rounded-lg bg-taupe-light text-taupe-dark font-bold border border-taupe-border">編輯</button>
-              <button type="button" onclick="duplicateProduct('${p.sku}')" class="px-2.5 py-1.5 rounded-lg bg-sky-50 text-sky-700 font-bold border border-sky-200">複製</button>
-              <button type="button" onclick="deleteSingleProductPrompt('${p.sku}')" class="px-2.5 py-1.5 rounded-lg bg-rose-50 text-rose-600 font-bold border border-rose-200">刪除</button>
-            </div>
-          </td>
-        </tr>
+    for (let p = 1; p <= totalPages; p++) {
+      let isActive = (p === invPage);
+      btnsHtml += `
+        <button type="button" onclick="goToInvPage(${p})" class="w-7 h-7 rounded text-xs font-bold transition ${isActive ? 'bg-taupe-main text-white shadow-xs' : 'bg-white hover:bg-stone-100 text-stone-700 border border-taupe-border'}">
+          ${p}
+        </button>
       `;
-    });
     }
+
+    btnsHtml += `
+      <button type="button" onclick="changeInvPage(1)" ${invPage === totalPages ? 'disabled class="px-2.5 py-1 bg-stone-50 text-stone-300 rounded border border-stone-200 cursor-not-allowed"' : 'class="px-2.5 py-1 bg-white hover:bg-stone-100 text-stone-700 rounded border border-taupe-border"'}>
+        下一頁
+      </button>
+    `;
+    btnRow.innerHTML = btnsHtml;
+  }
+
+  let start = (invPage - 1) * invPageSize;
+  let paged = filteredProducts.slice(start, start + invPageSize);
+
+  if (paged.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-stone-400">目前尚無任何商品資料</td></tr>`;
+    return;
+  }
+
+  paged.forEach((p, idx) => {
+    let firstImg = p.images ? p.images.split(/[\s,]+/)[0] : 'https://via.placeholder.com/60';
+    let isChecked = selectedInventorySkus[p.sku] ? "checked" : "";
+    let isOnline = (p.status === '上架');
+    
+    // 倒數序號：第一頁第一筆為最大號，最後一頁最後一筆固定為 #01
+    let rawNo = filteredProducts.length - (start + idx);
+    let serialNo = String(rawNo).padStart(2, '0');
+
+    // 整合三層分類路徑顯示 (主分類 / 次分類 / 細分類)
+    let catPath = [p.major_category, p.sub_category, p.leaf_category].filter(Boolean).join(' / ') || '未分類';
+
+    tbody.innerHTML += `
+      <tr class="hover:bg-taupe-canvas text-xs transition">
+        <td class="p-3 text-center">
+          <input type="checkbox" class="inv-chk accent-taupe-main" value="${p.sku}" ${isChecked} onchange="handleInventoryCheck(this, '${p.sku}')">
+        </td>
+        <!-- 倒數固定序號 -->
+        <td class="p-3 text-center font-mono text-stone-400 font-bold whitespace-nowrap">
+          #${serialNo}
+        </td>
+        <td class="p-3">
+          <div class="w-12 h-12 aspect-square rounded-lg overflow-hidden border border-taupe-border shrink-0 bg-stone-100">
+            <img src="${firstImg}" class="w-full h-full object-cover">
+          </div>
+        </td>
+        <td class="p-3 font-mono font-bold whitespace-nowrap">${p.sku}</td>
+        <td class="p-3 font-medium text-stone-800">${p.name}</td>
+        <td class="p-3 text-stone-600">${catPath}</td>
+        <td class="p-3 font-bold text-taupe-crimson font-mono whitespace-nowrap">${getAdminPriceRangeText(p)}</td>
+        <td class="p-3">
+          <button type="button" onclick="toggleSingleProductStatus('${p.sku}', '${isOnline ? '下架' : '上架'}')" class="px-2.5 py-1 rounded-full text-[10.5px] font-bold border transition ${isOnline ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100' : 'bg-stone-100 text-stone-500 border-stone-200 hover:bg-stone-200'}">
+            ${p.status || '上架'}
+          </button>
+        </td>
+        <td class="p-3 text-center whitespace-nowrap">
+          <div class="flex items-center justify-center gap-1.5">
+            <button type="button" onclick="editProduct('${p.sku}')" class="px-2.5 py-1.5 rounded-lg bg-taupe-light text-taupe-dark font-bold border border-taupe-border hover:bg-taupe-sand transition">編輯</button>
+            <button type="button" onclick="duplicateProduct('${p.sku}')" class="px-2.5 py-1.5 rounded-lg bg-sky-50 text-sky-700 font-bold border border-sky-200 hover:bg-sky-100 transition">複製</button>
+            <button type="button" onclick="deleteSingleProductPrompt('${p.sku}')" class="px-2.5 py-1.5 rounded-lg bg-rose-50 text-rose-600 font-bold border border-rose-200 hover:bg-rose-100 transition">刪除</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  });
+}
   
   function duplicateProduct(sku) {
       editProduct(sku); // 先載入原商品資料
