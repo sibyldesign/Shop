@@ -1580,26 +1580,39 @@
     }
 
     // 點擊「⚡️ 生成／更新定價矩陣」時觸發，完整記憶已填價格
-    // 點擊「⚡️ 生成／更新定價矩陣」時觸發
+    // 點擊「⚡️ 生成／更新定價矩陣」時觸發 (具備主款式價格智慧繼承)
     function generateMatrixFromGroups() {
       const tbody = document.getElementById('matrixTableBody');
       if (!tbody) return;
 
-      // 備份現有已填寫之數值與自訂名稱
-      let existingValues = {};
+      // 1. 深度備份目前畫面上的數值：建立「完整Key」、「組合名稱」與「主款式繼承庫」
+      let exactValues = {};  // 精準完全比對
+      let labelValues = {};  // 顯示名稱比對
+      let styleValues = {};  // ⭐️ 主款式價格庫：只要同屬「四季被 S」，新顏色自動繼承價格！
+
       tbody.querySelectorAll('tr').forEach(row => {
-        let key = row.dataset.key;
-        if (key) {
-          existingValues[key] = {
-            label: row.querySelector('.m-name')?.value || '',
-            old: row.querySelector('.m-old')?.value || '0',
-            price: row.querySelector('.m-price')?.value || '',
-            stock: row.querySelector('.m-stock')?.value || '99'
-          };
+        let key = row.dataset.key || '';
+        let label = row.querySelector('.m-name')?.value.trim() || '';
+        let oldVal = row.querySelector('.m-old')?.value || '0';
+        let priceVal = row.querySelector('.m-price')?.value || '';
+        let stockVal = row.querySelector('.m-stock')?.value || '99';
+
+        let rowData = { label: label, old: oldVal, price: priceVal, stock: stockVal };
+
+        if (key) exactValues[key] = rowData;
+        if (label) labelValues[label] = rowData;
+
+        // 提取主款式名稱 (斜線前半段，去除「款式:」)
+        let mainStyle = label.split('/')[0].trim();
+        if (!mainStyle && key) {
+          mainStyle = key.replace('款式:', '').split('/')[0].trim();
+        }
+        if (mainStyle && priceVal) {
+          styleValues[mainStyle] = { old: oldVal, price: priceVal, stock: stockVal };
         }
       });
 
-      // 僅使用逗號與頓號切割，保留括號與尺寸內部空格
+      // 2. 僅使用「逗號 (英中)」、「頓號」分隔，絕不切碎括號與尺寸內空格
       let groups = [];
       document.querySelectorAll('.spec-group-input').forEach(inp => {
         let items = inp.value.split(/[,，、]+/).map(s => s.trim()).filter(Boolean);
@@ -1608,6 +1621,7 @@
 
       if (groups.length === 0) groups = [["單一規格"]];
 
+      // 3. 笛卡爾積組合計算
       let combos = groups.reduce((acc, curr) => {
         let res = [];
         acc.forEach(a => curr.forEach(b => res.push(a.concat(b))));
@@ -1616,28 +1630,38 @@
 
       tbody.innerHTML = "";
 
+      // 4. 生成表格：智慧依序比對 (完全吻合 > 顯示標籤吻合 > 主款式繼承)
       combos.forEach(comboArr => {
         let defaultLabel = comboArr.join(' / ');
+        let mainStyleName = comboArr[0].trim(); // 例如 "四季被 S (160*210)"
         let storageKey = comboArr.length >= 2 
           ? `款式:${comboArr[0]} / ${comboArr.slice(1).join('-')}` 
           : `款式:${comboArr[0]} / 標準`;
 
-        let saved = existingValues[storageKey] || { label: defaultLabel, old: '0', price: '', stock: '99' };
-        let finalDisplayLabel = saved.label || defaultLabel;
+        // ⭐️ 核心三階匹配繼承：
+        // 優先 1：曾填過完全相同的規格 (如之前就填過 四季被 S / 藍)
+        // 優先 2：標籤名稱相符
+        // 優先 3：自動繼承母款式價格 (如原本 四季被 S 填過 2880/2400，新加的「藍、粉」全部自動帶入 2880/2400！)
+        let inherited = exactValues[storageKey] || 
+                        labelValues[defaultLabel] || 
+                        styleValues[mainStyleName] || 
+                        { label: defaultLabel, old: '0', price: '', stock: '99' };
+
+        let displayLabel = defaultLabel;
 
         tbody.innerHTML += `
           <tr class="border-b border-taupe-border hover:bg-taupe-canvas/40 transition" data-key="${storageKey}">
             <td class="p-2">
-              <input type="text" class="m-name w-full p-1.5 border border-taupe-border rounded-lg text-xs font-bold bg-white text-stone-800 outline-none focus:border-taupe-main" value="${finalDisplayLabel}">
+              <input type="text" class="m-name w-full p-1.5 border border-taupe-border rounded-lg text-xs font-bold bg-white text-stone-800 outline-none focus:border-taupe-main" value="${displayLabel}">
             </td>
             <td class="p-2">
-              <input type="number" class="m-old w-full p-1.5 border border-taupe-border rounded-lg text-xs outline-none bg-white font-mono" value="${saved.old}">
+              <input type="number" class="m-old w-full p-1.5 border border-taupe-border rounded-lg text-xs outline-none bg-white font-mono" value="${inherited.old}">
             </td>
             <td class="p-2">
-              <input type="number" class="m-price w-full p-1.5 border border-taupe-border rounded-lg text-xs font-bold text-taupe-crimson outline-none bg-white font-mono" value="${saved.price}">
+              <input type="number" class="m-price w-full p-1.5 border border-taupe-border rounded-lg text-xs font-bold text-taupe-crimson outline-none bg-white font-mono" value="${inherited.price}">
             </td>
             <td class="p-2">
-              <input type="number" class="m-stock w-full p-1.5 border border-taupe-border rounded-lg text-xs outline-none bg-white font-mono" value="${saved.stock}">
+              <input type="number" class="m-stock w-full p-1.5 border border-taupe-border rounded-lg text-xs outline-none bg-white font-mono" value="${inherited.stock}">
             </td>
             <td class="p-2 text-center whitespace-nowrap">
               <button type="button" onclick="moveMatrixRow(this, -1)" class="text-stone-500 hover:text-taupe-main font-bold px-1" title="上移">▲</button>
@@ -1648,9 +1672,9 @@
         `;
       });
 
-      showToast(`已成功更新 ${combos.length} 組規格矩陣！`);
+      showToast(`已更新定價矩陣！原設定之特價與原價已全數自動繼承保留。`);
     }
-
+    
     // 編輯商品：同時將矩陣反向拆解還原回「商品規格維度設定」輸入框中
     function editProduct(sku) {
       let p = globalProducts.find(x => x.sku === sku);
