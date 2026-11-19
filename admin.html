@@ -211,7 +211,7 @@
         <div class="flex flex-wrap justify-between items-center gap-2">
           <div>
             <span class="text-xs font-bold text-taupe-charcoal">商品規格維度設定</span>
-            <span class="text-[11px] text-stone-500 ml-2">※ 選項支援「逗號 , 或 ，」、「頓號 、」或「空格」分隔</span>
+            <span class="text-[11px] text-stone-500 ml-2">※ 選項支援「逗號 , 或 ，」或「頓號 、」分隔（規格尺寸內的空格不會被切碎）</span>
           </div>
           <div class="flex items-center gap-2">
             <button type="button" onclick="addDynamicSpecGroup()" class="text-xs bg-taupe-canvas hover:bg-taupe-light text-taupe-dark px-3 py-1.5 rounded-lg border border-taupe-border font-bold transition">
@@ -1574,22 +1574,24 @@
           <label class="text-xs font-bold text-stone-500">規格 ${count}</label>
           <button type="button" onclick="this.closest('.spec-group-item').remove();" class="text-[11px] text-rose-600 font-bold hover:underline">✕ 移除</button>
         </div>
-        <input type="text" value="${defaultValue}" class="spec-group-input w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none focus:bg-white focus:border-taupe-main" placeholder="使用逗號、頓號或空格分隔選項">
+        <input type="text" value="${defaultValue}" class="spec-group-input w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none focus:bg-white focus:border-taupe-main" placeholder="使用逗號或頓號分隔選項">
       `;
       container.appendChild(div);
     }
 
     // 點擊「⚡️ 生成／更新定價矩陣」時觸發，完整記憶已填價格
+    // 點擊「⚡️ 生成／更新定價矩陣」時觸發
     function generateMatrixFromGroups() {
       const tbody = document.getElementById('matrixTableBody');
       if (!tbody) return;
 
-      // 1. 完整備份畫面上所有已填價格與庫存
+      // 備份現有已填寫之數值與自訂名稱
       let existingValues = {};
       tbody.querySelectorAll('tr').forEach(row => {
         let key = row.dataset.key;
         if (key) {
           existingValues[key] = {
+            label: row.querySelector('.m-name')?.value || '',
             old: row.querySelector('.m-old')?.value || '0',
             price: row.querySelector('.m-price')?.value || '',
             stock: row.querySelector('.m-stock')?.value || '99'
@@ -1597,16 +1599,15 @@
         }
       });
 
-      // 2. 解析各維度輸入框字串 (支援逗號、頓號、空格)
+      // 僅使用逗號與頓號切割，保留括號與尺寸內部空格
       let groups = [];
       document.querySelectorAll('.spec-group-input').forEach(inp => {
-        let items = inp.value.split(/[,，、\s]+/).map(s => s.trim()).filter(Boolean);
+        let items = inp.value.split(/[,，、]+/).map(s => s.trim()).filter(Boolean);
         if (items.length > 0) groups.push(items);
       });
 
       if (groups.length === 0) groups = [["單一規格"]];
 
-      // 3. 笛卡爾積組合計算
       let combos = groups.reduce((acc, curr) => {
         let res = [];
         acc.forEach(a => curr.forEach(b => res.push(a.concat(b))));
@@ -1615,31 +1616,39 @@
 
       tbody.innerHTML = "";
 
-      // 4. 生成表格並自動匹配還原價格
       combos.forEach(comboArr => {
-        let displayLabel = comboArr.join(' / ');
+        let defaultLabel = comboArr.join(' / ');
         let storageKey = comboArr.length >= 2 
           ? `款式:${comboArr[0]} / ${comboArr.slice(1).join('-')}` 
           : `款式:${comboArr[0]} / 標準`;
 
-        let saved = existingValues[storageKey] || { old: '0', price: '', stock: '99' };
+        let saved = existingValues[storageKey] || { label: defaultLabel, old: '0', price: '', stock: '99' };
+        let finalDisplayLabel = saved.label || defaultLabel;
 
         tbody.innerHTML += `
-          <tr class="border-b border-taupe-border" data-key="${storageKey}">
-            <td class="p-2 font-bold">${displayLabel}</td>
-            <td class="p-2"><input type="number" class="m-old w-full p-1.5 border border-taupe-border rounded text-xs" value="${saved.old}"></td>
-            <td class="p-2"><input type="number" class="m-price w-full p-1.5 border border-taupe-border rounded text-xs font-bold text-taupe-crimson" value="${saved.price}"></td>
-            <td class="p-2"><input type="number" class="m-stock w-full p-1.5 border border-taupe-border rounded text-xs" value="${saved.stock}"></td>
+          <tr class="border-b border-taupe-border hover:bg-taupe-canvas/40 transition" data-key="${storageKey}">
+            <td class="p-2">
+              <input type="text" class="m-name w-full p-1.5 border border-taupe-border rounded-lg text-xs font-bold bg-white text-stone-800 outline-none focus:border-taupe-main" value="${finalDisplayLabel}">
+            </td>
+            <td class="p-2">
+              <input type="number" class="m-old w-full p-1.5 border border-taupe-border rounded-lg text-xs outline-none bg-white font-mono" value="${saved.old}">
+            </td>
+            <td class="p-2">
+              <input type="number" class="m-price w-full p-1.5 border border-taupe-border rounded-lg text-xs font-bold text-taupe-crimson outline-none bg-white font-mono" value="${saved.price}">
+            </td>
+            <td class="p-2">
+              <input type="number" class="m-stock w-full p-1.5 border border-taupe-border rounded-lg text-xs outline-none bg-white font-mono" value="${saved.stock}">
+            </td>
             <td class="p-2 text-center whitespace-nowrap">
               <button type="button" onclick="moveMatrixRow(this, -1)" class="text-stone-500 hover:text-taupe-main font-bold px-1" title="上移">▲</button>
               <button type="button" onclick="moveMatrixRow(this, 1)" class="text-stone-500 hover:text-taupe-main font-bold px-1" title="下移">▼</button>
-              <button type="button" onclick="this.closest('tr').remove()" class="text-rose-600 hover:text-rose-800 font-bold px-1.5" title="刪除">✕</button>
+              <button type="button" onclick="this.closest('tr').remove()" class="text-rose-600 hover:text-rose-800 font-bold px-1.5 py-0.5">✕ 刪除</button>
             </td>
           </tr>
         `;
       });
 
-      showToast(`已生成 ${combos.length} 組規格定價矩陣！`);
+      showToast(`已成功更新 ${combos.length} 組規格矩陣！`);
     }
 
     // 編輯商品：同時將矩陣反向拆解還原回「商品規格維度設定」輸入框中
@@ -1663,26 +1672,23 @@
       currentUploadedImages = p.images ? p.images.split(/[\s,]+/).filter(Boolean) : [];
       renderProductThumbnails();
 
-      // 解析規格資料
       let specs = p.specs_data || [];
       if (typeof specs === 'string') {
         try { specs = JSON.parse(specs); } catch(e) { specs = []; }
       }
 
-      // ⭐️ 核心優化：反向將已存在的規格組合，拆分填回「規格維度設定」輸入框
+      // 反向解析填入規格群組
       let spec1List = new Set();
       let spec2List = new Set();
-
       if (specs.length > 0) {
         specs.forEach(sp => {
-          let raw = sp.spec.replace("款式:", "").trim();
+          let raw = (sp.spec || '').replace("款式:", "").trim();
           let parts = raw.split('/').map(s => s.trim());
           if (parts[0]) spec1List.add(parts[0]);
           if (parts[1] && parts[1] !== '標準') spec2List.add(parts[1]);
         });
       }
 
-      // 重建維度輸入框
       const specGroupContainer = document.getElementById('dynamicSpecGroupsContainer');
       specGroupContainer.innerHTML = `
         <div class="spec-group-item">
@@ -1695,23 +1701,25 @@
         </div>
       `;
 
-      // 渲染矩陣表格
+      // 渲染表格（確保帶有 .m-name 可供編輯與儲存）
       const tbody = document.getElementById('matrixTableBody');
       tbody.innerHTML = "";
 
       if (specs.length > 0) {
         specs.forEach(sp => {
-          let displayName = sp.spec.replace("款式:", "").replace(" / 標準", "").trim();
+          let displayName = (sp.spec || '').replace("款式:", "").replace(" / 標準", "").trim();
           tbody.innerHTML += `
-            <tr class="border-b border-taupe-border" data-key="${sp.spec}">
-              <td class="p-2 font-bold">${displayName}</td>
-              <td class="p-2"><input type="number" class="m-old w-full p-1 border border-taupe-border rounded text-xs" value="${sp.oldPrice || 0}"></td>
-              <td class="p-2"><input type="number" class="m-price w-full p-1 border border-taupe-border rounded text-xs font-bold text-taupe-crimson" value="${sp.price || 0}"></td>
-              <td class="p-2"><input type="number" class="m-stock w-full p-1 border border-taupe-border rounded text-xs" value="${sp.stock || 99}"></td>
+            <tr class="border-b border-taupe-border hover:bg-taupe-canvas/40 transition" data-key="${sp.spec}">
+              <td class="p-2">
+                <input type="text" class="m-name w-full p-1.5 border border-taupe-border rounded-lg text-xs font-bold bg-white text-stone-800 outline-none focus:border-taupe-main" value="${displayName}">
+              </td>
+              <td class="p-2"><input type="number" class="m-old w-full p-1.5 border border-taupe-border rounded-lg text-xs font-mono outline-none bg-white" value="${sp.oldPrice || 0}"></td>
+              <td class="p-2"><input type="number" class="m-price w-full p-1.5 border border-taupe-border rounded-lg text-xs font-bold text-taupe-crimson font-mono outline-none bg-white" value="${sp.price || 0}"></td>
+              <td class="p-2"><input type="number" class="m-stock w-full p-1.5 border border-taupe-border rounded-lg text-xs font-mono outline-none bg-white" value="${sp.stock || 99}"></td>
               <td class="p-2 text-center whitespace-nowrap">
                 <button type="button" onclick="moveMatrixRow(this, -1)" class="text-stone-500 hover:text-taupe-main font-bold px-1" title="上移">▲</button>
                 <button type="button" onclick="moveMatrixRow(this, 1)" class="text-stone-500 hover:text-taupe-main font-bold px-1" title="下移">▼</button>
-                <button type="button" onclick="this.closest('tr').remove()" class="text-rose-600 hover:text-rose-800 font-bold px-1.5" title="刪除">✕</button>
+                <button type="button" onclick="this.closest('tr').remove()" class="text-rose-600 hover:text-rose-800 font-bold px-1.5 py-0.5">✕ 刪除</button>
               </td>
             </tr>
           `;
@@ -1719,11 +1727,13 @@
       } else {
         tbody.innerHTML = `
           <tr class="border-b border-taupe-border" data-key="款式:單一規格 / 標準">
-            <td class="p-2 font-bold">單一規格</td>
-            <td class="p-2"><input type="number" class="m-old w-full p-1 border border-taupe-border rounded text-xs" value="${p.old_price || 0}"></td>
-            <td class="p-2"><input type="number" class="m-price w-full p-1 border border-taupe-border rounded text-xs font-bold text-taupe-crimson" value="${p.price || 0}"></td>
-            <td class="p-2"><input type="number" class="m-stock w-full p-1 border border-taupe-border rounded text-xs" value="99"></td>
-            <td class="p-2 text-center">
+            <td class="p-2">
+              <input type="text" class="m-name w-full p-1.5 border border-taupe-border rounded-lg text-xs font-bold bg-white text-stone-800 outline-none focus:border-taupe-main" value="單一規格">
+            </td>
+            <td class="p-2"><input type="number" class="m-old w-full p-1.5 border border-taupe-border rounded-lg text-xs font-mono outline-none bg-white" value="${p.old_price || 0}"></td>
+            <td class="p-2"><input type="number" class="m-price w-full p-1.5 border border-taupe-border rounded-lg text-xs font-bold text-taupe-crimson font-mono outline-none bg-white" value="${p.price || 0}"></td>
+            <td class="p-2"><input type="number" class="m-stock w-full p-1.5 border border-taupe-border rounded-lg text-xs font-mono outline-none bg-white" value="99"></td>
+            <td class="p-2 text-center whitespace-nowrap">
               <button type="button" onclick="this.closest('tr').remove()" class="text-rose-600 hover:text-rose-800 font-bold px-1.5 py-0.5">✕ 刪除</button>
             </td>
           </tr>
@@ -1836,21 +1846,23 @@ async function publishProduct() {
   let specsMap = new Map();
   let prices = [], oldPrices = [];
 
-  document.querySelectorAll('#matrixTableBody tr').forEach(row => {
-    let key = row.dataset.key;
-    let pr = row.querySelector('.m-price')?.value;
-    let oldPr = row.querySelector('.m-old')?.value;
-    let st = row.querySelector('.m-stock')?.value || '99';
-    
-    if (key && pr && Number(pr) > 0) {
-      specsMap.set(key, {
-        spec: key,
-        oldPrice: oldPr || "0",
-        price: String(pr),
-        stock: String(st)
+  // 替換 publishProduct 收集 specs 的區塊：
+      document.querySelectorAll('#matrixTableBody tr').forEach(row => {
+        let customName = row.querySelector('.m-name')?.value.trim();
+        let key = customName ? `款式:${customName} / 標準` : row.dataset.key;
+        let pr = row.querySelector('.m-price')?.value;
+        let oldPr = row.querySelector('.m-old')?.value;
+        let st = row.querySelector('.m-stock')?.value || '99';
+        
+        if (key && pr && Number(pr) > 0) {
+          specsMap.set(key, {
+            spec: key,
+            oldPrice: oldPr || "0",
+            price: String(pr),
+            stock: String(st)
+          });
+        }
       });
-    }
-  });
 
   let specs = Array.from(specsMap.values());
   specs.forEach(s => {
