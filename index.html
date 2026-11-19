@@ -1551,32 +1551,78 @@ function syncCategoryUrl(skipPushState = false) {
     }
 
     // 連動價格防呆計算
+    // 連動價格計算 (依據選取規格精準呈現設定價，絕不誤退最低起標價)
     function syncDetailPrice() {
       if (!currentDetailProduct) return;
-      let targetKey = `款式:${detailColor} / ${detailSize}`;
       let specs = Array.isArray(currentDetailProduct.specs_data) ? currentDetailProduct.specs_data : [];
-      
-      // 倒序尋找，優先抓取最新的一筆
+      if (typeof currentDetailProduct.specs_data === 'string') {
+        try { specs = JSON.parse(currentDetailProduct.specs_data); } catch(e) { specs = []; }
+      }
+
       let matched = null;
+      let targetKeyFull = `款式:${detailColor} / ${detailSize}`;
+      let targetKeyStandard = `款式:${detailColor} / 標準`;
+
+      // 1. 倒序查找：優先完全吻合款式與尺寸
       for (let i = specs.length - 1; i >= 0; i--) {
-        if (specs[i] && specs[i].spec === targetKey) {
-          matched = specs[i];
+        let sp = specs[i];
+        if (!sp) continue;
+        let sKey = sp.spec || '';
+        if (sKey === targetKeyFull || sKey === targetKeyStandard) {
+          matched = sp;
           break;
         }
       }
-      
+
+      // 2. 次級相容：若款式名稱包含尺寸括號 (如 四季被 S (160*210) 且無第二規格)
+      if (!matched) {
+        for (let i = specs.length - 1; i >= 0; i--) {
+          let sp = specs[i];
+          if (!sp) continue;
+          let sKey = (sp.spec || '').replace('款式:', '').trim();
+          let sPureName = sKey.split('/')[0].trim();
+          if (sPureName === detailColor) {
+            // 若有顏色規格，需進一步確認包含顏色
+            if (detailSize && detailSize !== '標準' && detailSize !== '單一規格') {
+              if (sKey.includes(detailSize)) {
+                matched = sp;
+                break;
+              }
+            } else {
+              matched = sp;
+              break;
+            }
+          }
+        }
+      }
+
+      // 3. 終極保底：若只有唯一一組規格，直接使用該組價格
+      if (!matched && specs.length === 1 && specs[0] && Number(specs[0].price) > 0) {
+        matched = specs[0];
+      }
+
       const priceEl = document.getElementById('detailPrice');
       const oldPriceEl = document.getElementById('detailOldPrice');
 
-      if (matched && matched.price) {
-        if (priceEl) priceEl.innerText = `NT$ ${Number(matched.price).toLocaleString()}`;
+      if (matched && Number(matched.price) > 0) {
+        let finalPrice = Number(matched.price);
+        let finalOldPrice = Number(matched.oldPrice || 0);
+
+        if (priceEl) priceEl.innerText = `NT$ ${finalPrice.toLocaleString()}`;
         if (oldPriceEl) {
-          oldPriceEl.innerText = (!currentDetailProduct.hide_old_price && matched.oldPrice && Number(matched.oldPrice) > 0) ? `NT$ ${Number(matched.oldPrice).toLocaleString()}` : '';
+          oldPriceEl.innerText = (!currentDetailProduct.hide_old_price && finalOldPrice > 0) 
+            ? `NT$ ${finalOldPrice.toLocaleString()}` 
+            : '';
         }
       } else {
-        if (priceEl) priceEl.innerText = `NT$ ${Number(currentDetailProduct.price || 0).toLocaleString()}`;
+        // 查無規格設定時才顯示商品主檔價格
+        let fallbackPrice = Number(currentDetailProduct.price || 0);
+        let fallbackOld = Number(currentDetailProduct.old_price || 0);
+        if (priceEl) priceEl.innerText = `NT$ ${fallbackPrice.toLocaleString()}`;
         if (oldPriceEl) {
-          oldPriceEl.innerText = (!currentDetailProduct.hide_old_price && currentDetailProduct.old_price && Number(currentDetailProduct.old_price) > 0) ? `NT$ ${Number(currentDetailProduct.old_price).toLocaleString()}` : '';
+          oldPriceEl.innerText = (!currentDetailProduct.hide_old_price && fallbackOld > 0) 
+            ? `NT$ ${fallbackOld.toLocaleString()}` 
+            : '';
         }
       }
     }
@@ -1702,38 +1748,59 @@ function syncCategoryUrl(skipPushState = false) {
     function confirmAddToCartFromDetail() {
       if (!currentDetailProduct) return;
       
-      // 1. 優先從畫面上的價格標籤提取客人當前看到的真實價格 (去除 "NT$" 與逗號)
-      let priceText = document.getElementById('detailPrice')?.innerText || '';
-      let currentPriceNum = Number(priceText.replace(/[^0-9]/g, ''));
-      
-      // 2. 防呆備援：若抓不到畫面價格，倒序查找 specs_data (優先抓取最新/後方的價格)
-      if (!currentPriceNum || currentPriceNum <= 0) {
-        let targetKey = `款式:${detailColor} / ${detailSize}`;
-        let specs = Array.isArray(currentDetailProduct.specs_data) ? currentDetailProduct.specs_data : [];
+      let specs = Array.isArray(currentDetailProduct.specs_data) ? currentDetailProduct.specs_data : [];
+      if (typeof currentDetailProduct.specs_data === 'string') {
+        try { specs = JSON.parse(currentDetailProduct.specs_data); } catch(e) { specs = []; }
+      }
+
+      let currentPriceNum = 0;
+      let matchedSpec = null;
+      let targetKeyFull = `款式:${detailColor} / ${detailSize}`;
+      let targetKeyStandard = `款式:${detailColor} / 標準`;
+
+      // 1. 優先從規格矩陣抓取該規格定義之實質售價
+      for (let i = specs.length - 1; i >= 0; i--) {
+        let sp = specs[i];
+        if (!sp) continue;
+        let sKey = sp.spec || '';
+        if (sKey === targetKeyFull || sKey === targetKeyStandard) {
+          matchedSpec = sp;
+          break;
+        }
+      }
+
+      if (!matchedSpec) {
         for (let i = specs.length - 1; i >= 0; i--) {
-          if (specs[i] && specs[i].spec === targetKey && Number(specs[i].price) > 0) {
-            currentPriceNum = Number(specs[i].price);
+          let sp = specs[i];
+          if (!sp) continue;
+          let sPureName = (sp.spec || '').replace('款式:', '').split('/')[0].trim();
+          if (sPureName === detailColor) {
+            matchedSpec = sp;
             break;
           }
         }
       }
-      
-      if (!currentPriceNum || currentPriceNum <= 0) {
-        currentPriceNum = Number(currentDetailProduct.price || 0);
+
+      if (matchedSpec && Number(matchedSpec.price) > 0) {
+        currentPriceNum = Number(matchedSpec.price);
+      } else {
+        // 從畫面抓取作為保底
+        let priceText = document.getElementById('detailPrice')?.innerText || '';
+        currentPriceNum = Number(priceText.replace(/[^0-9]/g, '')) || Number(currentDetailProduct.price || 0);
       }
 
-      // 3. 檢查購物車內是否已有同 SKU、同款式、同尺寸的商品
+      // 2. 寫入購物車，存在同款規格則累加數量並同步最新單價
       let existing = cart.find(i => i.sku === currentDetailProduct.sku && i.color === detailColor && i.size === detailSize);
       if (existing) {
         existing.qty += detailQty;
-        existing.price = currentPriceNum; // 確保價格同步更新為正確的最新價格 (20元)
+        existing.price = currentPriceNum;
       } else {
         cart.push({
           sku: currentDetailProduct.sku,
           prodName: currentDetailProduct.name,
           color: detailColor,
           size: detailSize,
-          price: currentPriceNum, // ⭐️ 精確存入 20 元
+          price: currentPriceNum,
           qty: detailQty,
           image: detailSelectedImgs[0] || '',
           category: currentDetailProduct.sub_category || currentDetailProduct.major_category
@@ -1742,7 +1809,7 @@ function syncCategoryUrl(skipPushState = false) {
 
       localStorage.setItem('shop_cart', JSON.stringify(cart));
       updateBadgesUI();
-      showToast(`已將 [${detailColor}/${detailSize}] 加入購物車！(單價 NT$ ${currentPriceNum})`);
+      showToast(`已將 [${detailColor}${detailSize && detailSize !== '標準' ? '/' + detailSize : ''}] 加入購物車！(單價 NT$ ${currentPriceNum.toLocaleString()})`);
     }
     
     // ==================== 6. 我的收藏 View (含商品縮圖與 ✕ 按鈕) ====================
