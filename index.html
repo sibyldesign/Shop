@@ -731,7 +731,7 @@
     }
 
     // 1. 取得全域設定
-    // 1. 取得全域設定 (已修復 headerStoreName 報錯並支援手機版隱藏店名防遮擋)
+    // 1. 取得全域設定 (修復語法閉合與動態 LINE 連動)
     async function fetchStoreConfig() {
       try {
         let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_stores?store_id=eq.${STORE_ID}`, {
@@ -770,7 +770,7 @@
             }
           }
 
-          // 智慧中英文斷行處理 ＋ 手機版顯示控制 (關閉時僅在電腦版 sm:flex 顯示)
+          // 智慧中英文斷行處理
           const nameBox = document.getElementById('headerStoreNameBox');
           if (nameBox) {
             let showOnMobile = (s.show_mobile_store_name !== false);
@@ -790,7 +790,7 @@
             }
           }
           
-          // 渲染右上角多按鈕群
+          // 渲染右上角自訂導航按鈕
           const actionBox = document.getElementById('headerCustomActionBox');
           let btnList = s.header_nav_buttons || (s.header_nav_btn ? [s.header_nav_btn] : []);
           
@@ -804,14 +804,7 @@
 
             actionBox.innerHTML = btnList.map(btn => {
               let iconSvg = iconMap[btn.icon_type || 'chat'] || iconMap.chat;
-              let content = '';
-              if (btn.display_mode === 'icon_only') {
-                content = iconSvg;
-              } else if (btn.display_mode === 'text_only') {
-                content = `<span>${btn.title}</span>`;
-              } else {
-                content = `${iconSvg}<span>${btn.title}</span>`;
-              }
+              let content = (btn.display_mode === 'icon_only') ? iconSvg : ((btn.display_mode === 'text_only') ? `<span>${btn.title}</span>` : `${iconSvg}<span>${btn.title}</span>`);
               return `
                 <a href="${btn.link || '#'}" target="_blank" class="text-[11px] font-bold text-stone-700 hover:opacity-75 transition flex items-center gap-1.5 px-2.5 py-1 rounded-full border shadow-2xs bg-white" style="border-color: var(--theme-border);">
                   ${content}
@@ -820,17 +813,20 @@
             }).join('');
           }
           
-          if (s.footer_line_id) {
-            const fLine = document.getElementById('footerLineLink');
-            if (fLine) {
-              fLine.innerText = s.footer_line_id;
-              fLine.href = `https://line.me/R/ti/p/${s.footer_line_id.replace('@','')}`;
+          // ⭐️ 頁尾 LINE 資訊完全依照後台設定
+          const fLine = document.getElementById('footerLineLink');
+          if (fLine) {
+            let lineId = (s.footer_line_id || '').trim();
+            let lineUrl = (s.footer_line_url || '').trim();
+            if (!lineUrl && lineId) {
+              lineUrl = `https://line.me/R/ti/p/${lineId.replace('@', '')}`;
             }
+            fLine.innerText = lineId || '線上客服';
+            fLine.href = lineUrl || '#';
           }
-          if (s.footer_company_info) {
-            const fComp = document.getElementById('footerCompanyText');
-            if (fComp) fComp.innerText = s.footer_company_info;
-          }
+            
+          const fComp = document.getElementById('footerCompanyText');
+          if (fComp) fComp.innerText = s.footer_company_info || '希貝兒設計所 | 統一編號 61347275';
 
           if (s.store_terms) storeTerms = s.store_terms;
 
@@ -1529,7 +1525,7 @@ function syncCategoryUrl(skipPushState = false) {
         `).join('');
       }
 
-      // 9. 第二規格拆解 (若無顏色/配件等次規格則整塊隱藏)
+      // 9. 第二規格拆解 (若無尺寸/配件等次規格則整塊隱藏)
       const sizeBlock = document.getElementById('sizeBlock');
       const sizeBox = document.getElementById('detailSizeOptions');
       if (sizes.length > 0) {
@@ -1546,7 +1542,7 @@ function syncCategoryUrl(skipPushState = false) {
       }
 
       updateDetailHeartUI();
-      syncDetailPrice();
+      syncDetailPrice(); // ⭐️ 立即計算初始選定規格之價格
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
