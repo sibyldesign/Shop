@@ -2390,67 +2390,65 @@ function syncCategoryUrl(skipPushState = false) {
     }
 
     async function executeOrderLookup() {
-  let phone = document.getElementById('queryInputPhoneField').value.trim();
-  let pin = document.getElementById('queryInputPinField').value.trim();
-  const container = document.getElementById('orderQueryResultsContainer');
+      let phone = document.getElementById('queryInputPhoneField').value.trim();
+      let pin = document.getElementById('queryInputPinField').value.trim();
+      const container = document.getElementById('orderQueryResultsContainer');
 
-  if (!phone) return showToast("請輸入手機號碼");
-  if (!pin || pin.length < 4) return showToast("請輸入 4 位數安全 PIN 碼");
+      if (!phone) return showToast("請輸入手機號碼");
+      if (!pin || pin.length < 4) return showToast("請輸入 4 位數安全 PIN 碼");
 
-  container.innerHTML = `<div class="text-center py-4 text-stone-400">正在進行身分安全驗證...</div>`;
-  try {
-    let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_orders?store_id=eq.${STORE_ID}&customer_phone=eq.${phone}&order_pin=eq.${pin}&order=created_at.desc`, {
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
-    });
-    let orders = await res.json();
-    
-    if (!orders || orders.length === 0) {
-      container.innerHTML = `
-        <div class="text-center py-4 text-rose-600 space-y-1">
-          <div class="font-bold">驗證未通過</div>
-          <div class="text-[11px] text-stone-400">手機號碼或 4 位數 PIN 碼有誤，請確認訂單通知信。</div>
-        </div>`;
-      return;
-    }
+      container.innerHTML = `<div class="text-center py-4 text-stone-400">正在進行身分安全驗證...</div>`;
+      try {
+        // ⭐️ 核心修正：查閱專用脫敏 View，安全隔離姓名與住址
+        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_orders_public_safe?store_id=eq.${STORE_ID}&customer_phone=eq.${phone}&order_pin=eq.${pin}&order=created_at.desc`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+        });
+        let orders = await res.json();
+        
+        if (!orders || orders.length === 0) {
+          container.innerHTML = `
+            <div class="text-center py-4 text-rose-600 space-y-1">
+              <div class="font-bold">驗證未通過</div>
+              <div class="text-[11px] text-stone-400">手機號碼或 4 位數 PIN 碼有誤，請確認訂單通知信。</div>
+            </div>`;
+          return;
+        }
 
-    container.innerHTML = orders.map(o => {
-      let isShipped = o.tracking_no && (o.order_status === '待宅配出貨' || o.order_status === '已結案');
-      let postQueryUrl = "https://postserv.post.gov.tw/pstproc/stch02901.jsp";
+        container.innerHTML = orders.map(o => {
+          let isShipped = o.tracking_no && (o.order_status === '待宅配出貨' || o.order_status === '已結案');
+          let postQueryUrl = "https://postserv.post.gov.tw/pstproc/stch02901.jsp";
 
-      return `
-        <div class="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 space-y-2 text-xs shadow-2xs">
-          <div class="flex justify-between items-center font-bold">
-            <span class="font-mono text-stone-900">${o.order_id}</span>
-            <span class="theme-text-primary px-2 py-0.5 rounded-full bg-white border border-stone-200 text-[11px]">${o.order_status}</span>
-          </div>
-
-          <!-- 物流貨態顯示區 -->
-          <div class="p-2.5 rounded-xl ${isShipped ? 'bg-emerald-50/70 border border-emerald-200' : 'bg-stone-100 border border-stone-200'} space-y-1">
-            <div class="flex justify-between items-center text-[11px]">
-              <span class="font-bold text-stone-700">物流方式：中華郵政包裹</span>
-              <span class="font-bold ${isShipped ? 'text-emerald-700' : 'text-stone-400'}">${isShipped ? '● 已交付郵局寄出' : '○ 備貨準備中'}</span>
-            </div>
-            ${o.tracking_no ? `
-              <div class="flex justify-between items-center pt-1 border-t border-emerald-200/60 text-[11px]">
-                <span>掛號單號：<b class="font-mono text-stone-800">${o.tracking_no}</b></span>
-                <a href="${postQueryUrl}" target="_blank" class="theme-text-primary font-bold underline hover:opacity-80">前往郵局查件 ➔</a>
+          return `
+            <div class="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 space-y-2 text-xs shadow-2xs">
+              <div class="flex justify-between items-center font-bold">
+                <span class="font-mono text-stone-900">${o.order_id}</span>
+                <span class="theme-text-primary px-2 py-0.5 rounded-full bg-white border border-stone-200 text-[11px]">${o.order_status}</span>
               </div>
-            ` : `
-              <div class="text-[10.5px] text-stone-400">尚未產生託運單號，備貨完成出貨將同步寄發信件。</div>
-            `}
-          </div>
-
-          <div class="flex justify-between text-stone-500 text-[11px] pt-1">
-            <span>實付總額：NT$ ${o.grand_total} (${o.payment_status})</span>
-            <span class="text-stone-400 text-[10px]">${new Date(o.created_at).toLocaleDateString()}</span>
-          </div>
-        </div>
-      `;
-    }).join('');
-  } catch(e) {
-    container.innerHTML = `<div class="text-center py-4 text-rose-500">連線異常，請稍後再試</div>`;
-  }
-}
+              <div class="p-2.5 rounded-xl ${isShipped ? 'bg-emerald-50/70 border border-emerald-200' : 'bg-stone-100 border border-stone-200'} space-y-1">
+                <div class="flex justify-between items-center text-[11px]">
+                  <span class="font-bold text-stone-700">物流方式：中華郵政包裹</span>
+                  <span class="font-bold ${isShipped ? 'text-emerald-700' : 'text-stone-400'}">${isShipped ? '● 已交付郵局寄出' : '○ 備貨準備中'}</span>
+                </div>
+                ${o.tracking_no ? `
+                  <div class="flex justify-between items-center pt-1 border-t border-emerald-200/60 text-[11px]">
+                    <span>掛號單號：<b class="font-mono text-stone-800">${o.tracking_no}</b></span>
+                    <a href="${postQueryUrl}" target="_blank" class="theme-text-primary font-bold underline hover:opacity-80">前往郵局查件 ➔</a>
+                  </div>
+                ` : `
+                  <div class="text-[10.5px] text-stone-400">尚未產生託運單號，備貨完成出貨將同步寄發信件。</div>
+                `}
+              </div>
+              <div class="flex justify-between text-stone-500 text-[11px] pt-1">
+                <span>實付總額：NT$ ${o.grand_total} (${o.payment_status})</span>
+                <span class="text-stone-400 text-[10px]">${new Date(o.created_at).toLocaleDateString()}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch(e) {
+        container.innerHTML = `<div class="text-center py-4 text-rose-500">連線異常，請稍後再試</div>`;
+      }
+    }
     // ==================== 12. 結帳送單 (全欄位必填防呆 + PayUni 安全連線) ====================
     // ==================== 12. 結帳送單 (上線高防禦標準版) ====================
     async function submitOrderToCheckout() {
