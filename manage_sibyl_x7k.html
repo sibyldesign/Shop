@@ -1497,14 +1497,11 @@
           ${couponBadge ? `<div class="mt-1.5">${couponBadge}</div>` : ''}
         </td>
         <td class="p-3 align-top space-y-1.5 whitespace-nowrap">
-  <div>${methodBadge}</div>
-  <div>${payBadgeHtml}</div>
-  <td class="p-3 align-top space-y-1.5 whitespace-nowrap">
-  <div>${methodBadge}</div>
-  <div>${payBadgeHtml}</div>
-  <div>${invBadge}</div>
-  ${invDetailHtml}
-</td>
+          <div>${methodBadge}</div>
+          <div>${payBadgeHtml}</div>
+          <div>${invBadge}</div>
+          ${invDetailHtml}
+        </td>
         <td class="p-3 align-top bg-taupe-canvas/40 border-x border-taupe-border/40">
           ${itemsHtml}
         </td>
@@ -1520,15 +1517,12 @@
           <div class="text-stone-700">${o.delivery_address}</div>
           ${o.customer_remark ? `<div class="text-[11px] text-taupe-main font-bold mt-1 bg-taupe-light/60 px-2 py-0.5 rounded inline-block">客備註：${o.customer_remark}</div>` : ''}
         </td>
-        
-        <!-- 郵局物流單號回填區塊 -->
         <td class="p-3 align-top space-y-1.5 min-w-[150px]">
           <input type="text" id="track_${o.order_id}" value="${trackVal}" placeholder="輸入郵局包裹單號..." class="p-1.5 border border-taupe-border rounded-lg w-full text-xs font-mono outline-none bg-white focus:border-taupe-main">
           <button type="button" onclick="saveTrackingAndNotify('${o.order_id}')" class="w-full px-2 py-1 bg-taupe-main hover:bg-taupe-hover text-white rounded-lg text-[10.5px] font-bold shadow-2xs transition">
             儲存並發出貨信
           </button>
         </td>
-
         <td class="p-3 align-top">
           <input type="text" value="${o.boss_remark || ''}" placeholder="內部對帳備註..." onchange="updateBossRemark('${o.order_id}', this.value)" class="p-1.5 border border-taupe-border rounded-lg w-full text-xs bg-white outline-none focus:border-taupe-main">
         </td>
