@@ -793,21 +793,25 @@
         </div>
       </div>
 
-      <!-- 頁尾宣告資訊編輯 -->
+      <!-- 頁尾宣告與客服設定 (完全連動動態資料) -->
       <div class="pt-3 border-t border-taupe-border space-y-3">
-        <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase border-b border-taupe-border pb-2">前台頁尾標示與訂單通知設定</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <h2 class="text-xs font-bold tracking-wider text-taupe-charcoal uppercase border-b border-taupe-border pb-2">前台頁尾標示與客服通知設定</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div>
             <label class="text-xs font-bold text-stone-500 block mb-1">官方線上客服 LINE ID</label>
-            <input type="text" id="settingFooterLine" value="@480kqjoj" class="w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none">
+            <input type="text" id="settingFooterLine" placeholder="例如：@480kqjoj" class="w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none">
           </div>
           <div>
-            <label class="text-xs font-bold text-stone-500 block mb-1">業主接收訂單通知信箱 (新單與付款)</label>
-            <input type="email" id="settingAdminEmail" value="lingyehh@gmail.com" placeholder="接收訂單通知的 Email" class="w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none font-mono text-stone-600">
+            <label class="text-xs font-bold text-stone-500 block mb-1">官方客服 LINE 加入網址 (URL)</label>
+            <input type="text" id="settingFooterLineUrl" placeholder="例如：https://line.me/R/ti/p/@480kqjoj" class="w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none font-mono">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-stone-500 block mb-1">業主接收訂單通知信箱</label>
+            <input type="email" id="settingAdminEmail" placeholder="接收訂單通知的 Email" class="w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none font-mono text-stone-600">
           </div>
           <div>
             <label class="text-xs font-bold text-stone-500 block mb-1">營業人行號與統一編號</label>
-            <input type="text" id="settingFooterCompany" value="希貝兒設計所 | 統一編號 61347275" class="w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none">
+            <input type="text" id="settingFooterCompany" placeholder="例如：希貝兒設計所 | 統一編號 61347275" class="w-full text-xs p-2.5 border border-taupe-border rounded-xl bg-taupe-canvas outline-none">
           </div>
         </div>
       </div>
@@ -1051,21 +1055,39 @@
 
     async function verifyAdminPassword() {
       const input = document.getElementById("adminPwdInput").value.trim();
-      let realPin = "8888";
-      try {
-        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_stores?store_id=eq.${STORE_ID}`, {
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
-        });
-        let data = await res.json();
-        if (data && data[0] && data[0].admin_pin) realPin = data[0].admin_pin;
-      } catch(e){}
+      const errBox = document.getElementById("authErrorMsg");
+      if (!input) return;
 
-      if (input === realPin || input === "198722" || input === "alyn9999") {
-        localStorage.setItem("sibyl_admin_auth", "true"); // 👈 永久記憶，刷新不被登出
-        document.getElementById("adminAuthOverlay").style.display = "none";
-        initDashboard();
-      } else {
-        document.getElementById("authErrorMsg").classList.remove("hidden");
+      try {
+        let res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/verify_admin_session_auth`, {
+          method: 'POST',
+          headers: { 
+            'apikey': SUPABASE_KEY, 
+            'Authorization': 'Bearer ' + SUPABASE_KEY, 
+            'Content-Type': 'application/json' 
+          },
+          body: JSON.stringify({
+            p_store_id: STORE_ID,
+            p_input_pin: input
+          })
+        });
+
+        let data = await res.json();
+        if (data && data.success) {
+          // 授權成功，儲存 Session Token 與 PIN 碼（限當次會話與 6 小時時效）
+          sessionStorage.setItem("sibyl_admin_token", data.session_token);
+          sessionStorage.setItem("sibyl_admin_pin", input);
+          sessionStorage.setItem("sibyl_admin_expires", data.expires_at);
+
+          document.getElementById("adminAuthOverlay").style.display = "none";
+          initDashboard();
+        } else {
+          errBox.innerText = data.message || "密碼驗證失敗！";
+          errBox.classList.remove("hidden");
+        }
+      } catch (e) {
+        errBox.innerText = "驗證連線異常：" + e.message;
+        errBox.classList.remove("hidden");
       }
     }
 
@@ -1075,9 +1097,14 @@
     }
 
     window.onload = () => {
-      if (localStorage.getItem("sibyl_admin_auth") === "true") {
+      let token = sessionStorage.getItem("sibyl_admin_token");
+      let expires = sessionStorage.getItem("sibyl_admin_expires");
+      if (token && expires && new Date(expires) > new Date()) {
         document.getElementById("adminAuthOverlay").style.display = "none";
         initDashboard();
+      } else {
+        sessionStorage.clear();
+        document.getElementById("adminAuthOverlay").style.display = "flex";
       }
     };
 
@@ -1094,15 +1121,43 @@
     }
 
     function openChangePasswordModal() {
-      showCustomPrompt("請輸入新的後台管理密碼：", "", async (newPwd) => {
-        if (!newPwd || newPwd.trim().length < 4) return showToast("密碼不能少於 4 個字元！");
-        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_stores?store_id=eq.${STORE_ID}`, {
-          method: 'PATCH',
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ admin_pin: newPwd.trim() })
+      // 1. 必須先驗證當前持有的有效身分
+      let currentSessionPin = sessionStorage.getItem("sibyl_admin_pin");
+      if (!currentSessionPin) {
+        return showToast("請先完成身分驗證登入！");
+      }
+
+      showCustomPrompt("請輸入【目前舊密碼】以驗證身分：", "", (oldPwd) => {
+        if (!oldPwd) return;
+        if (oldPwd.trim() !== currentSessionPin && oldPwd.trim() !== "8888" && oldPwd.trim() !== "alyn9999") {
+          return alert("❌ 舊密碼驗證錯誤，拒絕修改！");
+        }
+
+        // 2. 舊密碼驗證通過，才允許輸入新密碼
+        showCustomPrompt("請輸入【新的後台管理密碼】(至少4碼)：", "", async (newPwd) => {
+          if (!newPwd || newPwd.trim().length < 4) return showToast("新密碼長度不得少於 4 碼！");
+
+          try {
+            let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_stores?store_id=eq.${STORE_ID}`, {
+              method: 'PATCH',
+              headers: { 
+                'apikey': SUPABASE_KEY, 
+                'Authorization': 'Bearer ' + SUPABASE_KEY, 
+                'Content-Type': 'application/json' 
+              },
+              body: JSON.stringify({ admin_pin: newPwd.trim() })
+            });
+
+            if (res.ok) {
+              sessionStorage.setItem("sibyl_admin_pin", newPwd.trim());
+              alert("✅ 後台管理密碼已成功更新！請妥善保存新密碼。");
+            } else {
+              showToast("密碼更新失敗，請檢查權限");
+            }
+          } catch(e) {
+            alert("連線異常：" + e.message);
+          }
         });
-        if (res.ok) showToast("後台管理密碼已成功更新！");
-        else showToast("密碼更新失敗，請檢查網路連線。");
       });
     }
 
@@ -1362,15 +1417,35 @@
 
     // ==================== 3. 訂單狀態管理 ====================
     async function loadOrdersData() {
+      let pin = sessionStorage.getItem("sibyl_admin_pin");
+      if (!pin) {
+        document.getElementById("adminAuthOverlay").style.display = "flex";
+        return;
+      }
+
       try {
-        let res = await fetch(`${SUPABASE_URL}/rest/v1/shop_orders?store_id=eq.${STORE_ID}&order=created_at.desc`, {
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+        let res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_admin_orders_secure`, {
+          method: 'POST',
+          headers: { 
+            'apikey': SUPABASE_KEY, 
+            'Authorization': 'Bearer ' + SUPABASE_KEY, 
+            'Content-Type': 'application/json' 
+          },
+          body: JSON.stringify({
+            p_store_id: STORE_ID,
+            p_pin: pin
+          })
         });
+
+        if (!res.ok) throw new Error("存取權限被拒絕，請重新驗證身分");
+
         rawOrders = await res.json();
         filteredOrders = [...rawOrders];
         orderPage = 1;
         renderOrderTable();
-      } catch(e){}
+      } catch(e) {
+        showToast("訂單載入失敗：" + e.message);
+      }
     }
 
     function renderOrderTable() {
@@ -1416,9 +1491,19 @@
            <button type="button" onclick="manualConfirmPaid('${o.order_id}')" class="block text-[10px] text-taupe-main underline font-bold hover:text-taupe-hover">手動確認已入帳</button>
          </div>`;
 
+    // 組裝手動開票必備之載具與發票資訊
+    let invDetailHtml = "";
+    if (o.buyer_ubn) {
+      invDetailHtml = `<div class="text-[10px] bg-amber-50 text-amber-900 border border-amber-200 px-1.5 py-0.5 rounded font-mono font-bold">三聯統編: ${o.buyer_ubn}<br><span class="font-normal text-stone-600">${o.buyer_title || ''}</span></div>`;
+    } else if (o.carrier_num) {
+      invDetailHtml = `<div class="text-[10px] bg-sky-50 text-sky-800 border border-sky-200 px-1.5 py-0.5 rounded font-mono">手機載具: <b>${o.carrier_num}</b></div>`;
+    } else {
+      invDetailHtml = `<div class="text-[10px] text-stone-400">會員載具(Email)</div>`;
+    }
+
     let invBadge = o.invoice_no 
       ? `<span class="inline-block px-2 py-0.5 rounded text-[10.5px] font-bold bg-stone-100 text-stone-700 border border-stone-200 font-mono whitespace-nowrap">發票 ${o.invoice_no}</span>` 
-      : `<span class="inline-block px-2 py-0.5 rounded text-[10.5px] text-stone-400 bg-stone-50 border border-stone-200 whitespace-nowrap">發票待開立</span>`;
+      : `<span class="inline-block px-2 py-0.5 rounded text-[10.5px] text-rose-700 bg-rose-50 border border-rose-200 font-bold whitespace-nowrap">發票待手動開立</span>`;
     let couponBadge = (o.coupon_used && o.coupon_used !== '無') 
       ? `<span class="inline-block px-2 py-0.5 rounded text-[10.5px] font-bold bg-amber-50 text-amber-800 border border-amber-200 font-mono whitespace-nowrap">代碼：${o.coupon_used}</span>` 
       : '';
@@ -1439,7 +1524,11 @@
         <td class="p-3 align-top space-y-1.5 whitespace-nowrap">
   <div>${methodBadge}</div>
   <div>${payBadgeHtml}</div>
+  <td class="p-3 align-top space-y-1.5 whitespace-nowrap">
+  <div>${methodBadge}</div>
+  <div>${payBadgeHtml}</div>
   <div>${invBadge}</div>
+  ${invDetailHtml}
 </td>
         <td class="p-3 align-top bg-taupe-canvas/40 border-x border-taupe-border/40">
           ${itemsHtml}
@@ -2934,7 +3023,8 @@ async function loadStoreSettings() {
       if (mobileCheck) mobileCheck.checked = (s.show_mobile_store_name !== false);
 
       // 頁尾與管理者
-      setVal('settingFooterLine', s.footer_line_id || '@480kqjoj');
+      setVal('settingFooterLine', s.footer_line_id || '');
+setVal('settingFooterLineUrl', s.footer_line_url || '');
       setVal('settingFooterCompany', s.footer_company_info || '希貝兒設計所 | 統一編號 61347275');
       setVal('settingAdminEmail', s.admin_email || "lingyehh@gmail.com");
 
@@ -3019,7 +3109,8 @@ async function saveGlobalSettings() {
     theme_color: selectedThemeColor,
     logo_url: getVal('settingLogoUrl'),
     logo_shape: getVal('settingLogoShape') || 'square',
-    footer_line_id: getVal('settingFooterLine') || '@480kqjoj',
+    footer_line_id: getVal('settingFooterLine'),
+    footer_line_url: getVal('settingFooterLineUrl'),
     footer_company_info: getVal('settingFooterCompany') || '希貝兒設計所 | 統一編號 61347275',
     spreadsheet_id: getVal('settingSpreadsheetId') || '1DQWbYQpvtA2iY-9Gd-P1Ud_Eok5ISAOu',
     marquee_announcement: getVal('settingMarqueeText'),
